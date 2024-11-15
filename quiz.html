@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personality Quiz - Zac, Russell, or Michael?</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(to bottom right, #ff416c, #ff4b2b);
+            color: white;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+           
+              background: linear-gradient(to bottom , #d9760d, #571dcc);
+  
+           
+               
+            }
+        }
+
+        header {
+            background-color: rgba(0, 0, 0, 0.6);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 3rem;
+            color: #fff;
+            letter-spacing: 2px;
+        }
+
+        form {
+            margin-top: 50px;
+            padding: 40px;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 15px;
+            width: 80%;
+            max-width: 900px;
+            margin-left: auto;
+            margin-right: auto;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.4);
+        }
+
+        label {
+            font-size: 1.3rem;
+            font-weight: bold;
+            margin-top: 15px;
+            display: block;
+            text-align: left;
+            margin-left: 10px;
+        }
+
+        .answers {
+            margin-top: 10px;
+        }
+
+        .answers input {
+            margin: 8px;
+            width: 25px;
+            height: 25px;
+        }
+
+        .submit-btn {
+            background-color: #ff6363;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 50px;
+            font-size: 1.5rem;
+            color: white;
+            cursor: pointer;
+            margin-top: 30px;
+            transition: all 0.3s ease;
+        }
+
+        .submit-btn:hover {
+            background-color: #ff3b3b;
+            transform: scale(1.1);
+        }
+
+        #resultContainer {
+            display: none;
+            background-color: rgba(0, 0, 0, 0.8);
+            padding: 30px;
+            margin-top: 50px;
+            border-radius: 10px;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.4);
+            animation: fadeIn 1s ease-out;
+        }
+
+        #resultText {
+            font-size: 1.8rem;
+            font-weight: bold;
+        }
+
+        footer {
+            background-color: #333;
+            padding: 10px;
+            color: white;
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            font-size: 1rem;
+            text-align: center;
+        }
+
+        footer p {
+            margin: 0;
+        }
+
+        /* Animation for fading in results */
+        @keyframes fadeIn {
+            0% {
+                opacity: 0;
+            }
+            100% {
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Personality Quiz - Zac, Russell, or Michael?</h1>
+    </header>
+
+    <form id="quizForm">
+        <label>1. What is your preferred way of spending a weekend?</label>
+        <div class="answers">
+            <input type="radio" name="q1" value="zac"> Outdoor adventure<br>
+            <input type="radio" name="q1" value="russell"> Hanging out with friends<br>
+            <input type="radio" name="q1" value="michael"> Quiet time at home<br>
+        </div>
+
+        <label>2. How do you feel about challenges?</label>
+        <div class="answers">
+            <input type="radio" name="q2" value="zac"> Bring it on! I'm ready for anything<br>
+            <input type="radio" name="q2" value="russell"> Challenges are fun if I have people around<br>
+            <input type="radio" name="q2" value="michael"> I like challenges, but need some time to prepare<br>
+        </div>
+
+        <label>3. What kind of music do you enjoy?</label>
+        <div class="answers">
+            <input type="radio" name="q3" value="zac"> High-energy rock or rap<br>
+            <input type="radio" name="q3" value="russell"> Pop and upbeat music<br>
+            <input type="radio" name="q3" value="michael"> Classical or instrumental music<br>
+        </div>
+
+        <label>4. How do you handle stress?</label>
+        <div class="answers">
+            <input type="radio" name="q4" value="zac"> Push through it with action<br>
+            <input type="radio" name="q4" value="russell"> Talk it out with friends<br>
+            <input type="radio" name="q4" value="michael"> Take time to relax and reflect<br>
+        </div>
+
+        <label>5. What’s your ideal vacation?</label>
+        <div class="answers">
+            <input type="radio" name="q5" value="zac"> A backpacking trip across the mountains<br>
+            <input type="radio" name="q5" value="russell"> A beach holiday with friends<br>
+            <input type="radio" name="q5" value="michael"> A quiet cabin retreat in the woods<br>
+        </div>
+
+        <label>6. How do you feel about competition?</label>
+        <div class="answers">
+            <input type="radio" name="q6" value="zac"> I thrive on competition!<br>
+            <input type="radio" name="q6" value="russell"> Competition is fun when we all get along<br>
+            <input type="radio" name="q6" value="michael"> I’m not very competitive; I prefer collaboration<br>
+        </div>
+
+        <label>7. What’s your favorite type of movie?</label>
+        <div class="answers">
+            <input type="radio" name="q7" value="zac"> Action-packed blockbusters<br>
+            <input type="radio" name="q7" value="russell"> Comedies with friends<br>
+            <input type="radio" name="q7" value="michael"> Thought-provoking dramas<br>
+        </div>
+
+        <label>8. How do you react when someone challenges your opinion?</label>
+        <div class="answers">
+            <input type="radio" name="q8" value="zac"> I stand my ground!<br>
+            <input type="radio" name="q8" value="russell"> I try to understand their point of view<br>
+            <input type="radio" name="q8" value="michael"> I listen carefully and stay calm<br>
+        </div>
+
+        <label>9. What’s your favorite season?</label>
+        <div class="answers">
+            <input type="radio" name="q9" value="zac"> Summer – it’s time for adventure!<br>
+            <input type="radio" name="q9" value="russell"> Spring – perfect for outdoor activities<br>
+            <input type="radio" name="q9" value="michael"> Fall – cozy and peaceful<br>
+        </div>
+
+        <label>10. What’s your preferred social activity?</label>
+        <div class="answers">
+            <input type="radio" name="q10" value="zac"> High-energy group events<br>
+            <input type="radio" name="q10" value="russell"> Hanging out with friends at a café or bar<br>
+            <input type="radio" name="q10" value="michael"> Small gatherings with close friends<br>
+        </div>
+
+        <label>11. How do you spend your free time?</label>
+        <div class="answers">
+            <input type="radio" name="q11" value="zac"> Trying new activities and pushing myself<br>
+            <input type="radio" name="q11" value="russell"> Catching up with friends and exploring new places<br>
+            <input type="radio" name="q11" value="michael"> Reading or spending time on solo hobbies<br>
+        </div>
+
+        <label>12. How do you prefer to solve problems?</label>
+        <div class="answers">
+            <input type="radio" name="q12" value="zac"> Taking action and figuring it out as I go<br>
+            <input type="radio" name="q12" value="russell"> Working with others to brainstorm solutions<br>
+            <input type="radio" name="q12" value="michael"> Taking a step back and analyzing the situation<br>
+        </div>
+
+        <label>13. What motivates you the most?</label>
+        <div class="answers">
+            <input type="radio" name="q13" value="zac"> The thrill of adventure<br>
+            <input type="radio" name="q13" value="russell"> The support and energy of my friends<br>
+            <input type="radio" name="q13" value="michael"> The desire for inner peace and growth<br>
+        </div>
+
+        <label>14. How would your friends describe you?</label>
+        <div class="answers">
+            <input type="radio" name="q14" value="zac"> Adventurous and bold<br>
+            <input type="radio" name="q14" value="russell"> Fun-loving and outgoing<br>
+            <input type="radio" name="q14" value="michael"> Calm and thoughtful<br>
+        </div>
+
+        <label>15. How do you deal with failure?</label>
+        <div class="answers">
+            <input type="radio" name="q15" value="zac"> I get back up and try again<br>
+            <input type="radio" name="q15" value="russell"> I laugh it off and learn from it<br>
+            <input type="radio" name="q15" value="michael"> I take some time to reflect and improve<br>
+        </div>
+
+        <label>16. What’s your ideal way to relax?</label>
+        <div class="answers">
+            <input type="radio" name="q16" value="zac"> Adventure sports or outdoor activities<br>
+            <input type="radio" name="q16" value="russell"> Hanging out with friends and having fun<br>
+            <input type="radio" name="q16" value="michael"> A quiet walk or time spent in nature<br>
+        </div>
+
+        <label>17. What is your approach to new experiences?</label>
+        <div class="answers">
+            <input type="radio" name="q17" value="zac"> Jump in headfirst!<br>
+            <input type="radio" name="q17" value="russell"> I’m always excited to try new things with my friends<br>
+            <input type="radio" name="q17" value="michael"> I like to take it slow and make sure I’m prepared<br>
+        </div>
+
+        <label>18. What’s your go-to comfort food?</label>
+        <div class="answers">
+            <input type="radio" name="q18" value="zac"> Pizza or burgers<br>
+            <input type="radio" name="q18" value="russell"> Anything sweet – chocolate or candy<br>
+            <input type="radio" name="q18" value="michael"> Healthy snacks or a warm soup<br>
+        </div>
+
+        <label>19. How do you feel about change?</label>
+        <div class="answers">
+            <input type="radio" name="q19" value="zac"> I embrace it and adapt quickly<br>
+            <input type="radio" name="q19" value="russell"> Change is exciting, especially with friends<br>
+            <input type="radio" name="q19" value="michael"> Change can be challenging, but I handle it<br>
+        </div>
+
+        <label>20. What’s your dream job?</label>
+        <div class="answers">
+            <input type="radio" name="q20" value="zac"> Action-packed career like a firefighter or athlete<br>
+            <input type="radio" name="q20" value="russell"> Creative, social job like a performer or influencer<br>
+            <input type="radio" name="q20" value="michael"> A peaceful, thoughtful job like a writer or therapist<br>
+        </div>
+
+        <button type="submit" class="submit-btn">Submit</button>
+    </form>
+
+    <div id="resultContainer">
+        <h2>Your Personality</h2>
+        <p id="resultText"></p>
+    </div>
+
+    <footer>
+        <p>&copy; 2024 Zac's Personality Quiz</p>
+    </footer>
+
+    <script>
+        const form = document.getElementById("quizForm");
+        const resultContainer = document.getElementById("resultContainer");
+        const resultText = document.getElementById("resultText");
+
+        form.addEventListener("submit", function(event) {
+            event.preventDefault();
+
+            let zacCount = 0;
+            let russellCount = 0;
+            let michaelCount = 0;
+
+            // Check answers and tally votes
+            const answers = form.querySelectorAll("input[type='radio']:checked");
+            answers.forEach(answer => {
+                if (answer.value === "zac") {
+                    zacCount++;
+                } else if (answer.value === "russell") {
+                    russellCount++;
+                } else if (answer.value === "michael") {
+                    michaelCount++;
+                }
+            });
+
+            // Determine the result based on the highest count
+            let result = "";
+            if (zacCount > russellCount && zacCount > michaelCount) {
+                result = "You're Zac! You're adventurous, outgoing, and love action.";
+            } else if (russellCount > zacCount && russellCount > michaelCount) {
+                result = "You're Russell! You're fun-loving, social, and always up for a good time.";
+            } else if (michaelCount > zacCount && michaelCount > russellCount) {
+                result = "You're Michael! You're thoughtful, introspective, and enjoy quiet moments.";
+            } else {
+                result = "You're a mix of Zac, Russell, and Michael!";
+            }
+
+            // Show result
+            resultText.textContent = result;
+            resultContainer.style.display = "block";
+        });
+    </script>
+</body>
+</html>

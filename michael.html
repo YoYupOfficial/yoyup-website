@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Michael - *Yoyup* Character Wiki</title>
+    <style>
+        /* General Body Styling */
+        body {
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #f8c471, #28b463);
+            animation: backgroundGradient 10s ease infinite;
+            color: #fff;
+            overflow-x: hidden;
+            transition: background 1s ease;
+        }
+
+        /* Animated Gradient Background */
+        @keyframes backgroundGradient {
+            0% { background: linear-gradient(135deg, #f8c471, #28b463); }
+            50% { background: linear-gradient(135deg, #28b463, #f8c471); }
+            100% { background: linear-gradient(135deg, #f8c471, #28b463); }
+        }
+
+        /* Header Styling */
+        header {
+            background-color: #f8c471;
+            padding: 20px;
+            text-align: center;
+            border-bottom: 5px solid #27ae60;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            animation: headerSlideIn 1s ease-out;
+        }
+
+        @keyframes headerSlideIn {
+            0% { transform: translateY(-50px); opacity: 0; }
+            100% { transform: translateY(0); opacity: 1; }
+        }
+
+        /* Navigation Styling */
+        nav {
+            background: linear-gradient(45deg, #27ae60, #f8c471);
+            padding: 15px;
+            text-align: center;
+            border-bottom: 3px solid #28b463;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        nav a {
+            margin: 0 20px;
+            text-decoration: none;
+            color: #fff;
+            font-weight: bold;
+            font-size: 1.3em;
+            transition: color 0.3s, transform 0.3s;
+        }
+
+        nav a:hover {
+            color: #28b463;
+            transform: scale(1.1);
+        }
+
+        /* Character Profile Section */
+        .character-profile {
+            text-align: center;
+            padding: 60px 20px;
+            background: url('michael-banner.jpg') no-repeat center center/cover;
+            color: #fff;
+            border-bottom: 5px solid #f8c471;
+            position: relative;
+        }
+
+        /* Text Animations */
+        .character-profile h2 {
+            font-size: 3em;
+            animation: textGlow 1.5s ease-out infinite alternate;
+        }
+
+        @keyframes textGlow {
+            0% { text-shadow: 0 0 20px #f8c471, 0 0 30px #28b463, 0 0 40px #f8c471; }
+            100% { text-shadow: 0 0 20px #28b463, 0 0 30px #27ae60, 0 0 40px #28b463; }
+        }
+
+        .character-profile p {
+            font-size: 1.5em;
+            margin-top: 20px;
+            animation: fadeIn 2s ease-out;
+        }
+
+        /* Bio Section */
+        .bio-section {
+            text-align: center;
+            padding: 50px 20px;
+            background: linear-gradient(135deg, #f8c471, #28b463);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            border-radius: 15px;
+            margin: 30px auto;
+            width: 80%;
+        }
+
+        .bio-section h3 {
+            font-size: 2.5em;
+        }
+
+        .bio-section p {
+            font-size: 1.3em;
+            margin: 20px;
+        }
+
+        /* Return Button */
+        .button {
+            background: linear-gradient(45deg, #f8c471, #28b463);
+            padding: 10px 20px;
+            color: #fff;
+            font-weight: bold;
+            border-radius: 25px;
+            text-decoration: none;
+            font-size: 1.2em;
+            transition: background 0.3s, transform 0.3s;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .button:hover {
+            background: linear-gradient(45deg, #28b463, #f8c471);
+            transform: scale(1.1);
+        }
+
+        /* Confetti Section */
+        .confetti {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 9999;
+        }
+
+        .confetti-piece {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: #28b463;
+            opacity: 0;
+            animation: confettiFall 2s ease-in-out infinite;
+        }
+
+        @keyframes confettiFall {
+            0% { transform: translateY(-50px) rotate(45deg); opacity: 1; }
+            100% { transform: translateY(100vh) rotate(45deg); opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <header>
+        <h1>Michael - *Yoyup* Character Wiki</h1>
+    </header>
+
+    <!-- Navigation -->
+    <nav>
+        <a href="index.html">Home</a>
+        <a href="#bio">Biography</a>
+        <a href="#abilities">Abilities</a>
+        <a href="#fun">Fun Facts</a>
+        <a href="index.html" class="button">Return to Home</a>
+    </nav>
+
+    <!-- Character Profile Section -->
+    <section class="character-profile">
+        <h2>Michael: The Brave</h2>
+        <p>Strong, courageous, and determined. Michael is the heart and courage of the Yoyup team!</p>
+    </section>
+
+    <!-- Bio Section -->
+    <section id="bio" class="bio-section">
+        <h3>Biography</h3>
+        <p>Michael is the brave fighter and protector of the Yoyup team. His courage in the face of danger inspires those around him. No challenge is too great for Michael, and he always rushes to the aid of his friends when they need him most.</p>
+    </section>
+
+    <!-- Abilities Section -->
+    <section id="abilities" class="bio-section">
+        <h3>Abilities</h3>
+        <p>Michael's bravery and fighting skills are unparalleled. He possesses enhanced strength and is skilled in both hand-to-hand combat and wielding various weapons. His unwavering resolve allows him to push through even the most difficult challenges.</p>
+    </section>
+
+    <!-- Fun Facts Section -->
+    <section id="fun" class="bio-section">
+        <h3>Fun Facts</h3>
+        <ul>
+            <li>Michael loves to go rock climbing in his free time.</li>
+            <li>He has an impressive collection of ancient swords.</li>
+            <li>Despite his tough exterior, Michael has a soft spot for animals.</li>
+            <li>He enjoys playing chess as a way to train his strategic thinking.</li>
+        </ul>
+    </section>
+
+    <!-- Confetti Animation -->
+    <div id="confetti" class="confetti"></div>
+
+    <!-- Footer -->
+    <footer>
+        <p>&copy; 2024 Yoyup Animation. All rights reserved.</p>
+    </footer>
+</body>
+</html>
