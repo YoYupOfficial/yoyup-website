@@ -126,15 +126,17 @@
             transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
 
-        .episode-summary:hover, .character-profile:hover {
-            transform: translateY(-10px);
-            box-shadow: 0 15px 25px rgba(0, 0, 0, 0.2);
-            
-            .character-profile-villain:hover {
-            transform: translateY(-10px);
-            box-shadow: 0 15px 25px rgba(0, 0, 0, 0.2);
-        }
+    .episode-summary:hover, .character-profile:hover, .character-profile-villain:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 15px 25px rgba(0, 0, 0, 0.2);
+}
 
+/* Character Profile Link Styling */
+.character-profile, .character-profile-villain {
+    text-decoration: none;  /* Remove default underline */
+    color: inherit;  /* Inherit text color from the parent */
+    display: block;  /* Make the link a block-level element */
+}
         /* Image Hover Effect */
         img {
             max-width: 100%;
