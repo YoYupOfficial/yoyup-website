@@ -130,15 +130,13 @@
     transform: translateY(-10px);
     box-shadow: 0 15px 25px rgba(0, 0, 0, 0.2);
 }
-        /* Image Hover Effect */
+        /* Image Size Adjustment */
         img {
-            max-width: 100%;
-            border-radius: 15px;
-            transition: transform 0.3s;
-        }
-
-        img:hover {
-            transform: scale(1.05);
+            width: 100%;
+            height: auto;
+            max-width: 300px;  /* Adjust the size as needed */
+            max-height: 300px; /* Adjust the size as needed */
+            object-fit: cover;
         }
 
         /* Button Styling */
@@ -175,8 +173,9 @@
             text-decoration: none;  /* Remove default underline */
             color: inherit;  /* Inherit text color from the parent */
             display: block;  /* Make the link a block-level element to cover the whole profile area */
-        }   
-            .character-profile-villain {
+        }
+
+        .character-profile-villain {
             text-decoration: none;  /* Remove default underline */
             color: inherit;  /* Inherit text color from the parent */
             display: block;  
@@ -220,22 +219,22 @@
         <section id="characters">
             <h2>Meet the Characters</h2>
             <a href="zac.html" class="character-profile">
-                <img src="Zac-profile.jpg" alt="Zac" style= max-width: 10%; height: auto; border-radius: 10px;">
+                <img src="Zac-profile.jpg" alt="Zac">
                 <h3>Zac</h3>
                 <p>The brave leader who always finds a way out of tough situations.</p>
             </a>
             <a href="russell.html" class="character-profile">
-                <img src="russell-profile.jpg" alt="Russell"style= max-width: 10%; height: auto; border-radius: 10px;">
+                <img src="russell-profile.jpg" alt="Russell">
                 <h3>Russell</h3>
                 <p>The thinker and strategist with a sharp mind.</p>
             </a>
             <a href="michael.html" class="character-profile">
-                <img src="michael-profile.jpg" alt="Michael" style= max-width: 10%; height: auto; border-radius: 10px;">
+                <img src="michael-profile.jpg" alt="Michael">
                 <h3>Michael</h3>
                 <p>The cheerful companion whose heart keeps the team together.</p>
             </a>
              <a href="finn.html" class="character-profile-villain">
-                <img src="finn-profile.jpg" alt="Finn" style= max-width: 10%; height: auto; border-radius: 10px;">
+                <img src="finn-profile.jpg" alt="Finn">
                 <h3>Finn</h3>
                 <p>The villainous mastermind behind all destruction.</p>
             </a>
@@ -267,4 +266,3 @@
     </footer>
 </body>
 </html>
-
