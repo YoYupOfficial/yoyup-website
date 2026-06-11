@@ -1,0 +1,1856 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Evolution Simulator - Seepas</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            background: #1a1a1a;
+            color: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+        }
+        
+        .canvas-wrapper {
+            position: relative;
+            z-index: 1;
+        }
+        
+        canvas {
+            border: 3px solid #444;
+            background: #2a2a2a;
+            display: block;
+        }
+        
+        .controls {
+            background: #333;
+            padding: 20px;
+            border-radius: 8px;
+            border: 2px solid #444;
+            min-width: 250px;
+            position: relative;
+            z-index: 10; /* ensure controls are above canvas */
+        }
+        
+        .control-group {
+            margin-bottom: 15px;
+        }
+        
+        .control-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        
+        button {
+            background: #0066cc;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+            width: 100%;
+        }
+        
+        button:hover {
+            background: #0052a3;
+        }
+        
+        button:active {
+            background: #003d7a;
+        }
+        
+        .speed-control {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        input[type="range"] {
+            flex: 1;
+        }
+        
+        .stats {
+            background: #2a2a2a;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 15px;
+            font-size: 13px;
+            line-height: 1.8;
+        }
+        
+        .stat-line {
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .legend {
+            background: #2a2a2a;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 15px;
+            font-size: 12px;
+        }
+
+        .clock-panel {
+            display: flex;
+            gap: 12px;
+            margin-top: 15px;
+            justify-content: space-between;
+        }
+
+        .clock-widget {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            width: 110px;
+            background: #232323;
+            padding: 10px;
+            border-radius: 10px;
+            border: 1px solid #3d3d3d;
+        }
+
+        .clock-canvas {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: #111;
+            border: 1px solid #4d4d4d;
+        }
+
+        .clock-label {
+            font-size: 12px;
+            color: #ddd;
+            text-align: center;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        
+        .info-text {
+            font-size: 12px;
+            color: #aaa;
+            margin-top: 15px;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="canvas-wrapper">
+            <canvas id="canvas" width="1200" height="800"></canvas>
+        </div>
+        
+        <div class="controls">
+            <div class="control-group">
+                <button id="pausePlayBtn">⏸ PAUSE</button>
+            </div>
+            
+            <div class="control-group">
+                <label>Simulation Speed:</label>
+                <div class="speed-control">
+                    <input type="range" id="speedSlider" min="0.5" max="3" step="0.5" value="1">
+                    <span id="speedLabel">1x</span>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <button id="resetBtn">RESET</button>
+            </div>
+            
+            <div class="stats">
+                <div class="stat-line">
+                    <span>Total Seepas:</span>
+                    <strong id="seepasCount">0</strong>
+                </div>
+                <div class="stat-line">
+                    <span>Sim Time:</span>
+                    <strong id="simTime">0s</strong>
+                </div>
+                <div class="stat-line">
+                    <span>Clock:</span>
+                    <strong id="dayClock">0:00</strong>
+                </div>
+                <div class="stat-line">
+                    <span>Day Phase:</span>
+                    <strong id="dayPhase">Day</strong>
+                </div>
+                <div class="stat-line">
+                    <span>Season:</span>
+                    <strong id="seasonLabel">Spring</strong>
+                </div>
+                <div class="stat-line">
+                    <span>FPS:</span>
+                    <strong id="fps">0</strong>
+                </div>
+                <div class="stat-line">
+                    <span>Total Suubas:</span>
+                    <strong id="suubasCount">0</strong>
+                </div>
+                <div class="stat-line">
+                    <span>Total Siibas:</span>
+                    <strong id="siibasCount">0</strong>
+                </div>
+            </div>
+            <div class="clock-panel">
+                <div class="clock-widget">
+                    <canvas id="dayClockCanvas" class="clock-canvas" width="100" height="100"></canvas>
+                    <div class="clock-label">Day/Night Clock</div>
+                </div>
+                <div class="clock-widget">
+                    <canvas id="seasonClockCanvas" class="clock-canvas" width="100" height="100"></canvas>
+                    <div class="clock-label">Season Clock</div>
+                </div>
+            </div>
+            
+            <div class="legend">
+                <strong>Legend:</strong>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #4488ff;"></div>
+                    <span>Seepa</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #ffd84d;"></div>
+                    <span>Juvenile / Baby</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #0066ff;"></div>
+                    <span>Water (Pond)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #22dd22;"></div>
+                    <span>Fruit (Bush)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #d24132;"></div>
+                    <span>Apple (Tree)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="width:22px;height:22px;border-radius:4px;background:#6b2b2b;box-shadow:0 0 6px rgba(107,43,43,0.6);"></div>
+                    <span>Suuba (Predator)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="width:18px;height:18px;border-radius:50%;background:#ffd2d9;"></div>
+                    <span>Siiba (Small Predator)</span>
+                </div>
+            </div>
+            
+            <div class="info-text">
+                <strong>How it works:</strong>
+                <ul style="margin-left: 15px; margin-top: 8px;">
+                    <li>Seepas drink from the pond to reduce thirst</li>
+                    <li>Seepas eat fruits from the bush to reduce hunger</li>
+                    <li>Fruits regrow after 20 seconds</li>
+                    <li>More features coming soon!</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const backgroundCanvas = document.createElement('canvas');
+        backgroundCanvas.width = canvas.width;
+        backgroundCanvas.height = canvas.height;
+        const bgCtx = backgroundCanvas.getContext('2d');
+        const dayClockCanvas = document.getElementById('dayClockCanvas');
+        const dayClockCtx = dayClockCanvas ? dayClockCanvas.getContext('2d') : null;
+        const seasonClockCanvas = document.getElementById('seasonClockCanvas');
+        const seasonClockCtx = seasonClockCanvas ? seasonClockCanvas.getContext('2d') : null;
+        
+        // Game state
+        let gameState = {
+            paused: false,
+            speed: 1,
+            time: 0,
+            seepas: [],
+            ponds: [],
+            bushes: [],
+            trees: [],
+            fruitRegrowTime: 2 * 1000, // 2 seconds in ms
+            appleRegrowTime: 8 * 1000, // 8 seconds in ms
+            dayDuration: 48000, // 800 minutes for a full 24-hour cycle (day to night after 400 mins)
+            seasonDuration: 12000, // 200 minutes per season
+            seasonNames: ['Spring', 'Summer', 'Autumn', 'Winter'],
+            flockingActive: false,
+            stars: [],
+            suubas: [],
+            suubaSpawn: 50,
+            siibas: [],
+            siibaSpawn: 35
+        };
+        
+        let fps = 0;
+        let frameCount = 0;
+        let lastFpsTime = Date.now();
+        let noiseSeed = 0;
+
+        // Creature class
+        class Seepa {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.radius = 6;
+                this.vx = (Math.random() - 0.5) * 2;
+                this.vy = (Math.random() - 0.5) * 2;
+                this.speed = 1.5;
+                this.groupId = null;
+                this.sex = Math.random() < 0.5 ? 'male' : 'female';
+                this.lastReproduction = -Infinity;
+                this.age = Math.random() * 80; // initial age in seconds (some start as adults)
+                this.post18Color = null; // will be 'blue' or 'red' once assigned after 18s
+                // Start with hunger/thirst randomly between 0-50 so bars show 50%-100% full
+                this.hunger = Math.random() * 50; // 0-50 (0 = full, 50 = half-empty)
+                this.thirst = Math.random() * 50; // 0-50
+                this.maxStats = 100;
+            }
+            
+            update(deltaTime, gameState) {
+                deltaTime = deltaTime / 1000; // Convert to seconds
+                
+                // Increase hunger and thirst over time
+                    this.hunger += 3 * deltaTime;
+                    this.thirst += 4 * deltaTime;
+
+                // Age
+                this.age += deltaTime;
+
+                // Assign a random blue/red color after 18s (for juveniles)
+                if (this.age >= 18 && this.post18Color === null) {
+                    this.post18Color = Math.random() < 0.5 ? 'blue' : 'red';
+                }
+                
+                // Cap at max
+                this.hunger = Math.min(this.hunger, this.maxStats);
+                this.thirst = Math.min(this.thirst, this.maxStats);
+                
+                // Movement logic
+                this.moveTowardTarget(gameState);
+                
+                // Update position
+                this.x += this.vx * this.speed * deltaTime * 60;
+                this.y += this.vy * this.speed * deltaTime * 60;
+                
+                // Bounce off canvas edges so Seepas stay on-screen
+                if (this.x - this.radius < 0) {
+                    this.x = this.radius;
+                    this.vx *= -1;
+                }
+                if (this.x + this.radius > canvas.width) {
+                    this.x = canvas.width - this.radius;
+                    this.vx *= -1;
+                }
+                if (this.y - this.radius < 0) {
+                    this.y = this.radius;
+                    this.vy *= -1;
+                }
+                if (this.y + this.radius > canvas.height) {
+                    this.y = canvas.height - this.radius;
+                    this.vy *= -1;
+                }
+                
+                // Check interactions
+                this.checkWaterInteraction(gameState);
+                this.checkFruitInteraction(gameState);
+            }
+            
+            moveTowardTarget(gameState) {
+                let targetX, targetY;
+                let needWater = this.thirst > 75; // Thirst bar below 25%
+                let needFood = this.hunger > 75;  // Hunger bar below 25%
+
+                // Helper to find nearest pond/bush
+                const nearestPond = () => {
+                    if (!gameState.ponds || gameState.ponds.length === 0) return null;
+                    let best = null; let bestD = Infinity;
+                    for (const p of gameState.ponds) {
+                        const dSq = distanceSq(p.x, p.y, this.x, this.y);
+                        if (dSq < bestD) { bestD = dSq; best = p; }
+                    }
+                    return best;
+                };
+                const nearestBushWithFruit = () => {
+                    if (!gameState.bushes || gameState.bushes.length === 0) return null;
+                    let best = null; let bestD = Infinity;
+                    for (const b of gameState.bushes) {
+                        if (!b.fruits || !b.fruits.some(f => f.available)) continue;
+                        const dSq = distanceSq(b.x, b.y, this.x, this.y);
+                        if (dSq < bestD) { bestD = dSq; best = b; }
+                    }
+                    return best;
+                };
+
+                if (needWater && needFood) {
+                    // choose whichever is more critical (higher value)
+                    if (this.thirst >= this.hunger) {
+                        const p = nearestPond(); if (!p) return; targetX = p.x; targetY = p.y;
+                    } else {
+                        const b = nearestBushWithFruit(); if (!b) return; targetX = b.x; targetY = b.y;
+                    }
+                } else if (needWater) {
+                    const p = nearestPond(); if (!p) return; targetX = p.x; targetY = p.y;
+                } else if (needFood) {
+                    const b = nearestBushWithFruit(); if (!b) return; targetX = b.x; targetY = b.y;
+                    } else {
+                    // Random wandering
+                    const flockDir = gameState.flockingActive ? this.calculateFlock(gameState) : null;
+                    if (flockDir) {
+                        this.vx = lerp(this.vx, flockDir.x, 0.45);
+                        this.vy = lerp(this.vy, flockDir.y, 0.45);
+                    }
+                    return;
+                }
+
+                const dx = targetX - this.x;
+                const dy = targetY - this.y;
+                const distSq = dx * dx + dy * dy;
+
+                if (distSq > 0) {
+                    const invDist = 1 / Math.sqrt(distSq);
+                    this.vx = (dx * invDist) * 0.8 + (Math.random() - 0.5) * 0.2;
+                    this.vy = (dy * invDist) * 0.8 + (Math.random() - 0.5) * 0.2;
+                }
+
+                const flockDir = gameState.flockingActive ? this.calculateFlock(gameState) : null;
+                if (flockDir) {
+                    this.vx = lerp(this.vx, flockDir.x, 0.22);
+                    this.vy = lerp(this.vy, flockDir.y, 0.22);
+                }
+            }
+            
+            checkWaterInteraction(gameState) {
+                if (!gameState.ponds) return;
+                for (const pond of gameState.ponds) {
+                        const dSq = distanceSq(this.x, this.y, pond.x, pond.y);
+                    const minSq = (pond.radius + this.radius) * (pond.radius + this.radius);
+                    if (dSq < minSq) {
+                        // Drinking
+                        this.thirst = Math.max(0, this.thirst - 40);
+                        return true;
+                    }
+                }
+                return false;
+            }
+            
+            checkFruitInteraction(gameState) {
+                if (!gameState.bushes && !gameState.trees) return false;
+                if (this.hunger < 30) return false; // Can't eat if hunger bar above 70%
+
+                // Eat Siibas (small creatures) if hungry
+                if (gameState.siibas && gameState.siibas.length > 0) {
+                    for (let i = 0; i < gameState.siibas.length; i++) {
+                        const siiba = gameState.siibas[i];
+                        const dSq = distanceSq(this.x, this.y, siiba.x, siiba.y);
+                        const minSq = (siiba.radius + this.radius) * (siiba.radius + this.radius);
+                        if (dSq < minSq) {
+                            // Seepa eats the siiba
+                            gameState.siibas.splice(i, 1);
+                            this.hunger = Math.max(0, this.hunger - 60);
+                            return true;
+                        }
+                    }
+                }
+
+                // Eat fruit from bushes first
+                for (const bush of gameState.bushes || []) {
+                    if (!bush.fruits || bush.fruits.length === 0) continue;
+                    const dSq = distanceSq(this.x, this.y, bush.x, bush.y);
+                    const minSq = (bush.radius + this.radius) * (bush.radius + this.radius);
+                    if (dSq < minSq) {
+                        for (let i = 0; i < bush.fruits.length; i++) {
+                            if (bush.fruits[i].available) {
+                                this.hunger = Math.max(0, this.hunger - 50);
+                                bush.fruits[i].available = false;
+                                bush.fruits[i].eatTime = gameState.time;
+                                return true;
+                            }
+                        }
+                    }
+                }
+
+                // Then eat apples from trees
+                for (const tree of gameState.trees || []) {
+                    if (!tree.apples || tree.apples.length === 0) continue;
+                    const dSq = distanceSq(this.x, this.y, tree.x, tree.y - tree.foliageRadius * 0.5);
+                    const minSq = (tree.foliageRadius + this.radius) * (tree.foliageRadius + this.radius);
+                    if (dSq < minSq) {
+                        for (let apple of tree.apples) {
+                            if (apple.available) {
+                                const ax = tree.x + apple.offsetX;
+                                const ay = tree.y + apple.offsetY;
+                                const adSq = distanceSq(this.x, this.y, ax, ay);
+                                const minASq = (this.radius + 6) * (this.radius + 6);
+                                if (adSq < minASq) {
+                                    this.hunger = Math.max(0, this.hunger - 40);
+                                    apple.available = false;
+                                    apple.eatTime = gameState.time;
+                                    return true;
+                                }
+                            }
+                        }
+                    }
+                }
+                return false;
+            }
+
+            calculateFlock(gameState) {
+                let alignX = 0;
+                let alignY = 0;
+                let cohesionX = 0;
+                let cohesionY = 0;
+                let separationX = 0;
+                let separationY = 0;
+                let count = 0;
+                const season = getSeasonName();
+                const springGroupOnly = season === 'Spring';
+                if (springGroupOnly && this.groupId == null) return null;
+                const neighborRadiusSq = 70 * 70;
+
+                for (const other of gameState.seepas) {
+                    if (other === this) continue;
+                    if (springGroupOnly && other.groupId !== this.groupId) continue;
+                    const dSq = distanceSq(this.x, this.y, other.x, other.y);
+                    if (dSq > 0 && dSq < neighborRadiusSq) {
+                        alignX += other.vx;
+                        alignY += other.vy;
+                        cohesionX += other.x;
+                        cohesionY += other.y;
+                        separationX += this.x - other.x;
+                        separationY += this.y - other.y;
+                        count++;
+                    }
+                }
+
+                if (count === 0) return null;
+                alignX /= count;
+                alignY /= count;
+                cohesionX = cohesionX / count - this.x;
+                cohesionY = cohesionY / count - this.y;
+                separationX /= count;
+                separationY /= count;
+
+                const fx = alignX * 0.45 + cohesionX * 0.025 + separationX * 0.12;
+                const fy = alignY * 0.45 + cohesionY * 0.025 + separationY * 0.12;
+                const magSq = fx * fx + fy * fy;
+                if (magSq < 0.0001) return null;
+                const invMag = 1 / Math.sqrt(magSq);
+                return { x: fx * invMag, y: fy * invMag };
+            }
+            
+            isAlive() {
+                // Dies if hunger/thirst reach 100 or age exceeds 100 seconds
+                return this.hunger < 100 && this.thirst < 100 && this.age <= 100;
+            }
+            
+            draw() {
+                // Polished Seepa: shadow, gradient body, eye, shine, outline
+                const isSpringFlock = getSeasonName() === 'Spring' && gameState.flockingActive && this.groupId;
+                if (isSpringFlock) {
+                    const highlightColors = ['rgba(190, 255, 170, 0.18)', 'rgba(150, 235, 130, 0.25)', 'rgba(105, 205, 110, 0.18)'];
+                    ctx.fillStyle = highlightColors[this.groupId % highlightColors.length];
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.radius * 2.8, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // Shadow
+                ctx.fillStyle = 'rgba(0,0,0,0.14)';
+                ctx.beginPath();
+                ctx.ellipse(this.x, this.y + this.radius + 4, this.radius * 1.6, this.radius * 0.9, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Body with slight rotation based on velocity
+                const angle = Math.atan2(this.vy, this.vx);
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(angle * 0.12);
+
+                // Radial gradient for depth
+                const g = ctx.createRadialGradient(-this.radius * 0.3, -this.radius * 0.3, 1, 0, 0, this.radius * 1.2);
+                // Old Seepas (>60s) are green, juveniles (<30s) yellow, otherwise sex-based
+                if (this.age > 60) {
+                    g.addColorStop(0, '#d8f7d6');
+                    g.addColorStop(0.5, '#93e07b');
+                    g.addColorStop(1, '#4fa83f');
+                } else if (this.age < 30) {
+                    if (this.age < 18 || this.post18Color === null) {
+                        // still yellow
+                        g.addColorStop(0, '#fff7c2');
+                        g.addColorStop(0.5, '#ffd84d');
+                        g.addColorStop(1, '#e5b700');
+                    } else {
+                        // post-18 juvenile color: blue or red
+                        if (this.post18Color === 'blue') {
+                            g.addColorStop(0, '#cfeeff');
+                            g.addColorStop(0.5, '#88cfff');
+                            g.addColorStop(1, '#3fa1ff');
+                        } else {
+                            g.addColorStop(0, '#ffd2d2');
+                            g.addColorStop(0.5, '#ff8f8f');
+                            g.addColorStop(1, '#ff5a5a');
+                        }
+                    }
+                } else if (this.sex === 'male') {
+                    g.addColorStop(0, '#9fd3ff');
+                    g.addColorStop(0.5, '#63a6ff');
+                    g.addColorStop(1, '#2f6fbf');
+                } else {
+                    g.addColorStop(0, '#ffdff0');
+                    g.addColorStop(0.5, '#ff9fcf');
+                    g.addColorStop(1, '#d46f9a');
+                }
+                ctx.fillStyle = g;
+                ctx.beginPath();
+                ctx.ellipse(0, 0, this.radius * 1.25, this.radius, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Outline
+                ctx.strokeStyle = '#15345a';
+                ctx.lineWidth = 1.4;
+                ctx.stroke();
+
+                // Eye
+                const eyeX = this.radius * 0.35;
+                const eyeY = -this.radius * 0.15;
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(eyeX, eyeY, this.radius * 0.36, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#0b0b0b';
+                ctx.beginPath();
+                ctx.arc(eyeX + this.radius * 0.1, eyeY, this.radius * 0.16, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Specular shine
+                ctx.fillStyle = 'rgba(255,255,255,0.55)';
+                ctx.beginPath();
+                ctx.ellipse(-this.radius * 0.25, -this.radius * 0.45, this.radius * 0.28, this.radius * 0.12, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.restore();
+
+                // Draw age bar and other bars above creature
+                const barWidth = 26;
+                const barHeight = 4;
+                const barGap = 4;
+                const ageBarY = this.y - this.radius - 22;
+                const barY = this.y - this.radius - 16;
+
+                // Age bar background
+                const agePercent = Math.min(1, this.age / 100);
+                roundRect(ctx, this.x - barWidth / 2, ageBarY, barWidth, barHeight, 3, true, false);
+                // Age bar fill color: green if old, yellow if juvenile, gray otherwise
+                if (this.age > 60) ctx.fillStyle = '#6ab04c';
+                else if (this.age < 30) ctx.fillStyle = '#ffd84d';
+                else ctx.fillStyle = '#aaaaaa';
+                roundRect(ctx, this.x - barWidth / 2, ageBarY, barWidth * agePercent, barHeight, 3, true, false);
+
+                // Water/Thirst bar (left)
+                const waterBarX = this.x - barWidth / 2 - barGap / 2;
+                const waterPercent = 1 - (this.thirst / this.maxStats);
+
+                // Background
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+                roundRect(ctx, waterBarX, barY, barWidth, barHeight, 3, true, false);
+                // Fill
+                ctx.fillStyle = '#2e90ff';
+                roundRect(ctx, waterBarX, barY, barWidth * waterPercent, barHeight, 3, true, false);
+
+                // Food/Hunger bar (right)
+                const foodBarX = this.x + barGap / 2;
+                const foodPercent = 1 - (this.hunger / this.maxStats);
+
+                // Background
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+                roundRect(ctx, foodBarX, barY, barWidth, barHeight, 3, true, false);
+                // Fill
+                ctx.fillStyle = '#27c227';
+                roundRect(ctx, foodBarX, barY, barWidth * foodPercent, barHeight, 3, true, false);
+            }
+        }
+
+        // Small predator: Siiba (hunts Suubas). Cute and small — also edible by Seepas.
+        class Siiba {
+            constructor(x, y) {
+                this.x = x; this.y = y;
+                this.radius = 8 + Math.random() * 3;
+                this.vx = (Math.random() - 0.5) * 2;
+                this.vy = (Math.random() - 0.5) * 2;
+                this.speed = 1.6;
+                this.energy = 120;
+                this.hunger = Math.random() * 30 + 10;
+                this.thirst = Math.random() * 30 + 10;
+                this.maxStats = 180;
+                this.age = Math.random() * 20;
+                this.lifeSpan = 200;
+                this.eatCooldown = Math.random() * 1.5; // stagger initial attacks
+                this.sex = Math.random() < 0.5 ? 'male' : 'female';
+                this.lastReproduction = -Infinity;
+            }
+
+            update(deltaTime, gameState) {
+                deltaTime = deltaTime / 1000;
+                this.age += deltaTime;
+                this.hunger = Math.min(this.maxStats, this.hunger + 2 * deltaTime);
+                this.thirst = Math.min(this.maxStats, this.thirst + 2.5 * deltaTime);
+                if (this.eatCooldown > 0) this.eatCooldown -= deltaTime;
+
+                // Passive energy drain increases when very hungry or very thirsty
+                const drainFactor = 1 + (this.hunger / this.maxStats) * 0.9 + (this.thirst / this.maxStats) * 1.2;
+                this.energy = Math.max(0, this.energy - 4 * deltaTime * drainFactor);
+
+                // Opportunistic hunting: chase when hungry or when a suuba is nearby
+                let target = null; let bestD = Infinity;
+                if (gameState.suubas && gameState.suubas.length > 0) {
+                    for (const s of gameState.suubas) {
+                        const dx = s.x - this.x, dy = s.y - this.y;
+                        const d2 = dx*dx + dy*dy;
+                        if (d2 < bestD) { bestD = d2; target = s; }
+                    }
+                }
+                const seeRange = 120; // reduced sight range
+                const needFood = this.hunger > 50; // require more hunger before attacking
+                if (target && (needFood || bestD < seeRange * seeRange)) {
+                    const d = Math.sqrt(bestD) || 1e-6;
+                    this.vx = lerp(this.vx, (target.x - this.x)/d, 0.45);
+                    this.vy = lerp(this.vy, (target.y - this.y)/d, 0.45);
+                    if (d < this.radius + target.radius + 8 && this.eatCooldown <= 0 && this.hunger < (this.maxStats * 0.25)) {
+                        // attack: reduce suuba energy (only when hunger is below 25%)
+                        const idx = gameState.suubas.indexOf(target);
+                        if (idx !== -1) {
+                            target.energy = Math.max(0, target.energy - 90);
+                            this.energy = Math.min(this.maxStats, this.energy + 40);
+                            this.hunger = Math.max(0, this.hunger - 50);
+                            this.eatCooldown = 1.4; // increase cooldown to reduce attack rate
+                            if (target.energy <= 0) {
+                                // remove suuba and consume corpse: additional energy and hunger/thirst reduction
+                                gameState.suubas.splice(idx, 1);
+                                this.energy = Math.min(this.maxStats, this.energy + 80);
+                                this.hunger = Math.max(0, this.hunger - 80);
+                                this.thirst = Math.max(0, this.thirst - 10);
+                                // small growth on successful consumption (much smaller)
+                                this.radius = Math.min(14, this.radius + 0.6);
+                                this.maxStats = Math.min(320, this.maxStats + 8);
+                            }
+                        }
+                    }
+                } else {
+                    this.vx += (Math.random() - 0.5) * 0.06;
+                    this.vy += (Math.random() - 0.5) * 0.06;
+                    
+                    // reproduction attempt when well-fed, old enough, and cooled down
+                    if (this.age > 20 && this.energy > 100 && (gameState.time - (this.lastReproduction||-9999)) > 40) {
+                        for (const other of gameState.siibas || []) {
+                            if (other === this) continue;
+                            if (other.sex === this.sex) continue;
+                            if (other.age < 20) continue;
+                            if ((gameState.time - (other.lastReproduction||-9999)) <= 40) continue;
+                            if (other.energy < 80) continue;
+                            const d2 = distanceSq(this.x, this.y, other.x, other.y);
+                            if (d2 < 800) { // ~28px
+                                // spawn baby
+                                const bx = (this.x + other.x) / 2 + (Math.random() - 0.5) * 6;
+                                const by = (this.y + other.y) / 2 + (Math.random() - 0.5) * 6;
+                                const baby = new Siiba(bx, by);
+                                baby.age = 0;
+                                baby.energy = 90;
+                                baby.hunger = 10;
+                                baby.thirst = 10;
+                                gameState.siibas.push(baby);
+                                this.energy -= 50; other.energy -= 50;
+                                this.lastReproduction = gameState.time; other.lastReproduction = gameState.time;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                // move and bounds
+                const vlen = Math.sqrt(this.vx*this.vx + this.vy*this.vy) || 1e-6;
+                if (vlen > 2.2) { this.vx *= 2.2 / vlen; this.vy *= 2.2 / vlen; }
+                this.x += this.vx * this.speed * deltaTime * 60;
+                this.y += this.vy * this.speed * deltaTime * 60;
+                this.x = Math.max(this.radius, Math.min(canvas.width - this.radius, this.x));
+                this.y = Math.max(this.radius, Math.min(canvas.height - this.radius, this.y));
+            }
+
+            isAlive() { return this.energy > 0 && this.age < this.lifeSpan && this.hunger < this.maxStats && this.thirst < this.maxStats; }
+
+            draw() {
+                // cute tiny siiba: pastel round with ears and status bars
+                ctx.save(); ctx.translate(this.x, this.y);
+                const r = this.radius;
+                const g = ctx.createRadialGradient(-r*0.3, -r*0.3, 1, 0, 0, r*1.4);
+                g.addColorStop(0, '#fff4f0'); g.addColorStop(0.6, '#ffd2d9'); g.addColorStop(1, '#ff9fb3');
+                ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI*2); ctx.fill();
+                // ears
+                ctx.beginPath(); ctx.ellipse(-r*0.6, -r*0.6, r*0.35, r*0.25, -0.6, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.ellipse(r*0.6, -r*0.6, r*0.35, r*0.25, 0.6, 0, Math.PI*2); ctx.fill();
+                // eyes
+                ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(-r*0.25, -r*0.05, Math.max(1.2, r*0.15),0,Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(r*0.25, -r*0.05, Math.max(1.2, r*0.15),0,Math.PI*2); ctx.fill();
+
+                // Age bar (above)
+                const barW = r * 2.0;
+                const barX = -barW / 2;
+                const ageY = -r - 10;
+                const ageFrac = Math.max(0, Math.min(1, this.age / this.lifeSpan));
+                ctx.fillStyle = 'rgba(0,0,0,0.22)'; ctx.fillRect(barX, ageY, barW, 5);
+                const ageGrad = ctx.createLinearGradient(barX, 0, barX+barW, 0);
+                ageGrad.addColorStop(0, '#7bed9f'); ageGrad.addColorStop(1, '#ff6b6b');
+                ctx.fillStyle = ageGrad; ctx.fillRect(barX, ageY, barW * ageFrac, 5);
+
+                // Hydration (blue) and Hunger (green) bars (below)
+                const hydY = r + 6;
+                const hunY = hydY + 8;
+                ctx.fillStyle = 'rgba(0,0,0,0.22)'; ctx.fillRect(barX, hydY, barW, 5);
+                ctx.fillStyle = 'rgba(0,0,0,0.22)'; ctx.fillRect(barX, hunY, barW, 5);
+                const hydFrac = Math.max(0, 1 - (this.thirst / this.maxStats));
+                const hunFrac = Math.max(0, 1 - (this.hunger / this.maxStats));
+                ctx.fillStyle = '#4aa6ff'; ctx.fillRect(barX, hydY, barW * hydFrac, 5);
+                ctx.fillStyle = '#4ad94a'; ctx.fillRect(barX, hunY, barW * hunFrac, 5);
+
+                ctx.restore();
+            }
+        }
+        
+        // Helper: random value between min and max
+        function randomBetween(min, max) {
+            return min + Math.random() * (max - min);
+        }
+
+        function distanceSq(x1, y1, x2, y2) {
+            const dx = x1 - x2;
+            const dy = y1 - y2;
+            return dx * dx + dy * dy;
+        }
+
+        function getDayTime() {
+            const cycle = gameState.time % gameState.dayDuration;
+            return (cycle / gameState.dayDuration) * 24;
+        }
+
+        function getSeasonIndex() {
+            const seasonCycle = gameState.time % (gameState.seasonDuration * gameState.seasonNames.length);
+            return Math.floor(seasonCycle / gameState.seasonDuration);
+        }
+
+        function getSeasonName() {
+            return gameState.seasonNames[getSeasonIndex()];
+        }
+
+        function getSeasonProgress() {
+            const seasonCycle = gameState.time % (gameState.seasonDuration * gameState.seasonNames.length);
+            return (seasonCycle % gameState.seasonDuration) / gameState.seasonDuration;
+        }
+
+        function formatClock(hour) {
+            const h = Math.floor(hour) % 24;
+            const m = Math.floor((hour - Math.floor(hour)) * 60);
+            return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+        }
+
+        function getDayPhase() {
+            const hour = getDayTime();
+            if (hour < 6) return 'Night';
+            if (hour < 10) return 'Dawn';
+            if (hour < 16) return 'Day';
+            if (hour < 20) return 'Dusk';
+            return 'Night';
+        }
+
+        function isFlockingTime() {
+            const season = getSeasonName();
+            const hour = getDayTime();
+            return season === 'Spring' && hour >= 6 && hour < 11;
+        }
+
+        function lerp(a, b, t) {
+            return a + (b - a) * t;
+        }
+
+        function fade(t) {
+            return t * t * t * (t * (t * 6 - 15) + 10);
+        }
+
+        function hash2D(x, y) {
+            const sinSeed = Math.sin(x * 127.1 + y * 311.7 + noiseSeed * 13.13) * 43758.5453;
+            return sinSeed - Math.floor(sinSeed);
+        }
+
+        function noise2D(x, y) {
+            const x0 = Math.floor(x);
+            const y0 = Math.floor(y);
+            const xf = x - x0;
+            const yf = y - y0;
+
+            const v00 = hash2D(x0, y0);
+            const v10 = hash2D(x0 + 1, y0);
+            const v01 = hash2D(x0, y0 + 1);
+            const v11 = hash2D(x0 + 1, y0 + 1);
+
+            const u = fade(xf);
+            const v = fade(yf);
+
+            const nx0 = lerp(v00, v10, u);
+            const nx1 = lerp(v01, v11, u);
+            return lerp(nx0, nx1, v);
+        }
+
+        function fractalNoise(x, y, octaves = 4, persistence = 0.55, baseFrequency = 0.006) {
+            let amplitude = 1;
+            let frequency = baseFrequency;
+            let sum = 0;
+            let max = 0;
+            for (let i = 0; i < octaves; i++) {
+                sum += noise2D(x * frequency, y * frequency) * amplitude;
+                max += amplitude;
+                amplitude *= persistence;
+                frequency *= 2;
+            }
+            return sum / max;
+        }
+
+        // Initialize game
+        function init() {
+            noiseSeed = Math.random() * 1000;
+            gameState.seepas = [];
+            gameState.time = gameState.dayDuration * (8 / 24); // start at 8:00 AM in spring
+            
+            // Create ponds (water sources) in new random locations each reset
+            gameState.ponds = [
+                { x: randomBetween(120, canvas.width - 120), y: randomBetween(120, canvas.height - 120), radius: 50 + Math.random() * 16 },
+                { x: randomBetween(120, canvas.width - 120), y: randomBetween(120, canvas.height - 120), radius: 50 + Math.random() * 24 }
+            ];
+
+            // Create multiple bushes (food sources) and give each a random fruit cap (3-7)
+            const bushDefs = [
+                { radius: 40 },
+                { radius: 36 },
+                { radius: 38 },
+                { radius: 42 }
+            ];
+            gameState.bushes = bushDefs.map(d => {
+                const cap = Math.floor(Math.random() * 5) + 3; // 3..7 fruits
+                return {
+                    x: randomBetween(100, canvas.width - 100),
+                    y: randomBetween(100, canvas.height - 100),
+                    radius: d.radius,
+                    maxFruits: cap,
+                    fruits: createFruits(cap)
+                };
+            });
+            
+            // Create some trees in random locations each reset
+            gameState.trees = [
+                { x: randomBetween(80, canvas.width - 80), y: randomBetween(120, canvas.height - 120), trunkHeight: 40, foliageRadius: 28, apples: createTreeApples(3, 28) },
+                { x: randomBetween(80, canvas.width - 80), y: randomBetween(120, canvas.height - 120), trunkHeight: 48, foliageRadius: 34, apples: createTreeApples(4, 34) },
+                { x: randomBetween(80, canvas.width - 80), y: randomBetween(120, canvas.height - 120), trunkHeight: 52, foliageRadius: 30, apples: createTreeApples(3, 30) }
+            ];
+            
+            // Spawn initial seepas
+            for (let i = 0; i < 100; i++) {
+                const x = Math.random() * canvas.width;
+                const y = Math.random() * canvas.height;
+                gameState.seepas.push(new Seepa(x, y));
+            }
+            createSpringFlocks();
+
+            // Spawn initial Suubas (predators)
+            gameState.suubas = [];
+            for (let i = 0; i < (gameState.suubaSpawn || 2); i++) {
+                const sx = randomBetween(60, canvas.width - 60);
+                const sy = randomBetween(60, canvas.height - 60);
+                gameState.suubas.push(new Suuba(sx, sy));
+            }
+            // Spawn initial Siibas (small predators of Suubas, edible by Seepas)
+            gameState.siibas = [];
+            for (let i = 0; i < (gameState.siibaSpawn || 4); i++) {
+                const sx = randomBetween(40, canvas.width - 40);
+                const sy = randomBetween(40, canvas.height - 40);
+                gameState.siibas.push(new Siiba(sx, sy));
+            }
+
+            gameState.stars = createStars(80);
+            buildEnvironmentBackground();
+        }
+        
+        // Render environment background once per reset
+        function buildEnvironmentBackground() {
+            // Draw grass background with grid
+            bgCtx.fillStyle = '#1a3a1a';
+            bgCtx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw biome background using fractal noise
+            for (let y = 0; y < canvas.height; y += 8) {
+                for (let x = 0; x < canvas.width; x += 8) {
+                    const n = fractalNoise(x, y) * 1.4 - 0.2;
+                    let color = '#1b3a1a';
+                    if (n < 0.1) color = '#3d5b2d';
+                    else if (n < 0.35) color = '#2c4e20';
+                    else if (n < 0.65) color = '#1a3516';
+                    else color = '#143012';
+                    bgCtx.fillStyle = color;
+                    bgCtx.fillRect(x, y, 8, 8);
+                }
+            }
+
+            // Draw ponds (polished)
+            for (const pond of gameState.ponds) {
+                // Sand ring around pond
+                const sandRadius = pond.radius + 16;
+                const sandGradient = bgCtx.createRadialGradient(pond.x, pond.y, pond.radius * 0.9, pond.x, pond.y, sandRadius);
+                sandGradient.addColorStop(0, 'rgba(242,221,174,0)');
+                sandGradient.addColorStop(0.75, 'rgba(245,227,175,0.55)');
+                sandGradient.addColorStop(1, 'rgba(235,196,145,1)');
+                bgCtx.fillStyle = sandGradient;
+                bgCtx.beginPath();
+                bgCtx.arc(pond.x, pond.y, sandRadius, 0, Math.PI * 2);
+                bgCtx.fill();
+
+                // Pond shadow / shore
+                bgCtx.fillStyle = 'rgba(10,40,10,0.25)';
+                bgCtx.beginPath();
+                bgCtx.ellipse(pond.x, pond.y + 6, pond.radius * 1.15, pond.radius * 0.8, 0, 0, Math.PI * 2);
+                bgCtx.fill();
+
+                // Radial gradient water
+                const pg = bgCtx.createRadialGradient(pond.x - pond.radius * 0.2, pond.y - pond.radius * 0.2, pond.radius * 0.1, pond.x, pond.y, pond.radius);
+                pg.addColorStop(0, '#9fd6ff');
+                pg.addColorStop(0.5, '#4aa0ff');
+                pg.addColorStop(1, '#0b5fbf');
+                bgCtx.fillStyle = pg;
+                bgCtx.beginPath();
+                bgCtx.arc(pond.x, pond.y, pond.radius, 0, Math.PI * 2);
+                bgCtx.fill();
+
+                // Surface shimmer highlight
+                bgCtx.fillStyle = 'rgba(255,255,255,0.06)';
+                bgCtx.beginPath();
+                bgCtx.ellipse(pond.x - pond.radius * 0.3, pond.y - pond.radius * 0.4, pond.radius * 0.6, pond.radius * 0.25, -0.5, 0, Math.PI * 2);
+                bgCtx.fill();
+            }
+        }
+
+        function drawAnimatedPondRipples() {
+            const t = gameState.time || 0;
+            ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+            ctx.lineWidth = 1;
+            const rippleAmp = 2.0;
+            const rippleSpeed = 300;
+            for (const pond of gameState.ponds) {
+                for (let i = 1; i <= 2; i++) {
+                    ctx.beginPath();
+                    const r = pond.radius - 6 - i * 6 + Math.sin((t + i * 120) / rippleSpeed) * rippleAmp;
+                    ctx.arc(pond.x, pond.y, Math.max(6, r), 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+            }
+        }
+
+        function drawSeasonTint() {
+            const season = getSeasonName();
+            let tint = 'rgba(0,0,0,0)';
+            if (season === 'Spring') tint = 'rgba(56, 213, 128, 0.08)';
+            if (season === 'Summer') tint = 'rgba(255, 184, 78, 0.08)';
+            if (season === 'Autumn') tint = 'rgba(255, 143, 92, 0.12)';
+            if (season === 'Winter') tint = 'rgba(116, 189, 255, 0.12)';
+            ctx.fillStyle = tint;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+
+        function drawDayNightOverlay() {
+            drawSeasonTint();
+            const phase = getDayPhase();
+            let alpha = 0;
+            if (phase === 'Night') alpha = 0.42;
+            else if (phase === 'Dusk' || phase === 'Dawn') alpha = 0.18;
+            if (alpha > 0) {
+                ctx.fillStyle = `rgba(4, 10, 35, ${alpha})`;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+            if (phase === 'Night') {
+                ctx.fillStyle = '#eef9ff';
+                for (const star of gameState.stars) {
+                    ctx.globalAlpha = star.alpha;
+                    ctx.beginPath();
+                    ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                ctx.globalAlpha = 1;
+            }
+        }
+
+        function drawAnalogClock(ctx, hours, minutes) {
+            const radius = 45;
+            ctx.clearRect(0, 0, 100, 100);
+            ctx.save();
+            ctx.translate(50, 50);
+            ctx.fillStyle = '#121212';
+            ctx.beginPath();
+            ctx.arc(0, 0, radius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#5a7d9a';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+            ctx.fillStyle = '#fff';
+            for (let i = 0; i < 12; i++) {
+                const angle = (i / 12) * Math.PI * 2 - Math.PI / 2;
+                const x1 = Math.cos(angle) * (radius - 9);
+                const y1 = Math.sin(angle) * (radius - 9);
+                const x2 = Math.cos(angle) * (radius - 4);
+                const y2 = Math.sin(angle) * (radius - 4);
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.stroke();
+            }
+            const minuteAngle = (minutes / 60) * Math.PI * 2 - Math.PI / 2;
+            ctx.strokeStyle = '#f5d16d';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(Math.cos(minuteAngle) * (radius - 16), Math.sin(minuteAngle) * (radius - 16));
+            ctx.stroke();
+            const hourAngle = ((hours % 12) / 12) * Math.PI * 2 - Math.PI / 2 + (minutes / 60) * (Math.PI / 6);
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(Math.cos(hourAngle) * (radius - 26), Math.sin(hourAngle) * (radius - 26));
+            ctx.stroke();
+            ctx.fillStyle = '#f5d16d';
+            ctx.beginPath();
+            ctx.arc(0, 0, 4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+
+        function drawSeasonClock(ctx, seasonIndex, progress) {
+            const radius = 45;
+            const labels = ['Sp', 'Su', 'Au', 'Wi'];
+            ctx.clearRect(0, 0, 100, 100);
+            ctx.save();
+            ctx.translate(50, 50);
+            ctx.fillStyle = '#121212';
+            ctx.beginPath();
+            ctx.arc(0, 0, radius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#7b7b7b';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+            for (let i = 0; i < 4; i++) {
+                const angle = (i / 4) * Math.PI * 2 - Math.PI / 2;
+                const x = Math.cos(angle) * (radius - 12);
+                const y = Math.sin(angle) * (radius - 12);
+                ctx.fillStyle = '#f5f5f5';
+                ctx.font = '10px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(labels[i], x, y);
+            }
+            const angle = ((seasonIndex + progress) / 4) * Math.PI * 2 - Math.PI / 2;
+            ctx.strokeStyle = '#ffb74d';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(Math.cos(angle) * (radius - 18), Math.sin(angle) * (radius - 18));
+            ctx.stroke();
+            ctx.fillStyle = '#ffb74d';
+            ctx.beginPath();
+            ctx.arc(0, 0, 4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+
+        function createStars(count) {
+            const stars = [];
+            for (let i = 0; i < count; i++) {
+                stars.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height * 0.6,
+                    radius: Math.random() * 1.4 + 0.6,
+                    alpha: Math.random() * 0.6 + 0.25
+                });
+            }
+            return stars;
+        }
+
+        // Draw cloud-shaped bushes after Seepas so they occlude creatures fully
+        function drawBushes() {
+            const bushes = gameState.bushes || [];
+            const cloudOffsets = [
+                {x: -22, y: 0, r: 22},
+                {x: -6, y: -8, r: 26},
+                {x: 12, y: -2, r: 24},
+                {x: 30, y: 6, r: 18},
+                {x: 0, y: 10, r: 20}
+            ];
+
+            for (const bush of bushes) {
+                ctx.save();
+                ctx.translate(bush.x, bush.y);
+
+                // bush shadow
+                ctx.fillStyle = 'rgba(0,0,0,0.15)';
+                ctx.beginPath();
+                ctx.ellipse(0, bush.radius * 0.55, bush.radius * 1.2, bush.radius * 0.55, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // leaf clusters
+                for (const c of cloudOffsets) {
+                    const cx = c.x;
+                    const cy = c.y;
+                    const cr = c.r * (bush.radius / 35);
+                    const cg = ctx.createRadialGradient(cx - cr * 0.3, cy - cr * 0.3, 1, cx, cy, cr);
+                    cg.addColorStop(0, '#e0ffc8');
+                    cg.addColorStop(0.5, '#7bc671');
+                    cg.addColorStop(1, '#2f7c2f');
+                    ctx.fillStyle = cg;
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, cr, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // no dark outline around bush shape
+
+                // Draw fruits on bush
+                const fruitPositions = [
+                    { x: -12, y: -12 },
+                    { x: 12, y: -12 },
+                    { x: 0, y: 0 },
+                    { x: -12, y: 12 },
+                    { x: 12, y: 12 },
+                    { x: -18, y: 6 },
+                    { x: 18, y: 6 }
+                ];
+                if (bush && bush.fruits) {
+                    bush.fruits.forEach((fruit, idx) => {
+                        const pos = fruitPositions[idx % fruitPositions.length];
+                        const fx = pos.x;
+                        const fy = pos.y;
+                        if (fruit.available) {
+                            ctx.fillStyle = 'rgba(0,0,0,0.16)';
+                            ctx.beginPath();
+                            ctx.ellipse(fx + 1.5, fy + 2, 5.5, 3, 0, 0, Math.PI * 2);
+                            ctx.fill();
+
+                            const fg = ctx.createRadialGradient(fx - 2, fy - 2, 1, fx, fy, 7);
+                            fg.addColorStop(0, '#ffe0a8');
+                            fg.addColorStop(0.5, '#ff9b44');
+                            fg.addColorStop(1, '#cc550f');
+                            ctx.fillStyle = fg;
+                            ctx.beginPath();
+                            ctx.arc(fx, fy, 6, 0, Math.PI * 2);
+                            ctx.fill();
+
+                            ctx.fillStyle = 'rgba(255,255,255,0.65)';
+                            ctx.beginPath();
+                            ctx.arc(fx - 2.2, fy - 2.2, 2, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                    });
+                }
+
+                ctx.restore();
+            }
+        }
+
+        // Draw full trees after Seepas so trees occlude the entire creature
+        function drawTrees() {
+            if (!gameState.trees) return;
+            for (const tr of gameState.trees) {
+                const trunkWidth = 14;
+                const trunkHeight = tr.trunkHeight;
+                ctx.fillStyle = '#4d311d';
+                ctx.fillRect(tr.x - trunkWidth / 2, tr.y, trunkWidth, trunkHeight);
+
+                const fr = tr.foliageRadius;
+                const fg = ctx.createRadialGradient(tr.x - fr * 0.2, tr.y - fr * 0.6, 2, tr.x, tr.y - fr * 0.2, fr);
+                fg.addColorStop(0, '#eafde2');
+                fg.addColorStop(0.45, '#85d17a');
+                fg.addColorStop(1, '#2f7e33');
+                ctx.fillStyle = fg;
+
+                ctx.beginPath();
+                ctx.arc(tr.x, tr.y - fr * 0.8, fr * 0.95, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.beginPath();
+                ctx.arc(tr.x - fr * 0.55, tr.y - fr * 0.2, fr * 0.76, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.beginPath();
+                ctx.arc(tr.x + fr * 0.55, tr.y - fr * 0.25, fr * 0.76, 0, Math.PI * 2);
+                ctx.fill();
+
+                if (tr.apples) {
+                    for (const apple of tr.apples) {
+                        const ax = tr.x + apple.offsetX;
+                        const ay = tr.y + apple.offsetY;
+                        if (!apple.available) continue;
+
+                        ctx.fillStyle = 'rgba(210, 65, 50, 0.9)';
+                        ctx.beginPath();
+                        ctx.arc(ax, ay, 6, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        ctx.strokeStyle = '#5b1b08';
+                        ctx.lineWidth = 1;
+                        ctx.beginPath();
+                        ctx.moveTo(ax + 1, ay - 6);
+                        ctx.lineTo(ax + 1, ay - 10);
+                        ctx.stroke();
+
+                        ctx.fillStyle = 'rgba(255,255,255,0.65)';
+                        ctx.beginPath();
+                        ctx.arc(ax - 2, ay - 2, 1.6, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
+            }
+        }
+
+        // Helper: draw rounded rect (used for bars)
+        function roundRect(ctx, x, y, width, height, radius, fill, stroke) {
+            if (typeof stroke === 'undefined') {
+                stroke = true;
+            }
+            if (typeof radius === 'undefined') {
+                radius = 5;
+            }
+            ctx.beginPath();
+            ctx.moveTo(x + radius, y);
+            ctx.arcTo(x + width, y, x + width, y + height, radius);
+            ctx.arcTo(x + width, y + height, x, y + height, radius);
+            ctx.arcTo(x, y + height, x, y, radius);
+            ctx.arcTo(x, y, x + width, y, radius);
+            ctx.closePath();
+            if (fill) ctx.fill();
+            if (stroke) ctx.stroke();
+        }
+
+        // Helper: create fruits array
+        function createFruits(count) {
+            const arr = [];
+            for (let i = 0; i < count; i++) arr.push({ available: true, eatTime: -Infinity });
+            return arr;
+        }
+
+        function createTreeApples(count, foliageRadius) {
+            const apples = [];
+            for (let i = 0; i < count; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const radius = Math.random() * (foliageRadius * 0.45) + foliageRadius * 0.2;
+                apples.push({
+                    offsetX: Math.cos(angle) * radius,
+                    offsetY: Math.sin(angle) * radius - foliageRadius * 0.2,
+                    available: true,
+                    eatTime: -Infinity
+                });
+            }
+            return apples;
+        }
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        function createSpringFlocks() {
+            const ids = gameState.seepas.map((_, index) => index);
+            shuffleArray(ids);
+            let nextGroupId = 1;
+            while (ids.length >= 5 && nextGroupId <= 6) {
+                const groupSize = Math.min(5 + Math.floor(Math.random() * 21), ids.length);
+                const groupIds = ids.splice(0, groupSize);
+                for (const seepaIndex of groupIds) {
+                    gameState.seepas[seepaIndex].groupId = nextGroupId;
+                }
+                nextGroupId++;
+            }
+        }
+
+        function handleReproduction() {
+            const season = getSeasonName();
+            if (!(season === 'Spring' || season === 'Summer')) return;
+            const now = gameState.time;
+            const reproRadiusSq = 30 * 30;
+            const reproCooldown = 60; // seconds between reproductions per parent
+            const newbornLimit = 12; // max newborns per tick to avoid explosions
+            let births = 0;
+
+            for (let i = 0; i < gameState.seepas.length && births < newbornLimit; i++) {
+                const a = gameState.seepas[i];
+                if (now - a.lastReproduction < reproCooldown) continue;
+                if (a.age < 16) continue; // must be at least 16s old to mate
+                const aFullness = 1 - (a.hunger / a.maxStats);
+                const aHydration = 1 - (a.thirst / a.maxStats);
+                if (aFullness <= 0.5 || aHydration <= 0.5) continue;
+
+                // find an opposite-sex partner nearby
+                for (let j = i + 1; j < gameState.seepas.length && births < newbornLimit; j++) {
+                    const b = gameState.seepas[j];
+                    if (a.sex === b.sex) continue;
+                    if (now - b.lastReproduction < reproCooldown) continue;
+                    if (b.age < 16) continue; // must be at least 16s old to mate
+                    const dx = a.x - b.x; const dy = a.y - b.y;
+                    const dSq = dx * dx + dy * dy;
+                    if (dSq > reproRadiusSq) continue;
+                    const bFullness = 1 - (b.hunger / b.maxStats);
+                    const bHydration = 1 - (b.thirst / b.maxStats);
+                    if (bFullness <= 0.5 || bHydration <= 0.5) continue;
+
+                    // Create new seepa at midpoint
+                    const nx = (a.x + b.x) / 2 + (Math.random() - 0.5) * 6;
+                    const ny = (a.y + b.y) / 2 + (Math.random() - 0.5) * 6;
+                    const baby = new Seepa(nx, ny);
+                    // newborn specifics
+                    baby.age = 0;
+                    baby.lastReproduction = -Infinity;
+                    // small random initial hunger/thirst
+                    baby.hunger = Math.random() * 20;
+                    baby.thirst = Math.random() * 20;
+                    gameState.seepas.push(baby);
+                    births++;
+
+                    // parents pay a cost (become slightly hungrier and thirstier)
+                    a.hunger = Math.min(a.maxStats, a.hunger + 20);
+                    b.hunger = Math.min(b.maxStats, b.hunger + 20);
+                    a.thirst = Math.min(a.maxStats, a.thirst + 20);
+                    b.thirst = Math.min(b.maxStats, b.thirst + 20);
+
+                    a.lastReproduction = now;
+                    b.lastReproduction = now;
+                }
+            }
+        }
+
+        // NOTE: old tree layering helpers have been replaced by drawTrees() below.
+
+        // Predator: Suuba class (hunts and eats Seepas)
+        class Suuba {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.radius = 28;
+                this.vx = (Math.random() - 0.5) * 2;
+                this.vy = (Math.random() - 0.5) * 2;
+                this.speed = 1.4;
+                this.energy = 220; // energy decreases over time
+                this.eatCooldown = 0;
+                this.hunger = Math.random() * 40 + 10; // 0 = full, higher = hungrier
+                this.thirst = Math.random() * 40 + 10;
+                this.maxStats = 300;
+                this.age = Math.random() * 60; // seconds
+                this.sex = Math.random() < 0.5 ? 'male' : 'female';
+                this.lastReproduction = -Infinity;
+                this.lifeSpan = 360; // seconds
+                this.birthRadius = this.radius;
+                this.adultRadius = 28;
+            }
+
+            update(deltaTime, gameState) {
+                deltaTime = deltaTime / 1000;
+                this.age += deltaTime;
+                // baby-care: reduce drains for very young suubas
+                const careFactor = this.age < 18 ? 0.35 : 1.0;
+                this.energy -= 2 * deltaTime * careFactor;
+                // stats change (slower when young)
+                this.hunger = Math.min(this.maxStats, this.hunger + 2 * deltaTime * careFactor);
+                this.thirst = Math.min(this.maxStats, this.thirst + 3 * deltaTime * careFactor);
+                if (this.eatCooldown > 0) this.eatCooldown -= deltaTime;
+
+                // Find nearest seepa
+                // decide needs
+                const needWater = this.thirst > 75;
+                const needFood = this.hunger > 45; // only eat when sufficiently hungry
+
+                // helper nearest pond
+                const nearestPond = () => {
+                    if (!gameState.ponds || gameState.ponds.length === 0) return null;
+                    let best = null; let bestD = Infinity;
+                    for (const p of gameState.ponds) {
+                        const d2 = distanceSq(p.x, p.y, this.x, this.y);
+                        if (d2 < bestD) { best = p; bestD = d2; }
+                    }
+                    return best;
+                };
+
+                // If thirsty, go to pond first
+                if (needWater) {
+                    const p = nearestPond();
+                    if (p) {
+                        const dx = p.x - this.x; const dy = p.y - this.y;
+                        const d = Math.sqrt(dx * dx + dy * dy) || 0.0001;
+                        this.vx = lerp(this.vx, dx / d, 0.3);
+                        this.vy = lerp(this.vy, dy / d, 0.3);
+                        // drink if close
+                        if (d < this.radius + 10) {
+                            this.thirst = Math.max(0, this.thirst - 90);
+                            this.energy = Math.min(this.maxStats, this.energy + 30);
+                        }
+                    }
+                } else if (needFood && gameState.seepas.length > 0) {
+                    // chase nearest seepa
+                    let target = null; let bestD = Infinity;
+                    for (const s of gameState.seepas) {
+                        const dx = s.x - this.x; const dy = s.y - this.y;
+                        const d2 = dx * dx + dy * dy;
+                        if (d2 < bestD) { bestD = d2; target = s; }
+                    }
+                    if (target) {
+                        const d = Math.sqrt(bestD) || 0.0001;
+                        const tx = (target.x - this.x) / d;
+                        const ty = (target.y - this.y) / d;
+                        this.vx = lerp(this.vx, tx, 0.35);
+                        this.vy = lerp(this.vy, ty, 0.35);
+
+                        if (d < this.radius + target.radius + 6 && this.eatCooldown <= 0) {
+                            const idx = gameState.seepas.indexOf(target);
+                            if (idx !== -1) {
+                                gameState.seepas.splice(idx, 1);
+                                this.energy = Math.min(this.maxStats, this.energy + 120);
+                                this.hunger = Math.max(0, this.hunger - 80);
+                                this.eatCooldown = 1.2;
+                            }
+                        }
+                    }
+                } else {
+                    // wander + social: try to find mate occasionally
+                    this.vx += (Math.random() - 0.5) * 0.06;
+                    this.vy += (Math.random() - 0.5) * 0.06;
+
+                    // reproduction attempt
+                    if (this.age > 30 && this.energy > 160 && (gameState.time - (this.lastReproduction||-9999)) > 45) {
+                        for (const other of gameState.suubas || []) {
+                            if (other === this) continue;
+                            if (other.sex === this.sex) continue;
+                            if (other.age < 30) continue;
+                            if ((gameState.time - (other.lastReproduction||-9999)) <= 45) continue;
+                            const d2 = distanceSq(this.x, this.y, other.x, other.y);
+                            if (d2 < 1200) { // ~34px
+                                // spawn baby
+                                const bx = (this.x + other.x) / 2 + (Math.random() - 0.5) * 8;
+                                const by = (this.y + other.y) / 2 + (Math.random() - 0.5) * 8;
+                                const baby = new Suuba(bx, by);
+                                baby.radius = 12 + Math.random() * 4;
+                                baby.birthRadius = baby.radius;
+                                baby.adultRadius = 28;
+                                baby.age = 0;
+                                baby.energy = 220; // give babies healthy energy
+                                baby.hunger = 8;
+                                baby.thirst = 8;
+                                gameState.suubas.push(baby);
+                                this.energy -= 70; other.energy -= 70;
+                                this.lastReproduction = gameState.time; other.lastReproduction = gameState.time;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                // Movement
+                // Limit velocity a bit
+                const vlen = Math.sqrt(this.vx * this.vx + this.vy * this.vy) || 1e-6;
+                if (vlen > 1.8) { this.vx *= 1.8 / vlen; this.vy *= 1.8 / vlen; }
+                this.x += this.vx * this.speed * deltaTime * 60;
+                this.y += this.vy * this.speed * deltaTime * 60;
+
+                // Bound to canvas
+                this.x = Math.max(this.radius, Math.min(canvas.width - this.radius, this.x));
+                this.y = Math.max(this.radius, Math.min(canvas.height - this.radius, this.y));
+                // If too old, gradually lose energy
+                if (this.age > this.lifeSpan * 0.8) this.energy -= 0.5 * deltaTime;
+
+                // Growth: smoothly interpolate radius from birthRadius to adultRadius over first 30s
+                const growT = Math.min(1, this.age / 30);
+                this.radius = lerp(this.birthRadius, this.adultRadius, growT);
+            }
+
+            isAlive() {
+                return this.energy > 0 && this.age < this.lifeSpan;
+            }
+
+            draw() {
+                // Draw Suuba as a big square Seepa
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                const size = this.radius * 2;
+                const angle = Math.sin(this.age * 0.03) * 0.12;
+                ctx.rotate(angle);
+                const g = ctx.createLinearGradient(-size/2, -size/2, size/2, size/2);
+                const base1 = this.sex === 'male' ? '#ff9aa2' : '#ffd1d1';
+                const base2 = this.sex === 'male' ? '#7a1b1b' : '#4a1515';
+                g.addColorStop(0, base1);
+                g.addColorStop(1, base2);
+                ctx.fillStyle = g;
+                ctx.shadowColor = 'rgba(0,0,0,0.25)';
+                ctx.shadowBlur = 8;
+                ctx.fillRect(-size/2, -size/2, size, size);
+                ctx.shadowBlur = 0;
+                ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+                ctx.lineWidth = Math.max(1, this.radius * 0.08);
+                ctx.strokeRect(-size/2, -size/2, size, size);
+                // Eye (small circular eye on face)
+                ctx.fillStyle = '#111';
+                ctx.beginPath(); ctx.arc(size * 0.18, -size * 0.18, Math.max(2.4, this.radius * 0.18), 0, Math.PI * 2); ctx.fill();
+                // Age bar above the square
+                const barW = size;
+                const barX = -barW / 2;
+                const ageY = -size / 2 - 12;
+                const ageFrac = Math.max(0, Math.min(1, this.age / this.lifeSpan));
+                // background
+                ctx.fillStyle = 'rgba(0,0,0,0.28)'; ctx.fillRect(barX, ageY, barW, 6);
+                // gradient from green (young) to red (old)
+                const ag = ctx.createLinearGradient(barX, 0, barX + barW, 0);
+                ag.addColorStop(0, '#7bed9f');
+                ag.addColorStop(1, '#ff6b6b');
+                ctx.fillStyle = ag;
+                ctx.fillRect(barX, ageY, barW * ageFrac, 6);
+
+                // Hydration (blue) and Hunger/Energy (green) bars below the square
+                const hy = size / 2 + 6; // hydration bar y
+                const hh = hy + 8; // hunger bar y
+                // background for both
+                ctx.fillStyle = 'rgba(0,0,0,0.28)'; ctx.fillRect(barX, hy, barW, 6);
+                ctx.fillStyle = 'rgba(0,0,0,0.28)'; ctx.fillRect(barX, hh, barW, 6);
+                // hydration (thirst -> lower is better)
+                const hydFrac = Math.max(0, 1 - (this.thirst / this.maxStats));
+                ctx.fillStyle = '#4aa6ff'; ctx.fillRect(barX, hy, barW * hydFrac, 6);
+                // hunger/energy (hunger -> lower is better)
+                const hunFrac = Math.max(0, 1 - (this.hunger / this.maxStats));
+                ctx.fillStyle = '#4ad94a'; ctx.fillRect(barX, hh, barW * hunFrac, 6);
+                ctx.restore();
+            }
+        }
+
+        
+        // Main update loop
+        function update(deltaTime) {
+            if (gameState.paused) return;
+
+            gameState.time += deltaTime;
+            gameState.flockingActive = isFlockingTime();
+
+            // Update fruit respawn timers for all bushes
+            if (gameState.bushes) {
+                for (const bush of gameState.bushes) {
+                    if (!bush.fruits) continue;
+                    for (let fruit of bush.fruits) {
+                        if (!fruit.available && gameState.time - fruit.eatTime >= gameState.fruitRegrowTime) {
+                            fruit.available = true;
+                        }
+                    }
+                }
+            }
+
+            if (gameState.trees) {
+                for (const tree of gameState.trees) {
+                    if (!tree.apples) continue;
+                    for (let apple of tree.apples) {
+                        if (!apple.available && gameState.time - apple.eatTime >= gameState.appleRegrowTime) {
+                            apple.available = true;
+                        }
+                    }
+                }
+            }
+
+            // Update seepas
+            for (let i = gameState.seepas.length - 1; i >= 0; i--) {
+                const seepa = gameState.seepas[i];
+                seepa.update(deltaTime, gameState);
+
+                // Remove dead seepas
+                if (!seepa.isAlive()) {
+                    gameState.seepas.splice(i, 1);
+                }
+            }
+
+            // Update Suubas (predators)
+            // Update Siibas (small predators)
+            if (gameState.siibas) {
+                for (let i = gameState.siibas.length - 1; i >= 0; i--) {
+                    const siiba = gameState.siibas[i];
+                    siiba.update(deltaTime, gameState);
+                    if (!siiba.isAlive()) gameState.siibas.splice(i, 1);
+                }
+            }
+
+            if (gameState.suubas) {
+                for (let i = gameState.suubas.length - 1; i >= 0; i--) {
+                    const suuba = gameState.suubas[i];
+                    suuba.update(deltaTime, gameState);
+                    if (!suuba.isAlive()) gameState.suubas.splice(i, 1);
+                }
+            }
+
+            // Handle reproduction (spring only)
+            handleReproduction();
+        }
+        
+        // Main render loop
+        function render() {
+            ctx.drawImage(backgroundCanvas, 0, 0);
+            drawAnimatedPondRipples();
+            drawDayNightOverlay();
+            
+            // Draw seepas behind bushes and trees
+            for (const seepa of gameState.seepas) {
+                seepa.draw();
+            }
+
+            // Draw Siibas (small cute predators)
+            if (gameState.siibas) {
+                for (const siiba of gameState.siibas) siiba.draw();
+            }
+
+            drawBushes();
+            drawTrees();
+            // Draw predators on top
+            if (gameState.suubas) {
+                for (const suuba of gameState.suubas) suuba.draw();
+            }
+            
+            // Draw UI text
+            ctx.fillStyle = '#fff';
+            ctx.font = '12px Arial';
+            ctx.fillText(`Time: ${gameState.time.toFixed(1)}s`, 10, 20);
+            ctx.fillText(`Seepas: ${gameState.seepas.length}`, 10, 35);
+            ctx.fillText(`Suubas: ${gameState.suubas?gameState.suubas.length:0}`, 10, 50);
+            ctx.fillText(`Siibas: ${gameState.siibas?gameState.siibas.length:0}`, 10, 65);
+            
+            if (gameState.paused) {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 24px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('PAUSED', canvas.width / 2, canvas.height / 2);
+                ctx.textAlign = 'left';
+            }
+        }
+        
+        // Game loop
+        let lastTime = Date.now();
+        function gameLoop() {
+            const now = Date.now();
+            let deltaTime = (now - lastTime) * gameState.speed;
+            lastTime = now;
+            
+            // Cap deltaTime to prevent large jumps
+            deltaTime = Math.min(deltaTime, 50);
+            
+            update(deltaTime);
+            render();
+            drawClockWidgets();
+            
+            // Calculate FPS
+            frameCount++;
+            if (now - lastFpsTime >= 1000) {
+                fps = frameCount;
+                frameCount = 0;
+                lastFpsTime = now;
+                updateStats();
+            }
+            
+            requestAnimationFrame(gameLoop);
+        }
+        
+        // Update UI stats
+        function updateStats() {
+            document.getElementById('seepasCount').textContent = gameState.seepas.length;
+            document.getElementById('suubasCount').textContent = (gameState.suubas||[]).length;
+            document.getElementById('siibasCount').textContent = (gameState.siibas||[]).length;
+            document.getElementById('simTime').textContent = gameState.time.toFixed(1) + 's';
+            document.getElementById('dayClock').textContent = formatClock(getDayTime());
+            document.getElementById('dayPhase').textContent = getDayPhase();
+            document.getElementById('seasonLabel').textContent = getSeasonName();
+            document.getElementById('fps').textContent = fps;
+        }
+
+        function drawClockWidgets() {
+            if (dayClockCtx) {
+                const dayTime = getDayTime();
+                drawAnalogClock(dayClockCtx, Math.floor(dayTime), Math.floor((dayTime % 1) * 60));
+            }
+            if (seasonClockCtx) {
+                drawSeasonClock(seasonClockCtx, getSeasonIndex(), getSeasonProgress());
+            }
+        }
+        
+        // Event listeners
+        document.getElementById('pausePlayBtn').addEventListener('click', () => {
+            gameState.paused = !gameState.paused;
+            const btn = document.getElementById('pausePlayBtn');
+            btn.textContent = gameState.paused ? '▶ PLAY' : '⏸ PAUSE';
+            if (!gameState.paused) {
+                lastTime = Date.now();
+            }
+            updateStats();
+        });
+
+        // Keyboard shortcut: Space toggles play/pause
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                document.getElementById('pausePlayBtn').click();
+            }
+        });
+        
+        document.getElementById('speedSlider').addEventListener('input', (e) => {
+            gameState.speed = parseFloat(e.target.value);
+            document.getElementById('speedLabel').textContent = gameState.speed.toFixed(1) + 'x';
+        });
+        
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            init();
+            // ensure simulation runs after reset
+            gameState.paused = false;
+            lastTime = Date.now();
+            updateStats();
+        });
+        
+        // Start the game
+        init();
+        updateStats();
+        gameLoop();
+    </script>
+</body>
+</html>
