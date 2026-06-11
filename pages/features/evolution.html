@@ -1,0 +1,2168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Evolution Simulator - Seepas</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #1a1a1a;
+            color: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            justify-content: center;
+            width: 100%;
+            max-width: 1700px;
+        }
+
+        .canvas-wrapper {
+            position: relative;
+            z-index: 1;
+            flex: 1 1 600px;
+            max-width: 1200px;
+        }
+
+        canvas#canvas {
+            border: 3px solid #444;
+            background: #2a2a2a;
+            display: block;
+            width: 100%;
+            height: auto;
+            cursor: crosshair;
+        }
+
+        .controls {
+            background: #333;
+            padding: 20px;
+            border-radius: 8px;
+            border: 2px solid #444;
+            width: 300px;
+            flex: 0 0 300px;
+            position: relative;
+            z-index: 10;
+            max-height: 92vh;
+            overflow-y: auto;
+        }
+
+        .section-title {
+            font-size: 11px;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: #8fb3d9;
+            border-bottom: 1px solid #4a4a4a;
+            padding-bottom: 4px;
+            margin: 18px 0 10px 0;
+        }
+        .section-title:first-child { margin-top: 0; }
+
+        .control-group { margin-bottom: 12px; }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            font-size: 13px;
+        }
+
+        button {
+            background: #0066cc;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+            width: 100%;
+        }
+        button:hover { background: #0052a3; }
+        button:active { background: #003d7a; }
+
+        select {
+            width: 100%;
+            background: #222;
+            color: #fff;
+            border: 1px solid #555;
+            border-radius: 4px;
+            padding: 8px;
+            font-size: 13px;
+        }
+
+        .speed-control { display: flex; gap: 10px; align-items: center; }
+        input[type="range"] { flex: 1; }
+
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            margin-bottom: 6px;
+            cursor: pointer;
+        }
+        .toggle-row input { cursor: pointer; }
+
+        .pop-slider-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            margin-bottom: 2px;
+        }
+        .hint { font-size: 11px; color: #888; margin-top: 4px; }
+
+        .stats {
+            background: #2a2a2a;
+            padding: 12px;
+            border-radius: 4px;
+            font-size: 13px;
+            line-height: 1.8;
+        }
+        .stat-line { display: flex; justify-content: space-between; }
+
+        .legend {
+            background: #2a2a2a;
+            padding: 12px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .legend-item { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+        .legend-color { width: 18px; height: 18px; border-radius: 50%; flex-shrink: 0; }
+
+        .clock-panel { display: flex; gap: 12px; justify-content: space-between; }
+        .clock-widget {
+            display: flex; flex-direction: column; align-items: center; gap: 6px;
+            width: 110px; background: #232323; padding: 10px;
+            border-radius: 10px; border: 1px solid #3d3d3d;
+        }
+        .clock-canvas {
+            width: 100px; height: 100px; border-radius: 50%;
+            background: #111; border: 1px solid #4d4d4d;
+        }
+        .clock-label { font-size: 12px; color: #ddd; text-align: center; }
+
+        .graph-panel {
+            background: #2a2a2a;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        #graphCanvas {
+            width: 100%;
+            background: #1c1c1c;
+            border-radius: 4px;
+            border: 1px solid #3a3a3a;
+        }
+        .graph-legend { display: flex; gap: 12px; font-size: 11px; margin-top: 6px; }
+        .graph-legend span { display: flex; align-items: center; gap: 4px; }
+        .graph-dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+
+        .inspector {
+            background: #2a2a2a;
+            padding: 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            line-height: 1.7;
+            min-height: 60px;
+            border: 1px solid #3a3a3a;
+        }
+        .inspector .insp-title { font-weight: bold; font-size: 13px; color: #ffd84d; }
+
+        .info-text { font-size: 12px; color: #aaa; line-height: 1.6; }
+
+        @media (max-width: 760px) {
+            .controls { flex: 1 1 100%; width: auto; max-height: none; }
+            body { padding: 10px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="canvas-wrapper">
+            <canvas id="canvas" width="1200" height="800"></canvas>
+        </div>
+
+        <div class="controls">
+            <div class="section-title">Controls</div>
+            <div class="control-group">
+                <button id="pausePlayBtn">⏸ PAUSE</button>
+            </div>
+            <div class="control-group">
+                <label>Simulation Speed:</label>
+                <div class="speed-control">
+                    <input type="range" id="speedSlider" min="0.5" max="10" step="0.5" value="1">
+                    <span id="speedLabel">1x</span>
+                </div>
+            </div>
+            <div class="control-group">
+                <button id="resetBtn">RESET</button>
+            </div>
+            <div class="control-group">
+                <label>Click Action:</label>
+                <select id="clickModeSelect">
+                    <option value="inspect">🔍 Inspect creature</option>
+                    <option value="seepa">➕ Spawn Seepa</option>
+                    <option value="suuba">➕ Spawn Suuba</option>
+                    <option value="siiba">➕ Spawn Siiba</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label class="toggle-row"><input type="checkbox" id="predToggle" checked> Predators hunt</label>
+                <label class="toggle-row"><input type="checkbox" id="flockToggle" checked> Flocking (spring mornings)</label>
+            </div>
+
+            <div class="section-title">Starting Populations</div>
+            <div class="control-group">
+                <div class="pop-slider-row"><span>Seepas</span><strong id="seepaPopLabel">100</strong></div>
+                <input type="range" id="seepaPop" min="10" max="300" step="10" value="100">
+                <div class="pop-slider-row"><span>Suubas</span><strong id="suubaPopLabel">8</strong></div>
+                <input type="range" id="suubaPop" min="0" max="60" step="1" value="8">
+                <div class="pop-slider-row"><span>Siibas</span><strong id="siibaPopLabel">14</strong></div>
+                <input type="range" id="siibaPop" min="0" max="60" step="1" value="14">
+                <div class="hint">Applied when you press RESET</div>
+            </div>
+
+            <div class="section-title">Inspector</div>
+            <div class="inspector" id="inspector">Set Click Action to 🔍 and click a creature to see its stats and genes.</div>
+
+            <div class="section-title">Population History</div>
+            <div class="graph-panel">
+                <canvas id="graphCanvas" width="260" height="110"></canvas>
+                <div class="graph-legend">
+                    <span><span class="graph-dot" style="background:#63a6ff;"></span>Seepas</span>
+                    <span><span class="graph-dot" style="background:#ff6b6b;"></span>Suubas</span>
+                    <span><span class="graph-dot" style="background:#ff9fb3;"></span>Siibas</span>
+                </div>
+            </div>
+
+            <div class="section-title">Stats</div>
+            <div class="stats">
+                <div class="stat-line"><span>Total Seepas:</span><strong id="seepasCount">0</strong></div>
+                <div class="stat-line"><span>Total Suubas:</span><strong id="suubasCount">0</strong></div>
+                <div class="stat-line"><span>Total Siibas:</span><strong id="siibasCount">0</strong></div>
+                <div class="stat-line"><span>Generation:</span><strong id="genLabel">1</strong></div>
+                <div class="stat-line"><span>Sim Time:</span><strong id="simTime">0s</strong></div>
+                <div class="stat-line"><span>Clock:</span><strong id="dayClock">0:00</strong></div>
+                <div class="stat-line"><span>Day Phase:</span><strong id="dayPhase">Day</strong></div>
+                <div class="stat-line"><span>Season:</span><strong id="seasonLabel">Spring</strong></div>
+                <div class="stat-line"><span>FPS:</span><strong id="fps">0</strong></div>
+            </div>
+
+            <div class="section-title">Clocks</div>
+            <div class="clock-panel">
+                <div class="clock-widget">
+                    <canvas id="dayClockCanvas" class="clock-canvas" width="100" height="100"></canvas>
+                    <div class="clock-label">Day/Night Clock</div>
+                </div>
+                <div class="clock-widget">
+                    <canvas id="seasonClockCanvas" class="clock-canvas" width="100" height="100"></canvas>
+                    <div class="clock-label">Season Clock</div>
+                </div>
+            </div>
+
+            <div class="section-title">Legend</div>
+            <div class="legend">
+                <div class="legend-item"><div class="legend-color" style="background: #4488ff;"></div><span>Seepa (adult male blue / female pink)</span></div>
+                <div class="legend-item"><div class="legend-color" style="background: #ffd84d;"></div><span>Juvenile / Baby</span></div>
+                <div class="legend-item"><div class="legend-color" style="background: #93e07b;"></div><span>Elder Seepa</span></div>
+                <div class="legend-item"><div class="legend-color" style="background: #0066ff;"></div><span>Water (Pond)</span></div>
+                <div class="legend-item"><div class="legend-color" style="background: #ff9b44;"></div><span>Fruit (Bush)</span></div>
+                <div class="legend-item"><div class="legend-color" style="background: #d24132;"></div><span>Apple (Tree)</span></div>
+                <div class="legend-item"><div class="legend-color" style="width:20px;height:20px;border-radius:6px;background:#8a2f2f;box-shadow:0 0 6px rgba(138,47,47,0.6);"></div><span>Suuba (Predator — hunts Seepas)</span></div>
+                <div class="legend-item"><div class="legend-color" style="width:16px;height:16px;background:#ffd2d9;"></div><span>Siiba (hunts Suubas, eaten by Seepas)</span></div>
+            </div>
+
+            <div class="section-title">How it works</div>
+            <div class="info-text">
+                <ul style="margin-left: 15px; margin-top: 4px;">
+                    <li>Seepas drink from ponds and eat fruit, apples and Siibas</li>
+                    <li>Seepas flee from nearby Suubas — speed is inherited and mutates, so faster bloodlines survive!</li>
+                    <li>Food regrows slower in winter and faster in summer</li>
+                    <li>Snow falls in winter, rain in autumn</li>
+                    <li>Seepas move slower at night</li>
+                    <li>If a species nearly dies out, a few wanderers migrate in</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const backgroundCanvas = document.createElement('canvas');
+        backgroundCanvas.width = canvas.width;
+        backgroundCanvas.height = canvas.height;
+        const bgCtx = backgroundCanvas.getContext('2d');
+        const dayClockCanvas = document.getElementById('dayClockCanvas');
+        const dayClockCtx = dayClockCanvas ? dayClockCanvas.getContext('2d') : null;
+        const seasonClockCanvas = document.getElementById('seasonClockCanvas');
+        const seasonClockCtx = seasonClockCanvas ? seasonClockCanvas.getContext('2d') : null;
+        const graphCanvas = document.getElementById('graphCanvas');
+        const graphCtx = graphCanvas ? graphCanvas.getContext('2d') : null;
+
+        // Game state
+        let gameState = {
+            paused: false,
+            speed: 1,
+            time: 0,
+            seepas: [],
+            ponds: [],
+            bushes: [],
+            trees: [],
+            particles: [],
+            weather: { type: null, drops: [] },
+            popHistory: [],
+            lastSample: 0,
+            lastRescue: 0,
+            inspected: null,
+            fruitRegrowTime: 2 * 1000,
+            appleRegrowTime: 8 * 1000,
+            dayDuration: 48000,
+            seasonDuration: 12000,
+            seasonNames: ['Spring', 'Summer', 'Autumn', 'Winter'],
+            flockingActive: false,
+            stars: [],
+            suubas: [],
+            siibas: [],
+            settings: {
+                seepaSpawn: 100,
+                suubaSpawn: 8,
+                siibaSpawn: 14,
+                predatorsEnabled: true,
+                flockingEnabled: true,
+                clickMode: 'inspect'
+            }
+        };
+
+        let fps = 0;
+        let frameCount = 0;
+        let lastFpsTime = Date.now();
+        let noiseSeed = 0;
+
+        // ---------- Particles ----------
+        function spawnParticles(x, y, color, count, spd) {
+            count = count || 8;
+            spd = spd || 1.6;
+            for (let i = 0; i < count; i++) {
+                const a = Math.random() * Math.PI * 2;
+                const v = (0.3 + Math.random()) * spd;
+                gameState.particles.push({
+                    x: x, y: y,
+                    vx: Math.cos(a) * v,
+                    vy: Math.sin(a) * v - 0.4,
+                    life: 500 + Math.random() * 450,
+                    maxLife: 950,
+                    size: 1.5 + Math.random() * 2.2,
+                    color: color
+                });
+            }
+            if (gameState.particles.length > 600) {
+                gameState.particles.splice(0, gameState.particles.length - 600);
+            }
+        }
+
+        function updateParticles(deltaTime) {
+            const dt = deltaTime / 1000;
+            for (let i = gameState.particles.length - 1; i >= 0; i--) {
+                const p = gameState.particles[i];
+                p.life -= deltaTime;
+                p.x += p.vx * dt * 60;
+                p.y += p.vy * dt * 60;
+                p.vy += 0.04;
+                if (p.life <= 0) gameState.particles.splice(i, 1);
+            }
+        }
+
+        function drawParticles() {
+            for (const p of gameState.particles) {
+                ctx.globalAlpha = Math.max(0, p.life / p.maxLife);
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.globalAlpha = 1;
+        }
+
+        // ---------- Genetics helpers ----------
+        function makeRandomGenes() {
+            return {
+                speed: 1.3 + Math.random() * 0.4,
+                size: 5 + Math.random() * 2
+            };
+        }
+
+        function inheritGenes(a, b) {
+            const mut = () => 1 + (Math.random() - 0.5) * 0.24; // up to ±12%
+            return {
+                speed: Math.min(2.8, Math.max(0.8, ((a.speed + b.speed) / 2) * mut())),
+                size: Math.min(10, Math.max(3.5, ((a.size + b.size) / 2) * mut()))
+            };
+        }
+
+        // ---------- Seepa ----------
+        class Seepa {
+            constructor(x, y, genes, generation) {
+                this.x = x;
+                this.y = y;
+                this.genes = genes || makeRandomGenes();
+                this.generation = generation || 1;
+                this.radius = this.genes.size;
+                this.speed = this.genes.speed;
+                this.vx = (Math.random() - 0.5) * 2;
+                this.vy = (Math.random() - 0.5) * 2;
+                this.groupId = null;
+                this.sex = Math.random() < 0.5 ? 'male' : 'female';
+                this.lastReproduction = -Infinity;
+                this.age = Math.random() * 80;
+                this.post18Color = null;
+                this.fleeing = false;
+                this.hunger = Math.random() * 50;
+                this.thirst = Math.random() * 50;
+                this.maxStats = 100;
+            }
+
+            update(deltaTime, gameState) {
+                deltaTime = deltaTime / 1000;
+
+                // Hunger rises faster for fast/large genes (an evolutionary trade-off)
+                this.hunger += (1.8 + this.genes.speed * 0.7 + this.genes.size * 0.08) * deltaTime;
+                this.thirst += 4 * deltaTime;
+                this.age += deltaTime;
+
+                if (this.age >= 18 && this.post18Color === null) {
+                    this.post18Color = Math.random() < 0.5 ? 'blue' : 'red';
+                }
+
+                this.hunger = Math.min(this.hunger, this.maxStats);
+                this.thirst = Math.min(this.thirst, this.maxStats);
+
+                // Flee from nearby Suubas (overrides everything)
+                this.fleeing = false;
+                if (gameState.settings.predatorsEnabled && gameState.suubas && gameState.suubas.length > 0) {
+                    let threat = null; let bestD = Infinity;
+                    for (const s of gameState.suubas) {
+                        const d2 = distanceSq(this.x, this.y, s.x, s.y);
+                        if (d2 < bestD) { bestD = d2; threat = s; }
+                    }
+                    const fleeRange = 110 + (threat ? threat.radius : 0);
+                    if (threat && bestD < fleeRange * fleeRange) {
+                        const d = Math.sqrt(bestD) || 1e-6;
+                        this.vx = lerp(this.vx, (this.x - threat.x) / d, 0.5);
+                        this.vy = lerp(this.vy, (this.y - threat.y) / d, 0.5);
+                        this.fleeing = true;
+                    }
+                }
+
+                if (!this.fleeing) {
+                    this.moveTowardTarget(gameState);
+                }
+
+                // Slower at night, faster when fleeing
+                const phaseMul = getDayPhase() === 'Night' ? 0.55 : 1;
+                const fleeMul = this.fleeing ? 1.35 : 1;
+                this.x += this.vx * this.speed * phaseMul * fleeMul * deltaTime * 60;
+                this.y += this.vy * this.speed * phaseMul * fleeMul * deltaTime * 60;
+
+                if (this.x - this.radius < 0) { this.x = this.radius; this.vx *= -1; }
+                if (this.x + this.radius > canvas.width) { this.x = canvas.width - this.radius; this.vx *= -1; }
+                if (this.y - this.radius < 0) { this.y = this.radius; this.vy *= -1; }
+                if (this.y + this.radius > canvas.height) { this.y = canvas.height - this.radius; this.vy *= -1; }
+
+                this.checkWaterInteraction(gameState);
+                this.checkFruitInteraction(gameState);
+            }
+
+            moveTowardTarget(gameState) {
+                let targetX, targetY;
+                let needWater = this.thirst > 75;
+                let needFood = this.hunger > 75;
+
+                const nearestPond = () => {
+                    if (!gameState.ponds || gameState.ponds.length === 0) return null;
+                    let best = null; let bestD = Infinity;
+                    for (const p of gameState.ponds) {
+                        const dSq = distanceSq(p.x, p.y, this.x, this.y);
+                        if (dSq < bestD) { bestD = dSq; best = p; }
+                    }
+                    return best;
+                };
+                const nearestBushWithFruit = () => {
+                    if (!gameState.bushes || gameState.bushes.length === 0) return null;
+                    let best = null; let bestD = Infinity;
+                    for (const b of gameState.bushes) {
+                        if (!b.fruits || !b.fruits.some(f => f.available)) continue;
+                        const dSq = distanceSq(b.x, b.y, this.x, this.y);
+                        if (dSq < bestD) { bestD = dSq; best = b; }
+                    }
+                    return best;
+                };
+
+                if (needWater && needFood) {
+                    if (this.thirst >= this.hunger) {
+                        const p = nearestPond(); if (!p) return; targetX = p.x; targetY = p.y;
+                    } else {
+                        const b = nearestBushWithFruit(); if (!b) return; targetX = b.x; targetY = b.y;
+                    }
+                } else if (needWater) {
+                    const p = nearestPond(); if (!p) return; targetX = p.x; targetY = p.y;
+                } else if (needFood) {
+                    const b = nearestBushWithFruit(); if (!b) return; targetX = b.x; targetY = b.y;
+                } else {
+                    const flockDir = gameState.flockingActive ? this.calculateFlock(gameState) : null;
+                    if (flockDir) {
+                        this.vx = lerp(this.vx, flockDir.x, 0.45);
+                        this.vy = lerp(this.vy, flockDir.y, 0.45);
+                    }
+                    return;
+                }
+
+                const dx = targetX - this.x;
+                const dy = targetY - this.y;
+                const distSq = dx * dx + dy * dy;
+
+                if (distSq > 0) {
+                    const invDist = 1 / Math.sqrt(distSq);
+                    this.vx = (dx * invDist) * 0.8 + (Math.random() - 0.5) * 0.2;
+                    this.vy = (dy * invDist) * 0.8 + (Math.random() - 0.5) * 0.2;
+                }
+
+                const flockDir = gameState.flockingActive ? this.calculateFlock(gameState) : null;
+                if (flockDir) {
+                    this.vx = lerp(this.vx, flockDir.x, 0.22);
+                    this.vy = lerp(this.vy, flockDir.y, 0.22);
+                }
+            }
+
+            checkWaterInteraction(gameState) {
+                if (!gameState.ponds) return;
+                for (const pond of gameState.ponds) {
+                    const dSq = distanceSq(this.x, this.y, pond.x, pond.y);
+                    const minSq = (pond.radius + this.radius) * (pond.radius + this.radius);
+                    if (dSq < minSq) {
+                        if (this.thirst > 30) spawnParticles(this.x, this.y, '#7fc6ff', 5, 1.1);
+                        this.thirst = Math.max(0, this.thirst - 40);
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            checkFruitInteraction(gameState) {
+                if (!gameState.bushes && !gameState.trees) return false;
+                if (this.hunger < 30) return false;
+
+                // Eat Siibas if hungry
+                if (gameState.siibas && gameState.siibas.length > 0) {
+                    for (let i = 0; i < gameState.siibas.length; i++) {
+                        const siiba = gameState.siibas[i];
+                        const dSq = distanceSq(this.x, this.y, siiba.x, siiba.y);
+                        const minSq = (siiba.radius + this.radius) * (siiba.radius + this.radius);
+                        if (dSq < minSq) {
+                            spawnParticles(siiba.x, siiba.y, '#ff9fb3', 10, 2);
+                            if (gameState.inspected && gameState.inspected.ref === siiba) gameState.inspected = null;
+                            gameState.siibas.splice(i, 1);
+                            this.hunger = Math.max(0, this.hunger - 60);
+                            return true;
+                        }
+                    }
+                }
+
+                for (const bush of gameState.bushes || []) {
+                    if (!bush.fruits || bush.fruits.length === 0) continue;
+                    const dSq = distanceSq(this.x, this.y, bush.x, bush.y);
+                    const minSq = (bush.radius + this.radius) * (bush.radius + this.radius);
+                    if (dSq < minSq) {
+                        for (let i = 0; i < bush.fruits.length; i++) {
+                            if (bush.fruits[i].available) {
+                                this.hunger = Math.max(0, this.hunger - 50);
+                                bush.fruits[i].available = false;
+                                bush.fruits[i].eatTime = gameState.time;
+                                spawnParticles(this.x, this.y, '#ffb066', 6, 1.4);
+                                return true;
+                            }
+                        }
+                    }
+                }
+
+                for (const tree of gameState.trees || []) {
+                    if (!tree.apples || tree.apples.length === 0) continue;
+                    const dSq = distanceSq(this.x, this.y, tree.x, tree.y - tree.foliageRadius * 0.5);
+                    const minSq = (tree.foliageRadius + this.radius) * (tree.foliageRadius + this.radius);
+                    if (dSq < minSq) {
+                        for (let apple of tree.apples) {
+                            if (apple.available) {
+                                const ax = tree.x + apple.offsetX;
+                                const ay = tree.y + apple.offsetY;
+                                const adSq = distanceSq(this.x, this.y, ax, ay);
+                                const minASq = (this.radius + 6) * (this.radius + 6);
+                                if (adSq < minASq) {
+                                    this.hunger = Math.max(0, this.hunger - 40);
+                                    apple.available = false;
+                                    apple.eatTime = gameState.time;
+                                    spawnParticles(ax, ay, '#ff6f5e', 6, 1.4);
+                                    return true;
+                                }
+                            }
+                        }
+                    }
+                }
+                return false;
+            }
+
+            calculateFlock(gameState) {
+                let alignX = 0, alignY = 0, cohesionX = 0, cohesionY = 0, separationX = 0, separationY = 0;
+                let count = 0;
+                const season = getSeasonName();
+                const springGroupOnly = season === 'Spring';
+                if (springGroupOnly && this.groupId == null) return null;
+                const neighborRadiusSq = 70 * 70;
+
+                for (const other of gameState.seepas) {
+                    if (other === this) continue;
+                    if (springGroupOnly && other.groupId !== this.groupId) continue;
+                    const dSq = distanceSq(this.x, this.y, other.x, other.y);
+                    if (dSq > 0 && dSq < neighborRadiusSq) {
+                        alignX += other.vx; alignY += other.vy;
+                        cohesionX += other.x; cohesionY += other.y;
+                        separationX += this.x - other.x; separationY += this.y - other.y;
+                        count++;
+                    }
+                }
+
+                if (count === 0) return null;
+                alignX /= count; alignY /= count;
+                cohesionX = cohesionX / count - this.x;
+                cohesionY = cohesionY / count - this.y;
+                separationX /= count; separationY /= count;
+
+                const fx = alignX * 0.45 + cohesionX * 0.025 + separationX * 0.12;
+                const fy = alignY * 0.45 + cohesionY * 0.025 + separationY * 0.12;
+                const magSq = fx * fx + fy * fy;
+                if (magSq < 0.0001) return null;
+                const invMag = 1 / Math.sqrt(magSq);
+                return { x: fx * invMag, y: fy * invMag };
+            }
+
+            isAlive() {
+                return this.hunger < 100 && this.thirst < 100 && this.age <= 100;
+            }
+
+            draw() {
+                const isSpringFlock = getSeasonName() === 'Spring' && gameState.flockingActive && this.groupId;
+                if (isSpringFlock) {
+                    const highlightColors = ['rgba(190, 255, 170, 0.18)', 'rgba(150, 235, 130, 0.25)', 'rgba(105, 205, 110, 0.18)'];
+                    ctx.fillStyle = highlightColors[this.groupId % highlightColors.length];
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.radius * 2.8, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // Shadow
+                ctx.fillStyle = 'rgba(0,0,0,0.14)';
+                ctx.beginPath();
+                ctx.ellipse(this.x, this.y + this.radius + 4, this.radius * 1.6, this.radius * 0.9, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                const angle = Math.atan2(this.vy, this.vx);
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(angle * 0.12);
+
+                const g = ctx.createRadialGradient(-this.radius * 0.3, -this.radius * 0.3, 1, 0, 0, this.radius * 1.2);
+                if (this.age > 60) {
+                    g.addColorStop(0, '#d8f7d6'); g.addColorStop(0.5, '#93e07b'); g.addColorStop(1, '#4fa83f');
+                } else if (this.age < 30) {
+                    if (this.age < 18 || this.post18Color === null) {
+                        g.addColorStop(0, '#fff7c2'); g.addColorStop(0.5, '#ffd84d'); g.addColorStop(1, '#e5b700');
+                    } else if (this.post18Color === 'blue') {
+                        g.addColorStop(0, '#cfeeff'); g.addColorStop(0.5, '#88cfff'); g.addColorStop(1, '#3fa1ff');
+                    } else {
+                        g.addColorStop(0, '#ffd2d2'); g.addColorStop(0.5, '#ff8f8f'); g.addColorStop(1, '#ff5a5a');
+                    }
+                } else if (this.sex === 'male') {
+                    g.addColorStop(0, '#9fd3ff'); g.addColorStop(0.5, '#63a6ff'); g.addColorStop(1, '#2f6fbf');
+                } else {
+                    g.addColorStop(0, '#ffdff0'); g.addColorStop(0.5, '#ff9fcf'); g.addColorStop(1, '#d46f9a');
+                }
+                ctx.fillStyle = g;
+                ctx.beginPath();
+                ctx.ellipse(0, 0, this.radius * 1.25, this.radius, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.strokeStyle = '#15345a';
+                ctx.lineWidth = 1.4;
+                ctx.stroke();
+
+                const eyeX = this.radius * 0.35;
+                const eyeY = -this.radius * 0.15;
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(eyeX, eyeY, this.radius * 0.36, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#0b0b0b';
+                ctx.beginPath();
+                ctx.arc(eyeX + this.radius * 0.1, eyeY, this.radius * 0.16, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = 'rgba(255,255,255,0.55)';
+                ctx.beginPath();
+                ctx.ellipse(-this.radius * 0.25, -this.radius * 0.45, this.radius * 0.28, this.radius * 0.12, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.restore();
+
+                const barWidth = 26;
+                const barHeight = 4;
+                const barGap = 4;
+                const ageBarY = this.y - this.radius - 22;
+                const barY = this.y - this.radius - 16;
+
+                const agePercent = Math.min(1, this.age / 100);
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+                roundRect(ctx, this.x - barWidth / 2, ageBarY, barWidth, barHeight, 3, true, false);
+                if (this.age > 60) ctx.fillStyle = '#6ab04c';
+                else if (this.age < 30) ctx.fillStyle = '#ffd84d';
+                else ctx.fillStyle = '#aaaaaa';
+                roundRect(ctx, this.x - barWidth / 2, ageBarY, barWidth * agePercent, barHeight, 3, true, false);
+
+                const waterBarX = this.x - barWidth / 2 - barGap / 2;
+                const waterPercent = 1 - (this.thirst / this.maxStats);
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+                roundRect(ctx, waterBarX, barY, barWidth, barHeight, 3, true, false);
+                ctx.fillStyle = '#2e90ff';
+                roundRect(ctx, waterBarX, barY, barWidth * waterPercent, barHeight, 3, true, false);
+
+                const foodBarX = this.x + barGap / 2;
+                const foodPercent = 1 - (this.hunger / this.maxStats);
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+                roundRect(ctx, foodBarX, barY, barWidth, barHeight, 3, true, false);
+                ctx.fillStyle = '#27c227';
+                roundRect(ctx, foodBarX, barY, barWidth * foodPercent, barHeight, 3, true, false);
+            }
+        }
+
+        // ---------- Siiba (small predator, flees Seepas) ----------
+        class Siiba {
+            constructor(x, y) {
+                this.x = x; this.y = y;
+                this.radius = 8 + Math.random() * 3;
+                this.vx = (Math.random() - 0.5) * 2;
+                this.vy = (Math.random() - 0.5) * 2;
+                this.speed = 1.6;
+                this.energy = 120;
+                this.hunger = Math.random() * 30 + 10;
+                this.thirst = Math.random() * 30 + 10;
+                this.maxStats = 180;
+                this.age = Math.random() * 20;
+                this.lifeSpan = 200;
+                this.eatCooldown = Math.random() * 1.5;
+                this.sex = Math.random() < 0.5 ? 'male' : 'female';
+                this.lastReproduction = -Infinity;
+            }
+
+            update(deltaTime, gameState) {
+                deltaTime = deltaTime / 1000;
+                this.age += deltaTime;
+                this.hunger = Math.min(this.maxStats, this.hunger + 2 * deltaTime);
+                this.thirst = Math.min(this.maxStats, this.thirst + 2.5 * deltaTime);
+                if (this.eatCooldown > 0) this.eatCooldown -= deltaTime;
+
+                const drainFactor = 1 + (this.hunger / this.maxStats) * 0.9 + (this.thirst / this.maxStats) * 1.2;
+                this.energy = Math.max(0, this.energy - 4 * deltaTime * drainFactor);
+
+                // Flee nearby Seepas first (they eat Siibas!)
+                let fleeing = false;
+                if (gameState.seepas && gameState.seepas.length > 0) {
+                    let danger = null; let dBest = Infinity;
+                    for (const s of gameState.seepas) {
+                        const d2 = distanceSq(this.x, this.y, s.x, s.y);
+                        if (d2 < dBest) { dBest = d2; danger = s; }
+                    }
+                    if (danger && dBest < 60 * 60) {
+                        const d = Math.sqrt(dBest) || 1e-6;
+                        this.vx = lerp(this.vx, (this.x - danger.x) / d, 0.5);
+                        this.vy = lerp(this.vy, (this.y - danger.y) / d, 0.5);
+                        fleeing = true;
+                    }
+                }
+
+                if (!fleeing) {
+                    let target = null; let bestD = Infinity;
+                    if (gameState.settings.predatorsEnabled && gameState.suubas && gameState.suubas.length > 0) {
+                        for (const s of gameState.suubas) {
+                            const dx = s.x - this.x, dy = s.y - this.y;
+                            const d2 = dx * dx + dy * dy;
+                            if (d2 < bestD) { bestD = d2; target = s; }
+                        }
+                    }
+                    const seeRange = 120;
+                    const needFood = this.hunger > 50;
+                    if (target && (needFood || bestD < seeRange * seeRange)) {
+                        const d = Math.sqrt(bestD) || 1e-6;
+                        this.vx = lerp(this.vx, (target.x - this.x) / d, 0.45);
+                        this.vy = lerp(this.vy, (target.y - this.y) / d, 0.45);
+                        if (d < this.radius + target.radius + 8 && this.eatCooldown <= 0 && this.hunger < (this.maxStats * 0.25)) {
+                            const idx = gameState.suubas.indexOf(target);
+                            if (idx !== -1) {
+                                target.energy = Math.max(0, target.energy - 90);
+                                this.energy = Math.min(this.maxStats, this.energy + 40);
+                                this.hunger = Math.max(0, this.hunger - 50);
+                                this.eatCooldown = 1.4;
+                                spawnParticles(target.x, target.y, '#ff6b6b', 6, 1.6);
+                                if (target.energy <= 0) {
+                                    if (gameState.inspected && gameState.inspected.ref === target) gameState.inspected = null;
+                                    gameState.suubas.splice(idx, 1);
+                                    spawnParticles(target.x, target.y, '#8a2f2f', 14, 2.4);
+                                    this.energy = Math.min(this.maxStats, this.energy + 80);
+                                    this.hunger = Math.max(0, this.hunger - 80);
+                                    this.thirst = Math.max(0, this.thirst - 10);
+                                    this.radius = Math.min(14, this.radius + 0.6);
+                                    this.maxStats = Math.min(320, this.maxStats + 8);
+                                }
+                            }
+                        }
+                    } else {
+                        this.vx += (Math.random() - 0.5) * 0.06;
+                        this.vy += (Math.random() - 0.5) * 0.06;
+
+                        if (this.age > 20 && this.energy > 100 && (gameState.time - (this.lastReproduction || -Infinity)) > 40000) {
+                            for (const other of gameState.siibas || []) {
+                                if (other === this) continue;
+                                if (other.sex === this.sex) continue;
+                                if (other.age < 20) continue;
+                                if ((gameState.time - (other.lastReproduction || -Infinity)) <= 40000) continue;
+                                if (other.energy < 80) continue;
+                                const d2 = distanceSq(this.x, this.y, other.x, other.y);
+                                if (d2 < 800) {
+                                    const bx = (this.x + other.x) / 2 + (Math.random() - 0.5) * 6;
+                                    const by = (this.y + other.y) / 2 + (Math.random() - 0.5) * 6;
+                                    const baby = new Siiba(bx, by);
+                                    baby.age = 0; baby.energy = 90; baby.hunger = 10; baby.thirst = 10;
+                                    gameState.siibas.push(baby);
+                                    spawnParticles(bx, by, '#ffd2d9', 8, 1.4);
+                                    this.energy -= 50; other.energy -= 50;
+                                    this.lastReproduction = gameState.time; other.lastReproduction = gameState.time;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                const fleeMul = fleeing ? 1.3 : 1;
+                const vlen = Math.sqrt(this.vx * this.vx + this.vy * this.vy) || 1e-6;
+                if (vlen > 2.2) { this.vx *= 2.2 / vlen; this.vy *= 2.2 / vlen; }
+                this.x += this.vx * this.speed * fleeMul * deltaTime * 60;
+                this.y += this.vy * this.speed * fleeMul * deltaTime * 60;
+                this.x = Math.max(this.radius, Math.min(canvas.width - this.radius, this.x));
+                this.y = Math.max(this.radius, Math.min(canvas.height - this.radius, this.y));
+            }
+
+            isAlive() { return this.energy > 0 && this.age < this.lifeSpan && this.hunger < this.maxStats && this.thirst < this.maxStats; }
+
+            draw() {
+                ctx.save(); ctx.translate(this.x, this.y);
+                const r = this.radius;
+                const g = ctx.createRadialGradient(-r * 0.3, -r * 0.3, 1, 0, 0, r * 1.4);
+                g.addColorStop(0, '#fff4f0'); g.addColorStop(0.6, '#ffd2d9'); g.addColorStop(1, '#ff9fb3');
+                ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.ellipse(-r * 0.6, -r * 0.6, r * 0.35, r * 0.25, -0.6, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.ellipse(r * 0.6, -r * 0.6, r * 0.35, r * 0.25, 0.6, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(-r * 0.25, -r * 0.05, Math.max(1.2, r * 0.15), 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.arc(r * 0.25, -r * 0.05, Math.max(1.2, r * 0.15), 0, Math.PI * 2); ctx.fill();
+
+                const barW = r * 2.0;
+                const barX = -barW / 2;
+                const ageY = -r - 10;
+                const ageFrac = Math.max(0, Math.min(1, this.age / this.lifeSpan));
+                ctx.fillStyle = 'rgba(0,0,0,0.22)'; ctx.fillRect(barX, ageY, barW, 5);
+                const ageGrad = ctx.createLinearGradient(barX, 0, barX + barW, 0);
+                ageGrad.addColorStop(0, '#7bed9f'); ageGrad.addColorStop(1, '#ff6b6b');
+                ctx.fillStyle = ageGrad; ctx.fillRect(barX, ageY, barW * ageFrac, 5);
+
+                const hydY = r + 6;
+                const hunY = hydY + 8;
+                ctx.fillStyle = 'rgba(0,0,0,0.22)'; ctx.fillRect(barX, hydY, barW, 5);
+                ctx.fillStyle = 'rgba(0,0,0,0.22)'; ctx.fillRect(barX, hunY, barW, 5);
+                const hydFrac = Math.max(0, 1 - (this.thirst / this.maxStats));
+                const hunFrac = Math.max(0, 1 - (this.hunger / this.maxStats));
+                ctx.fillStyle = '#4aa6ff'; ctx.fillRect(barX, hydY, barW * hydFrac, 5);
+                ctx.fillStyle = '#4ad94a'; ctx.fillRect(barX, hunY, barW * hunFrac, 5);
+
+                ctx.restore();
+            }
+        }
+
+        // ---------- Helpers ----------
+        function randomBetween(min, max) { return min + Math.random() * (max - min); }
+
+        function distanceSq(x1, y1, x2, y2) {
+            const dx = x1 - x2; const dy = y1 - y2;
+            return dx * dx + dy * dy;
+        }
+
+        function getDayTime() {
+            const cycle = gameState.time % gameState.dayDuration;
+            return (cycle / gameState.dayDuration) * 24;
+        }
+
+        function getSeasonIndex() {
+            const seasonCycle = gameState.time % (gameState.seasonDuration * gameState.seasonNames.length);
+            return Math.floor(seasonCycle / gameState.seasonDuration);
+        }
+
+        function getSeasonName() { return gameState.seasonNames[getSeasonIndex()]; }
+
+        function getSeasonProgress() {
+            const seasonCycle = gameState.time % (gameState.seasonDuration * gameState.seasonNames.length);
+            return (seasonCycle % gameState.seasonDuration) / gameState.seasonDuration;
+        }
+
+        // Food regrows slower in cold seasons, faster in summer
+        function seasonRegrowMultiplier() {
+            switch (getSeasonName()) {
+                case 'Summer': return 0.7;
+                case 'Autumn': return 1.4;
+                case 'Winter': return 2.6;
+                default: return 1;
+            }
+        }
+
+        function formatClock(hour) {
+            const h = Math.floor(hour) % 24;
+            const m = Math.floor((hour - Math.floor(hour)) * 60);
+            return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+        }
+
+        function getDayPhase() {
+            const hour = getDayTime();
+            if (hour < 6) return 'Night';
+            if (hour < 10) return 'Dawn';
+            if (hour < 16) return 'Day';
+            if (hour < 20) return 'Dusk';
+            return 'Night';
+        }
+
+        function isFlockingTime() {
+            if (!gameState.settings.flockingEnabled) return false;
+            const season = getSeasonName();
+            const hour = getDayTime();
+            return season === 'Spring' && hour >= 6 && hour < 11;
+        }
+
+        function lerp(a, b, t) { return a + (b - a) * t; }
+        function fade(t) { return t * t * t * (t * (t * 6 - 15) + 10); }
+
+        function hash2D(x, y) {
+            const sinSeed = Math.sin(x * 127.1 + y * 311.7 + noiseSeed * 13.13) * 43758.5453;
+            return sinSeed - Math.floor(sinSeed);
+        }
+
+        function noise2D(x, y) {
+            const x0 = Math.floor(x); const y0 = Math.floor(y);
+            const xf = x - x0; const yf = y - y0;
+            const v00 = hash2D(x0, y0); const v10 = hash2D(x0 + 1, y0);
+            const v01 = hash2D(x0, y0 + 1); const v11 = hash2D(x0 + 1, y0 + 1);
+            const u = fade(xf); const v = fade(yf);
+            const nx0 = lerp(v00, v10, u); const nx1 = lerp(v01, v11, u);
+            return lerp(nx0, nx1, v);
+        }
+
+        function fractalNoise(x, y, octaves = 4, persistence = 0.55, baseFrequency = 0.006) {
+            let amplitude = 1; let frequency = baseFrequency;
+            let sum = 0; let max = 0;
+            for (let i = 0; i < octaves; i++) {
+                sum += noise2D(x * frequency, y * frequency) * amplitude;
+                max += amplitude;
+                amplitude *= persistence;
+                frequency *= 2;
+            }
+            return sum / max;
+        }
+
+        // ---------- Init ----------
+        function init() {
+            noiseSeed = Math.random() * 1000;
+            gameState.seepas = [];
+            gameState.particles = [];
+            gameState.popHistory = [];
+            gameState.lastSample = 0;
+            gameState.lastRescue = 0;
+            gameState.inspected = null;
+            gameState.weather = { type: null, drops: [] };
+            gameState.time = gameState.dayDuration * (8 / 24); // start 8:00 AM
+
+            gameState.ponds = [
+                { x: randomBetween(120, canvas.width - 120), y: randomBetween(120, canvas.height - 120), radius: 50 + Math.random() * 16 },
+                { x: randomBetween(120, canvas.width - 120), y: randomBetween(120, canvas.height - 120), radius: 50 + Math.random() * 24 }
+            ];
+
+            const bushDefs = [{ radius: 40 }, { radius: 36 }, { radius: 38 }, { radius: 42 }];
+            gameState.bushes = bushDefs.map(d => {
+                const cap = Math.floor(Math.random() * 5) + 3;
+                return {
+                    x: randomBetween(100, canvas.width - 100),
+                    y: randomBetween(100, canvas.height - 100),
+                    radius: d.radius,
+                    maxFruits: cap,
+                    fruits: createFruits(cap)
+                };
+            });
+
+            gameState.trees = [
+                { x: randomBetween(80, canvas.width - 80), y: randomBetween(120, canvas.height - 120), trunkHeight: 40, foliageRadius: 28, apples: createTreeApples(3, 28) },
+                { x: randomBetween(80, canvas.width - 80), y: randomBetween(120, canvas.height - 120), trunkHeight: 48, foliageRadius: 34, apples: createTreeApples(4, 34) },
+                { x: randomBetween(80, canvas.width - 80), y: randomBetween(120, canvas.height - 120), trunkHeight: 52, foliageRadius: 30, apples: createTreeApples(3, 30) }
+            ];
+
+            for (let i = 0; i < gameState.settings.seepaSpawn; i++) {
+                gameState.seepas.push(new Seepa(Math.random() * canvas.width, Math.random() * canvas.height));
+            }
+            createSpringFlocks();
+
+            gameState.suubas = [];
+            for (let i = 0; i < gameState.settings.suubaSpawn; i++) {
+                gameState.suubas.push(new Suuba(randomBetween(60, canvas.width - 60), randomBetween(60, canvas.height - 60)));
+            }
+            gameState.siibas = [];
+            for (let i = 0; i < gameState.settings.siibaSpawn; i++) {
+                gameState.siibas.push(new Siiba(randomBetween(40, canvas.width - 40), randomBetween(40, canvas.height - 40)));
+            }
+
+            gameState.stars = createStars(80);
+            buildEnvironmentBackground();
+        }
+
+        // ---------- Background ----------
+        function buildEnvironmentBackground() {
+            bgCtx.fillStyle = '#1a3a1a';
+            bgCtx.fillRect(0, 0, canvas.width, canvas.height);
+
+            for (let y = 0; y < canvas.height; y += 8) {
+                for (let x = 0; x < canvas.width; x += 8) {
+                    const n = fractalNoise(x, y) * 1.4 - 0.2;
+                    let color = '#1b3a1a';
+                    if (n < 0.1) color = '#3d5b2d';
+                    else if (n < 0.35) color = '#2c4e20';
+                    else if (n < 0.65) color = '#1a3516';
+                    else color = '#143012';
+                    bgCtx.fillStyle = color;
+                    bgCtx.fillRect(x, y, 8, 8);
+                }
+            }
+
+            // Scatter rocks and clearings for variety
+            for (let i = 0; i < 14; i++) {
+                const rx = randomBetween(30, canvas.width - 30);
+                const ry = randomBetween(30, canvas.height - 30);
+                const rr = 4 + Math.random() * 9;
+                const rg = bgCtx.createRadialGradient(rx - rr * 0.3, ry - rr * 0.3, 1, rx, ry, rr);
+                rg.addColorStop(0, '#9a9a92');
+                rg.addColorStop(0.6, '#6f6f68');
+                rg.addColorStop(1, '#4b4b45');
+                bgCtx.fillStyle = 'rgba(0,0,0,0.2)';
+                bgCtx.beginPath();
+                bgCtx.ellipse(rx + 1.5, ry + rr * 0.6, rr * 1.1, rr * 0.5, 0, 0, Math.PI * 2);
+                bgCtx.fill();
+                bgCtx.fillStyle = rg;
+                bgCtx.beginPath();
+                bgCtx.ellipse(rx, ry, rr, rr * 0.8, Math.random() * 0.6, 0, Math.PI * 2);
+                bgCtx.fill();
+            }
+
+            for (const pond of gameState.ponds) {
+                const sandRadius = pond.radius + 16;
+                const sandGradient = bgCtx.createRadialGradient(pond.x, pond.y, pond.radius * 0.9, pond.x, pond.y, sandRadius);
+                sandGradient.addColorStop(0, 'rgba(242,221,174,0)');
+                sandGradient.addColorStop(0.75, 'rgba(245,227,175,0.55)');
+                sandGradient.addColorStop(1, 'rgba(235,196,145,1)');
+                bgCtx.fillStyle = sandGradient;
+                bgCtx.beginPath();
+                bgCtx.arc(pond.x, pond.y, sandRadius, 0, Math.PI * 2);
+                bgCtx.fill();
+
+                bgCtx.fillStyle = 'rgba(10,40,10,0.25)';
+                bgCtx.beginPath();
+                bgCtx.ellipse(pond.x, pond.y + 6, pond.radius * 1.15, pond.radius * 0.8, 0, 0, Math.PI * 2);
+                bgCtx.fill();
+
+                const pg = bgCtx.createRadialGradient(pond.x - pond.radius * 0.2, pond.y - pond.radius * 0.2, pond.radius * 0.1, pond.x, pond.y, pond.radius);
+                pg.addColorStop(0, '#9fd6ff');
+                pg.addColorStop(0.5, '#4aa0ff');
+                pg.addColorStop(1, '#0b5fbf');
+                bgCtx.fillStyle = pg;
+                bgCtx.beginPath();
+                bgCtx.arc(pond.x, pond.y, pond.radius, 0, Math.PI * 2);
+                bgCtx.fill();
+
+                bgCtx.fillStyle = 'rgba(255,255,255,0.06)';
+                bgCtx.beginPath();
+                bgCtx.ellipse(pond.x - pond.radius * 0.3, pond.y - pond.radius * 0.4, pond.radius * 0.6, pond.radius * 0.25, -0.5, 0, Math.PI * 2);
+                bgCtx.fill();
+            }
+        }
+
+        function drawAnimatedPondRipples() {
+            const t = gameState.time || 0;
+            ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+            ctx.lineWidth = 1;
+            const rippleAmp = 2.0;
+            const rippleSpeed = 300;
+            for (const pond of gameState.ponds) {
+                for (let i = 1; i <= 2; i++) {
+                    ctx.beginPath();
+                    const r = pond.radius - 6 - i * 6 + Math.sin((t + i * 120) / rippleSpeed) * rippleAmp;
+                    ctx.arc(pond.x, pond.y, Math.max(6, r), 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+            }
+        }
+
+        function drawSeasonTint() {
+            const season = getSeasonName();
+            let tint = 'rgba(0,0,0,0)';
+            if (season === 'Spring') tint = 'rgba(56, 213, 128, 0.08)';
+            if (season === 'Summer') tint = 'rgba(255, 184, 78, 0.08)';
+            if (season === 'Autumn') tint = 'rgba(255, 143, 92, 0.12)';
+            if (season === 'Winter') tint = 'rgba(116, 189, 255, 0.12)';
+            ctx.fillStyle = tint;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+
+        function drawDayNightOverlay() {
+            drawSeasonTint();
+            const phase = getDayPhase();
+            let alpha = 0;
+            if (phase === 'Night') alpha = 0.42;
+            else if (phase === 'Dusk' || phase === 'Dawn') alpha = 0.18;
+            if (alpha > 0) {
+                ctx.fillStyle = `rgba(4, 10, 35, ${alpha})`;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+            if (phase === 'Night') {
+                ctx.fillStyle = '#eef9ff';
+                for (const star of gameState.stars) {
+                    ctx.globalAlpha = star.alpha;
+                    ctx.beginPath();
+                    ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                ctx.globalAlpha = 1;
+            }
+        }
+
+        // ---------- Weather (snow in winter, rain in autumn) ----------
+        function updateWeather(deltaTime) {
+            const season = getSeasonName();
+            let type = null;
+            if (season === 'Winter') type = 'snow';
+            else if (season === 'Autumn') type = 'rain';
+
+            const w = gameState.weather;
+            if (type !== w.type) {
+                w.type = type;
+                w.drops = [];
+                if (type) {
+                    const n = type === 'snow' ? 130 : 110;
+                    for (let i = 0; i < n; i++) {
+                        w.drops.push({
+                            x: Math.random() * canvas.width,
+                            y: Math.random() * canvas.height,
+                            spd: type === 'snow' ? 18 + Math.random() * 35 : 260 + Math.random() * 140,
+                            phase: Math.random() * Math.PI * 2,
+                            size: type === 'snow' ? 1.2 + Math.random() * 2 : 0
+                        });
+                    }
+                }
+            }
+            if (!w.type) return;
+            const dt = deltaTime / 1000;
+            for (const d of w.drops) {
+                d.y += d.spd * dt;
+                if (w.type === 'snow') d.x += Math.sin(gameState.time / 700 + d.phase) * 18 * dt;
+                else d.x += 40 * dt;
+                if (d.y > canvas.height + 8) { d.y = -8; d.x = Math.random() * canvas.width; }
+                if (d.x > canvas.width + 8) d.x = -8;
+                if (d.x < -8) d.x = canvas.width + 8;
+            }
+        }
+
+        function drawWeather() {
+            const w = gameState.weather;
+            if (!w.type) return;
+            if (w.type === 'snow') {
+                ctx.fillStyle = 'rgba(240, 248, 255, 0.85)';
+                for (const d of w.drops) {
+                    ctx.globalAlpha = 0.5 + Math.sin(gameState.time / 500 + d.phase) * 0.25;
+                    ctx.beginPath();
+                    ctx.arc(d.x, d.y, d.size, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                ctx.globalAlpha = 1;
+            } else {
+                ctx.strokeStyle = 'rgba(150, 190, 255, 0.45)';
+                ctx.lineWidth = 1.2;
+                ctx.beginPath();
+                for (const d of w.drops) {
+                    ctx.moveTo(d.x, d.y);
+                    ctx.lineTo(d.x - 2.5, d.y - 12);
+                }
+                ctx.stroke();
+            }
+        }
+
+        // ---------- Population graph ----------
+        function samplePopulation() {
+            if (gameState.time - gameState.lastSample < 500) return;
+            gameState.lastSample = gameState.time;
+            gameState.popHistory.push({
+                se: gameState.seepas.length,
+                su: gameState.suubas.length,
+                si: gameState.siibas.length
+            });
+            if (gameState.popHistory.length > 240) gameState.popHistory.shift();
+        }
+
+        function drawGraph() {
+            if (!graphCtx) return;
+            const W = graphCanvas.width, H = graphCanvas.height;
+            graphCtx.clearRect(0, 0, W, H);
+            graphCtx.fillStyle = '#1c1c1c';
+            graphCtx.fillRect(0, 0, W, H);
+
+            const hist = gameState.popHistory;
+            if (hist.length < 2) {
+                graphCtx.fillStyle = '#666';
+                graphCtx.font = '11px Arial';
+                graphCtx.fillText('Gathering data...', 8, H / 2);
+                return;
+            }
+
+            let max = 10;
+            for (const h of hist) max = Math.max(max, h.se, h.su, h.si);
+
+            // grid lines
+            graphCtx.strokeStyle = 'rgba(255,255,255,0.07)';
+            graphCtx.lineWidth = 1;
+            for (let i = 1; i <= 3; i++) {
+                const y = (H / 4) * i;
+                graphCtx.beginPath();
+                graphCtx.moveTo(0, y); graphCtx.lineTo(W, y);
+                graphCtx.stroke();
+            }
+
+            const series = [
+                { key: 'se', color: '#63a6ff' },
+                { key: 'su', color: '#ff6b6b' },
+                { key: 'si', color: '#ff9fb3' }
+            ];
+            for (const s of series) {
+                graphCtx.strokeStyle = s.color;
+                graphCtx.lineWidth = 1.6;
+                graphCtx.beginPath();
+                for (let i = 0; i < hist.length; i++) {
+                    const x = (i / (hist.length - 1)) * (W - 4) + 2;
+                    const y = H - 4 - (hist[i][s.key] / max) * (H - 10);
+                    if (i === 0) graphCtx.moveTo(x, y);
+                    else graphCtx.lineTo(x, y);
+                }
+                graphCtx.stroke();
+            }
+
+            graphCtx.fillStyle = '#888';
+            graphCtx.font = '9px Arial';
+            graphCtx.fillText('max ' + max, 4, 10);
+        }
+
+        function drawAnalogClock(ctx, hours, minutes) {
+            const radius = 45;
+            ctx.clearRect(0, 0, 100, 100);
+            ctx.save();
+            ctx.translate(50, 50);
+            ctx.fillStyle = '#121212';
+            ctx.beginPath();
+            ctx.arc(0, 0, radius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#5a7d9a';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+            ctx.fillStyle = '#fff';
+            for (let i = 0; i < 12; i++) {
+                const angle = (i / 12) * Math.PI * 2 - Math.PI / 2;
+                const x1 = Math.cos(angle) * (radius - 9);
+                const y1 = Math.sin(angle) * (radius - 9);
+                const x2 = Math.cos(angle) * (radius - 4);
+                const y2 = Math.sin(angle) * (radius - 4);
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.stroke();
+            }
+            const minuteAngle = (minutes / 60) * Math.PI * 2 - Math.PI / 2;
+            ctx.strokeStyle = '#f5d16d';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(Math.cos(minuteAngle) * (radius - 16), Math.sin(minuteAngle) * (radius - 16));
+            ctx.stroke();
+            const hourAngle = ((hours % 12) / 12) * Math.PI * 2 - Math.PI / 2 + (minutes / 60) * (Math.PI / 6);
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(Math.cos(hourAngle) * (radius - 26), Math.sin(hourAngle) * (radius - 26));
+            ctx.stroke();
+            ctx.fillStyle = '#f5d16d';
+            ctx.beginPath();
+            ctx.arc(0, 0, 4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+
+        function drawSeasonClock(ctx, seasonIndex, progress) {
+            const radius = 45;
+            const labels = ['Sp', 'Su', 'Au', 'Wi'];
+            ctx.clearRect(0, 0, 100, 100);
+            ctx.save();
+            ctx.translate(50, 50);
+            ctx.fillStyle = '#121212';
+            ctx.beginPath();
+            ctx.arc(0, 0, radius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#7b7b7b';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+            for (let i = 0; i < 4; i++) {
+                const angle = (i / 4) * Math.PI * 2 - Math.PI / 2;
+                const x = Math.cos(angle) * (radius - 12);
+                const y = Math.sin(angle) * (radius - 12);
+                ctx.fillStyle = '#f5f5f5';
+                ctx.font = '10px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(labels[i], x, y);
+            }
+            const angle = ((seasonIndex + progress) / 4) * Math.PI * 2 - Math.PI / 2;
+            ctx.strokeStyle = '#ffb74d';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(Math.cos(angle) * (radius - 18), Math.sin(angle) * (radius - 18));
+            ctx.stroke();
+            ctx.fillStyle = '#ffb74d';
+            ctx.beginPath();
+            ctx.arc(0, 0, 4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+
+        function createStars(count) {
+            const stars = [];
+            for (let i = 0; i < count; i++) {
+                stars.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height * 0.6,
+                    radius: Math.random() * 1.4 + 0.6,
+                    alpha: Math.random() * 0.6 + 0.25
+                });
+            }
+            return stars;
+        }
+
+        function drawBushes() {
+            const bushes = gameState.bushes || [];
+            const cloudOffsets = [
+                { x: -22, y: 0, r: 22 },
+                { x: -6, y: -8, r: 26 },
+                { x: 12, y: -2, r: 24 },
+                { x: 30, y: 6, r: 18 },
+                { x: 0, y: 10, r: 20 }
+            ];
+
+            for (const bush of bushes) {
+                ctx.save();
+                ctx.translate(bush.x, bush.y);
+
+                ctx.fillStyle = 'rgba(0,0,0,0.15)';
+                ctx.beginPath();
+                ctx.ellipse(0, bush.radius * 0.55, bush.radius * 1.2, bush.radius * 0.55, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                for (const c of cloudOffsets) {
+                    const cx = c.x;
+                    const cy = c.y;
+                    const cr = c.r * (bush.radius / 35);
+                    const cg = ctx.createRadialGradient(cx - cr * 0.3, cy - cr * 0.3, 1, cx, cy, cr);
+                    cg.addColorStop(0, '#e0ffc8');
+                    cg.addColorStop(0.5, '#7bc671');
+                    cg.addColorStop(1, '#2f7c2f');
+                    ctx.fillStyle = cg;
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, cr, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                const fruitPositions = [
+                    { x: -12, y: -12 }, { x: 12, y: -12 }, { x: 0, y: 0 },
+                    { x: -12, y: 12 }, { x: 12, y: 12 }, { x: -18, y: 6 }, { x: 18, y: 6 }
+                ];
+                if (bush && bush.fruits) {
+                    bush.fruits.forEach((fruit, idx) => {
+                        const pos = fruitPositions[idx % fruitPositions.length];
+                        const fx = pos.x;
+                        const fy = pos.y;
+                        if (fruit.available) {
+                            ctx.fillStyle = 'rgba(0,0,0,0.16)';
+                            ctx.beginPath();
+                            ctx.ellipse(fx + 1.5, fy + 2, 5.5, 3, 0, 0, Math.PI * 2);
+                            ctx.fill();
+
+                            const fg = ctx.createRadialGradient(fx - 2, fy - 2, 1, fx, fy, 7);
+                            fg.addColorStop(0, '#ffe0a8');
+                            fg.addColorStop(0.5, '#ff9b44');
+                            fg.addColorStop(1, '#cc550f');
+                            ctx.fillStyle = fg;
+                            ctx.beginPath();
+                            ctx.arc(fx, fy, 6, 0, Math.PI * 2);
+                            ctx.fill();
+
+                            ctx.fillStyle = 'rgba(255,255,255,0.65)';
+                            ctx.beginPath();
+                            ctx.arc(fx - 2.2, fy - 2.2, 2, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                    });
+                }
+
+                ctx.restore();
+            }
+        }
+
+        function drawTrees() {
+            if (!gameState.trees) return;
+            const winter = getSeasonName() === 'Winter';
+            for (const tr of gameState.trees) {
+                const trunkWidth = 14;
+                const trunkHeight = tr.trunkHeight;
+                ctx.fillStyle = '#4d311d';
+                ctx.fillRect(tr.x - trunkWidth / 2, tr.y, trunkWidth, trunkHeight);
+
+                const fr = tr.foliageRadius;
+                const fg = ctx.createRadialGradient(tr.x - fr * 0.2, tr.y - fr * 0.6, 2, tr.x, tr.y - fr * 0.2, fr);
+                if (winter) {
+                    fg.addColorStop(0, '#f4fbff');
+                    fg.addColorStop(0.45, '#cfe6ee');
+                    fg.addColorStop(1, '#7fa3ae');
+                } else {
+                    fg.addColorStop(0, '#eafde2');
+                    fg.addColorStop(0.45, '#85d17a');
+                    fg.addColorStop(1, '#2f7e33');
+                }
+                ctx.fillStyle = fg;
+
+                ctx.beginPath();
+                ctx.arc(tr.x, tr.y - fr * 0.8, fr * 0.95, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.beginPath();
+                ctx.arc(tr.x - fr * 0.55, tr.y - fr * 0.2, fr * 0.76, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.beginPath();
+                ctx.arc(tr.x + fr * 0.55, tr.y - fr * 0.25, fr * 0.76, 0, Math.PI * 2);
+                ctx.fill();
+
+                if (tr.apples) {
+                    for (const apple of tr.apples) {
+                        const ax = tr.x + apple.offsetX;
+                        const ay = tr.y + apple.offsetY;
+                        if (!apple.available) continue;
+
+                        ctx.fillStyle = 'rgba(210, 65, 50, 0.9)';
+                        ctx.beginPath();
+                        ctx.arc(ax, ay, 6, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        ctx.strokeStyle = '#5b1b08';
+                        ctx.lineWidth = 1;
+                        ctx.beginPath();
+                        ctx.moveTo(ax + 1, ay - 6);
+                        ctx.lineTo(ax + 1, ay - 10);
+                        ctx.stroke();
+
+                        ctx.fillStyle = 'rgba(255,255,255,0.65)';
+                        ctx.beginPath();
+                        ctx.arc(ax - 2, ay - 2, 1.6, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
+            }
+        }
+
+        function roundRect(ctx, x, y, width, height, radius, fill, stroke) {
+            if (typeof stroke === 'undefined') stroke = true;
+            if (typeof radius === 'undefined') radius = 5;
+            ctx.beginPath();
+            ctx.moveTo(x + radius, y);
+            ctx.arcTo(x + width, y, x + width, y + height, radius);
+            ctx.arcTo(x + width, y + height, x, y + height, radius);
+            ctx.arcTo(x, y + height, x, y, radius);
+            ctx.arcTo(x, y, x + width, y, radius);
+            ctx.closePath();
+            if (fill) ctx.fill();
+            if (stroke) ctx.stroke();
+        }
+
+        function createFruits(count) {
+            const arr = [];
+            for (let i = 0; i < count; i++) arr.push({ available: true, eatTime: -Infinity });
+            return arr;
+        }
+
+        function createTreeApples(count, foliageRadius) {
+            const apples = [];
+            for (let i = 0; i < count; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const radius = Math.random() * (foliageRadius * 0.45) + foliageRadius * 0.2;
+                apples.push({
+                    offsetX: Math.cos(angle) * radius,
+                    offsetY: Math.sin(angle) * radius - foliageRadius * 0.2,
+                    available: true,
+                    eatTime: -Infinity
+                });
+            }
+            return apples;
+        }
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        function createSpringFlocks() {
+            const ids = gameState.seepas.map((_, index) => index);
+            shuffleArray(ids);
+            let nextGroupId = 1;
+            while (ids.length >= 5 && nextGroupId <= 6) {
+                const groupSize = Math.min(5 + Math.floor(Math.random() * 21), ids.length);
+                const groupIds = ids.splice(0, groupSize);
+                for (const seepaIndex of groupIds) {
+                    gameState.seepas[seepaIndex].groupId = nextGroupId;
+                }
+                nextGroupId++;
+            }
+        }
+
+        function handleReproduction() {
+            const season = getSeasonName();
+            if (!(season === 'Spring' || season === 'Summer')) return;
+            const now = gameState.time;
+            const reproRadiusSq = 30 * 30;
+            const reproCooldown = 15000; // 15 seconds between reproductions per parent
+            const newbornLimit = 12;
+            let births = 0;
+
+            for (let i = 0; i < gameState.seepas.length && births < newbornLimit; i++) {
+                const a = gameState.seepas[i];
+                if (now - a.lastReproduction < reproCooldown) continue;
+                if (a.age < 16) continue;
+                const aFullness = 1 - (a.hunger / a.maxStats);
+                const aHydration = 1 - (a.thirst / a.maxStats);
+                if (aFullness <= 0.5 || aHydration <= 0.5) continue;
+
+                for (let j = i + 1; j < gameState.seepas.length && births < newbornLimit; j++) {
+                    const b = gameState.seepas[j];
+                    if (a.sex === b.sex) continue;
+                    if (now - b.lastReproduction < reproCooldown) continue;
+                    if (b.age < 16) continue;
+                    const dx = a.x - b.x; const dy = a.y - b.y;
+                    const dSq = dx * dx + dy * dy;
+                    if (dSq > reproRadiusSq) continue;
+                    const bFullness = 1 - (b.hunger / b.maxStats);
+                    const bHydration = 1 - (b.thirst / b.maxStats);
+                    if (bFullness <= 0.5 || bHydration <= 0.5) continue;
+
+                    const nx = (a.x + b.x) / 2 + (Math.random() - 0.5) * 6;
+                    const ny = (a.y + b.y) / 2 + (Math.random() - 0.5) * 6;
+                    // Baby inherits a mix of both parents' genes with mutation
+                    const childGenes = inheritGenes(a.genes, b.genes);
+                    const childGen = Math.max(a.generation, b.generation) + 1;
+                    const baby = new Seepa(nx, ny, childGenes, childGen);
+                    baby.age = 0;
+                    baby.lastReproduction = -Infinity;
+                    baby.hunger = Math.random() * 20;
+                    baby.thirst = Math.random() * 20;
+                    gameState.seepas.push(baby);
+                    spawnParticles(nx, ny, '#ffd84d', 8, 1.4);
+                    births++;
+
+                    a.hunger = Math.min(a.maxStats, a.hunger + 20);
+                    b.hunger = Math.min(b.maxStats, b.hunger + 20);
+                    a.thirst = Math.min(a.maxStats, a.thirst + 20);
+                    b.thirst = Math.min(b.maxStats, b.thirst + 20);
+
+                    a.lastReproduction = now;
+                    b.lastReproduction = now;
+                }
+            }
+        }
+
+        // ---------- Suuba (predator) ----------
+        class Suuba {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.radius = 28;
+                this.vx = (Math.random() - 0.5) * 2;
+                this.vy = (Math.random() - 0.5) * 2;
+                this.speed = 1.4;
+                this.energy = 220;
+                this.eatCooldown = 0;
+                this.hunger = Math.random() * 40 + 10;
+                this.thirst = Math.random() * 40 + 10;
+                this.maxStats = 300;
+                this.age = Math.random() * 60;
+                this.sex = Math.random() < 0.5 ? 'male' : 'female';
+                this.lastReproduction = -Infinity;
+                this.lifeSpan = 360;
+                this.birthRadius = this.radius;
+                this.adultRadius = 28;
+            }
+
+            update(deltaTime, gameState) {
+                deltaTime = deltaTime / 1000;
+                this.age += deltaTime;
+                const careFactor = this.age < 18 ? 0.35 : 1.0;
+                this.energy -= 2 * deltaTime * careFactor;
+                this.hunger = Math.min(this.maxStats, this.hunger + 2 * deltaTime * careFactor);
+                this.thirst = Math.min(this.maxStats, this.thirst + 3 * deltaTime * careFactor);
+                if (this.eatCooldown > 0) this.eatCooldown -= deltaTime;
+
+                const needWater = this.thirst > 75;
+                const needFood = gameState.settings.predatorsEnabled && this.hunger > 45;
+
+                const nearestPond = () => {
+                    if (!gameState.ponds || gameState.ponds.length === 0) return null;
+                    let best = null; let bestD = Infinity;
+                    for (const p of gameState.ponds) {
+                        const d2 = distanceSq(p.x, p.y, this.x, this.y);
+                        if (d2 < bestD) { best = p; bestD = d2; }
+                    }
+                    return best;
+                };
+
+                if (needWater) {
+                    const p = nearestPond();
+                    if (p) {
+                        const dx = p.x - this.x; const dy = p.y - this.y;
+                        const d = Math.sqrt(dx * dx + dy * dy) || 0.0001;
+                        this.vx = lerp(this.vx, dx / d, 0.3);
+                        this.vy = lerp(this.vy, dy / d, 0.3);
+                        if (d < this.radius + 10) {
+                            this.thirst = Math.max(0, this.thirst - 90);
+                            this.energy = Math.min(this.maxStats, this.energy + 30);
+                        }
+                    }
+                } else if (needFood && gameState.seepas.length > 0) {
+                    let target = null; let bestD = Infinity;
+                    for (const s of gameState.seepas) {
+                        const dx = s.x - this.x; const dy = s.y - this.y;
+                        const d2 = dx * dx + dy * dy;
+                        if (d2 < bestD) { bestD = d2; target = s; }
+                    }
+                    if (target) {
+                        const d = Math.sqrt(bestD) || 0.0001;
+                        const tx = (target.x - this.x) / d;
+                        const ty = (target.y - this.y) / d;
+                        this.vx = lerp(this.vx, tx, 0.35);
+                        this.vy = lerp(this.vy, ty, 0.35);
+
+                        if (d < this.radius + target.radius + 6 && this.eatCooldown <= 0) {
+                            const idx = gameState.seepas.indexOf(target);
+                            if (idx !== -1) {
+                                spawnParticles(target.x, target.y, '#ff5a5a', 12, 2.2);
+                                if (gameState.inspected && gameState.inspected.ref === target) gameState.inspected = null;
+                                gameState.seepas.splice(idx, 1);
+                                this.energy = Math.min(this.maxStats, this.energy + 120);
+                                this.hunger = Math.max(0, this.hunger - 80);
+                                this.eatCooldown = 1.2;
+                            }
+                        }
+                    }
+                } else {
+                    this.vx += (Math.random() - 0.5) * 0.06;
+                    this.vy += (Math.random() - 0.5) * 0.06;
+
+                    if (this.age > 30 && this.energy > 160 && (gameState.time - (this.lastReproduction || -Infinity)) > 45000) {
+                        for (const other of gameState.suubas || []) {
+                            if (other === this) continue;
+                            if (other.sex === this.sex) continue;
+                            if (other.age < 30) continue;
+                            if ((gameState.time - (other.lastReproduction || -Infinity)) <= 45000) continue;
+                            const d2 = distanceSq(this.x, this.y, other.x, other.y);
+                            if (d2 < 1200) {
+                                const bx = (this.x + other.x) / 2 + (Math.random() - 0.5) * 8;
+                                const by = (this.y + other.y) / 2 + (Math.random() - 0.5) * 8;
+                                const baby = new Suuba(bx, by);
+                                baby.radius = 12 + Math.random() * 4;
+                                baby.birthRadius = baby.radius;
+                                baby.adultRadius = 28;
+                                baby.age = 0;
+                                baby.energy = 220;
+                                baby.hunger = 8;
+                                baby.thirst = 8;
+                                gameState.suubas.push(baby);
+                                spawnParticles(bx, by, '#ffb3b3', 8, 1.4);
+                                this.energy -= 70; other.energy -= 70;
+                                this.lastReproduction = gameState.time; other.lastReproduction = gameState.time;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                const vlen = Math.sqrt(this.vx * this.vx + this.vy * this.vy) || 1e-6;
+                if (vlen > 1.8) { this.vx *= 1.8 / vlen; this.vy *= 1.8 / vlen; }
+                this.x += this.vx * this.speed * deltaTime * 60;
+                this.y += this.vy * this.speed * deltaTime * 60;
+
+                this.x = Math.max(this.radius, Math.min(canvas.width - this.radius, this.x));
+                this.y = Math.max(this.radius, Math.min(canvas.height - this.radius, this.y));
+                if (this.age > this.lifeSpan * 0.8) this.energy -= 0.5 * deltaTime;
+
+                const growT = Math.min(1, this.age / 30);
+                this.radius = lerp(this.birthRadius, this.adultRadius, growT);
+            }
+
+            isAlive() {
+                return this.energy > 0 && this.age < this.lifeSpan;
+            }
+
+            draw() {
+                // Suuba: rounded beast with ears, eyes and fangs
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                const size = this.radius * 2;
+                const wobble = Math.sin(this.age * 2.2) * 0.06;
+                ctx.rotate(wobble);
+
+                // Shadow
+                ctx.fillStyle = 'rgba(0,0,0,0.22)';
+                ctx.beginPath();
+                ctx.ellipse(0, size * 0.52, size * 0.55, size * 0.18, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Ears (triangles)
+                const earCol = this.sex === 'male' ? '#6e1d1d' : '#5a1a1a';
+                ctx.fillStyle = earCol;
+                ctx.beginPath();
+                ctx.moveTo(-size * 0.34, -size * 0.42);
+                ctx.lineTo(-size * 0.16, -size * 0.62);
+                ctx.lineTo(-size * 0.05, -size * 0.4);
+                ctx.closePath();
+                ctx.fill();
+                ctx.beginPath();
+                ctx.moveTo(size * 0.34, -size * 0.42);
+                ctx.lineTo(size * 0.16, -size * 0.62);
+                ctx.lineTo(size * 0.05, -size * 0.4);
+                ctx.closePath();
+                ctx.fill();
+
+                // Body: rounded square with gradient
+                const g = ctx.createLinearGradient(-size / 2, -size / 2, size / 2, size / 2);
+                const base1 = this.sex === 'male' ? '#c75d5d' : '#d98a8a';
+                const base2 = this.sex === 'male' ? '#5e1414' : '#421010';
+                g.addColorStop(0, base1);
+                g.addColorStop(1, base2);
+                ctx.fillStyle = g;
+                roundRect(ctx, -size / 2, -size / 2, size, size, size * 0.22, true, false);
+
+                // Belly patch
+                ctx.fillStyle = 'rgba(255, 220, 210, 0.18)';
+                ctx.beginPath();
+                ctx.ellipse(0, size * 0.16, size * 0.28, size * 0.2, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Eyes
+                const eyeR = Math.max(2.6, this.radius * 0.2);
+                for (const ex of [-size * 0.18, size * 0.18]) {
+                    ctx.fillStyle = '#fff8e6';
+                    ctx.beginPath();
+                    ctx.arc(ex, -size * 0.12, eyeR, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = '#1a0a0a';
+                    ctx.beginPath();
+                    ctx.arc(ex + eyeR * 0.25, -size * 0.12, eyeR * 0.5, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // Fangs
+                ctx.fillStyle = '#fdf6e3';
+                for (const fx of [-size * 0.12, size * 0.12]) {
+                    ctx.beginPath();
+                    ctx.moveTo(fx - size * 0.04, size * 0.22);
+                    ctx.lineTo(fx + size * 0.04, size * 0.22);
+                    ctx.lineTo(fx, size * 0.34);
+                    ctx.closePath();
+                    ctx.fill();
+                }
+
+                // Status bars
+                const barW = size;
+                const barX = -barW / 2;
+                const ageY = -size / 2 - 12;
+                const ageFrac = Math.max(0, Math.min(1, this.age / this.lifeSpan));
+                ctx.fillStyle = 'rgba(0,0,0,0.28)'; ctx.fillRect(barX, ageY, barW, 6);
+                const ag = ctx.createLinearGradient(barX, 0, barX + barW, 0);
+                ag.addColorStop(0, '#7bed9f');
+                ag.addColorStop(1, '#ff6b6b');
+                ctx.fillStyle = ag;
+                ctx.fillRect(barX, ageY, barW * ageFrac, 6);
+
+                const hy = size / 2 + 6;
+                const hh = hy + 8;
+                ctx.fillStyle = 'rgba(0,0,0,0.28)'; ctx.fillRect(barX, hy, barW, 6);
+                ctx.fillStyle = 'rgba(0,0,0,0.28)'; ctx.fillRect(barX, hh, barW, 6);
+                const hydFrac = Math.max(0, 1 - (this.thirst / this.maxStats));
+                ctx.fillStyle = '#4aa6ff'; ctx.fillRect(barX, hy, barW * hydFrac, 6);
+                const hunFrac = Math.max(0, 1 - (this.hunger / this.maxStats));
+                ctx.fillStyle = '#4ad94a'; ctx.fillRect(barX, hh, barW * hunFrac, 6);
+                ctx.restore();
+            }
+        }
+
+        // ---------- Rescue: stop total extinction ----------
+        function handleRescue() {
+            if (gameState.time - gameState.lastRescue < 6000) return;
+            gameState.lastRescue = gameState.time;
+
+            if (gameState.seepas.length < 5 && gameState.settings.seepaSpawn > 0) {
+                for (let i = 0; i < 6; i++) {
+                    const x = randomBetween(40, canvas.width - 40);
+                    const y = randomBetween(40, canvas.height - 40);
+                    const s = new Seepa(x, y);
+                    s.age = 20 + Math.random() * 20;
+                    gameState.seepas.push(s);
+                    spawnParticles(x, y, '#9fd3ff', 6, 1.4);
+                }
+            }
+            if (gameState.suubas.length < 2 && gameState.settings.suubaSpawn > 0) {
+                for (let i = 0; i < 2; i++) {
+                    const x = randomBetween(60, canvas.width - 60);
+                    const y = randomBetween(60, canvas.height - 60);
+                    gameState.suubas.push(new Suuba(x, y));
+                    spawnParticles(x, y, '#c75d5d', 6, 1.4);
+                }
+            }
+            if (gameState.siibas.length < 2 && gameState.settings.siibaSpawn > 0) {
+                for (let i = 0; i < 3; i++) {
+                    const x = randomBetween(40, canvas.width - 40);
+                    const y = randomBetween(40, canvas.height - 40);
+                    gameState.siibas.push(new Siiba(x, y));
+                    spawnParticles(x, y, '#ffd2d9', 6, 1.4);
+                }
+            }
+        }
+
+        // ---------- Main update ----------
+        function update(deltaTime) {
+            if (gameState.paused) return;
+
+            gameState.time += deltaTime;
+            gameState.flockingActive = isFlockingTime();
+
+            const regrowMult = seasonRegrowMultiplier();
+
+            if (gameState.bushes) {
+                for (const bush of gameState.bushes) {
+                    if (!bush.fruits) continue;
+                    for (let fruit of bush.fruits) {
+                        if (!fruit.available && gameState.time - fruit.eatTime >= gameState.fruitRegrowTime * regrowMult) {
+                            fruit.available = true;
+                        }
+                    }
+                }
+            }
+
+            if (gameState.trees) {
+                for (const tree of gameState.trees) {
+                    if (!tree.apples) continue;
+                    for (let apple of tree.apples) {
+                        if (!apple.available && gameState.time - apple.eatTime >= gameState.appleRegrowTime * regrowMult) {
+                            apple.available = true;
+                        }
+                    }
+                }
+            }
+
+            for (let i = gameState.seepas.length - 1; i >= 0; i--) {
+                const seepa = gameState.seepas[i];
+                seepa.update(deltaTime, gameState);
+                if (!seepa.isAlive()) {
+                    spawnParticles(seepa.x, seepa.y, '#aab4bd', 9, 1.6);
+                    if (gameState.inspected && gameState.inspected.ref === seepa) gameState.inspected = null;
+                    gameState.seepas.splice(i, 1);
+                }
+            }
+
+            if (gameState.siibas) {
+                for (let i = gameState.siibas.length - 1; i >= 0; i--) {
+                    const siiba = gameState.siibas[i];
+                    siiba.update(deltaTime, gameState);
+                    if (!siiba.isAlive()) {
+                        spawnParticles(siiba.x, siiba.y, '#aab4bd', 8, 1.4);
+                        if (gameState.inspected && gameState.inspected.ref === siiba) gameState.inspected = null;
+                        gameState.siibas.splice(i, 1);
+                    }
+                }
+            }
+
+            if (gameState.suubas) {
+                for (let i = gameState.suubas.length - 1; i >= 0; i--) {
+                    const suuba = gameState.suubas[i];
+                    suuba.update(deltaTime, gameState);
+                    if (!suuba.isAlive()) {
+                        spawnParticles(suuba.x, suuba.y, '#aab4bd', 12, 1.8);
+                        if (gameState.inspected && gameState.inspected.ref === suuba) gameState.inspected = null;
+                        gameState.suubas.splice(i, 1);
+                    }
+                }
+            }
+
+            handleReproduction();
+            handleRescue();
+            updateParticles(deltaTime);
+            updateWeather(deltaTime);
+            samplePopulation();
+        }
+
+        // ---------- Render ----------
+        function render() {
+            ctx.drawImage(backgroundCanvas, 0, 0);
+            drawAnimatedPondRipples();
+            drawDayNightOverlay();
+
+            for (const seepa of gameState.seepas) seepa.draw();
+            if (gameState.siibas) for (const siiba of gameState.siibas) siiba.draw();
+
+            drawBushes();
+            drawTrees();
+            if (gameState.suubas) for (const suuba of gameState.suubas) suuba.draw();
+
+            drawParticles();
+            drawWeather();
+
+            // Highlight inspected creature
+            if (gameState.inspected && gameState.inspected.ref) {
+                const c = gameState.inspected.ref;
+                const pulse = 3 + Math.sin(Date.now() / 200) * 2;
+                ctx.strokeStyle = '#ffd84d';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(c.x, c.y, c.radius + 6 + pulse, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+
+            ctx.fillStyle = '#fff';
+            ctx.font = '12px Arial';
+            ctx.fillText(`Time: ${(gameState.time / 1000).toFixed(1)}s`, 10, 20);
+            ctx.fillText(`Seepas: ${gameState.seepas.length}`, 10, 35);
+            ctx.fillText(`Suubas: ${gameState.suubas ? gameState.suubas.length : 0}`, 10, 50);
+            ctx.fillText(`Siibas: ${gameState.siibas ? gameState.siibas.length : 0}`, 10, 65);
+
+            if (gameState.paused) {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 24px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('PAUSED', canvas.width / 2, canvas.height / 2);
+                ctx.textAlign = 'left';
+            }
+        }
+
+        // ---------- Game loop ----------
+        let lastTime = Date.now();
+        function gameLoop() {
+            const now = Date.now();
+            let deltaTime = (now - lastTime) * gameState.speed;
+            lastTime = now;
+            deltaTime = Math.min(deltaTime, 120);
+
+            update(deltaTime);
+            render();
+            drawClockWidgets();
+            drawGraph();
+
+            frameCount++;
+            if (now - lastFpsTime >= 1000) {
+                fps = frameCount;
+                frameCount = 0;
+                lastFpsTime = now;
+                updateStats();
+            }
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // ---------- UI ----------
+        function updateStats() {
+            document.getElementById('seepasCount').textContent = gameState.seepas.length;
+            document.getElementById('suubasCount').textContent = (gameState.suubas || []).length;
+            document.getElementById('siibasCount').textContent = (gameState.siibas || []).length;
+            document.getElementById('simTime').textContent = (gameState.time / 1000).toFixed(1) + 's';
+            document.getElementById('dayClock').textContent = formatClock(getDayTime());
+            document.getElementById('dayPhase').textContent = getDayPhase();
+            document.getElementById('seasonLabel').textContent = getSeasonName();
+            document.getElementById('fps').textContent = fps;
+            let maxGen = 1;
+            for (const s of gameState.seepas) if (s.generation > maxGen) maxGen = s.generation;
+            document.getElementById('genLabel').textContent = maxGen;
+            updateInspector();
+        }
+
+        function updateInspector() {
+            const panel = document.getElementById('inspector');
+            const insp = gameState.inspected;
+            if (!insp || !insp.ref || !insp.ref.isAlive()) {
+                if (insp) gameState.inspected = null;
+                panel.innerHTML = 'Set Click Action to 🔍 and click a creature to see its stats and genes.';
+                return;
+            }
+            const c = insp.ref;
+            const hungerPct = Math.round((1 - c.hunger / c.maxStats) * 100);
+            const thirstPct = Math.round((1 - c.thirst / c.maxStats) * 100);
+            let html = '<div class="insp-title">' + insp.type + '</div>';
+            html += 'Sex: ' + c.sex + '<br>';
+            html += 'Age: ' + c.age.toFixed(1) + 's';
+            if (c.lifeSpan) html += ' / ' + c.lifeSpan + 's';
+            else html += ' / 100s';
+            html += '<br>Food: ' + hungerPct + '% &nbsp; Water: ' + thirstPct + '%';
+            if (typeof c.energy === 'number') html += '<br>Energy: ' + Math.round(c.energy);
+            if (c.genes) {
+                html += '<br>Genes — speed: ' + c.genes.speed.toFixed(2) + ', size: ' + c.genes.size.toFixed(2);
+                html += '<br>Generation: ' + c.generation;
+            }
+            panel.innerHTML = html;
+        }
+
+        function drawClockWidgets() {
+            if (dayClockCtx) {
+                const dayTime = getDayTime();
+                drawAnalogClock(dayClockCtx, Math.floor(dayTime), Math.floor((dayTime % 1) * 60));
+            }
+            if (seasonClockCtx) {
+                drawSeasonClock(seasonClockCtx, getSeasonIndex(), getSeasonProgress());
+            }
+        }
+
+        // ---------- Events ----------
+        document.getElementById('pausePlayBtn').addEventListener('click', () => {
+            gameState.paused = !gameState.paused;
+            const btn = document.getElementById('pausePlayBtn');
+            btn.textContent = gameState.paused ? '▶ PLAY' : '⏸ PAUSE';
+            if (!gameState.paused) lastTime = Date.now();
+            updateStats();
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'SELECT') {
+                e.preventDefault();
+                document.getElementById('pausePlayBtn').click();
+            }
+        });
+
+        document.getElementById('speedSlider').addEventListener('input', (e) => {
+            gameState.speed = parseFloat(e.target.value);
+            document.getElementById('speedLabel').textContent = gameState.speed.toFixed(1) + 'x';
+        });
+
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            init();
+            gameState.paused = false;
+            document.getElementById('pausePlayBtn').textContent = '⏸ PAUSE';
+            lastTime = Date.now();
+            updateStats();
+        });
+
+        document.getElementById('clickModeSelect').addEventListener('change', (e) => {
+            gameState.settings.clickMode = e.target.value;
+            canvas.style.cursor = e.target.value === 'inspect' ? 'pointer' : 'crosshair';
+        });
+
+        document.getElementById('predToggle').addEventListener('change', (e) => {
+            gameState.settings.predatorsEnabled = e.target.checked;
+        });
+
+        document.getElementById('flockToggle').addEventListener('change', (e) => {
+            gameState.settings.flockingEnabled = e.target.checked;
+        });
+
+        function bindPopSlider(sliderId, labelId, key) {
+            const slider = document.getElementById(sliderId);
+            const label = document.getElementById(labelId);
+            slider.addEventListener('input', () => {
+                label.textContent = slider.value;
+                gameState.settings[key] = parseInt(slider.value, 10);
+            });
+        }
+        bindPopSlider('seepaPop', 'seepaPopLabel', 'seepaSpawn');
+        bindPopSlider('suubaPop', 'suubaPopLabel', 'suubaSpawn');
+        bindPopSlider('siibaPop', 'siibaPopLabel', 'siibaSpawn');
+
+        // Canvas clicks: inspect or spawn (with scaling for responsive canvas)
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+            const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+            const mode = gameState.settings.clickMode;
+
+            if (mode === 'inspect') {
+                let best = null; let bestD = Infinity; let bestType = '';
+                const consider = (list, type, slack) => {
+                    for (const c of list) {
+                        const d2 = distanceSq(x, y, c.x, c.y);
+                        const hit = (c.radius + slack) * (c.radius + slack);
+                        if (d2 < hit && d2 < bestD) { bestD = d2; best = c; bestType = type; }
+                    }
+                };
+                consider(gameState.seepas, 'Seepa', 10);
+                consider(gameState.siibas, 'Siiba', 10);
+                consider(gameState.suubas, 'Suuba', 8);
+                gameState.inspected = best ? { type: bestType, ref: best } : null;
+                updateInspector();
+            } else if (mode === 'seepa') {
+                const s = new Seepa(x, y);
+                s.age = 30;
+                gameState.seepas.push(s);
+                spawnParticles(x, y, '#9fd3ff', 8, 1.6);
+            } else if (mode === 'suuba') {
+                gameState.suubas.push(new Suuba(x, y));
+                spawnParticles(x, y, '#c75d5d', 8, 1.6);
+            } else if (mode === 'siiba') {
+                gameState.siibas.push(new Siiba(x, y));
+                spawnParticles(x, y, '#ffd2d9', 8, 1.6);
+            }
+        });
+
+        // Start the game
+        init();
+        updateStats();
+        gameLoop();
+    </script>
+</body>
+</html>
