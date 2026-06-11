@@ -208,6 +208,17 @@
                 <button id="resetBtn">RESET</button>
             </div>
             <div class="control-group">
+                <label>Map view:</label>
+                <select id="viewSelect">
+                    <option value="auto">Auto-detect device</option>
+                    <option value="desktop">Desktop — large (3:2)</option>
+                    <option value="tablet">Tablet — 4:3</option>
+                    <option value="mobilePortrait">Mobile — portrait (3:4)</option>
+                    <option value="mobile43">Mobile — 4:3</option>
+                </select>
+                <div class="hint">Changing this rebuilds the world at a new size</div>
+            </div>
+            <div class="control-group">
                 <label>Click Action:</label>
                 <select id="clickModeSelect">
                     <option value="inspect">🔍 Inspect creature</option>
@@ -219,6 +230,7 @@
             <div class="control-group">
                 <label class="toggle-row"><input type="checkbox" id="predToggle" checked> Predators hunt</label>
                 <label class="toggle-row"><input type="checkbox" id="flockToggle" checked> Flocking (spring mornings)</label>
+                <label class="toggle-row"><input type="checkbox" id="rescueToggle" checked> Migration rescue (new flock arrives if a species dies out)</label>
             </div>
 
             <div class="section-title">Starting Populations</div>
@@ -276,8 +288,10 @@
                 <div class="legend-item"><div class="legend-color" style="background: #ffd84d;"></div><span>Juvenile / Baby</span></div>
                 <div class="legend-item"><div class="legend-color" style="background: #93e07b;"></div><span>Elder Seepa</span></div>
                 <div class="legend-item"><div class="legend-color" style="background: #0066ff;"></div><span>Water (Pond)</span></div>
-                <div class="legend-item"><div class="legend-color" style="background: #ff9b44;"></div><span>Fruit (Bush)</span></div>
-                <div class="legend-item"><div class="legend-color" style="background: #d24132;"></div><span>Apple (Tree)</span></div>
+                <div class="legend-item"><div class="legend-color" style="background: #ff9b44;"></div><span>Fruit (Bush — grassland/wetland)</span></div>
+                <div class="legend-item"><div class="legend-color" style="background: #d24132;"></div><span>Apple (Tree — grassland)</span></div>
+                <div class="legend-item"><div class="legend-color" style="background: #ff7ab0;"></div><span>Cactus flower (Desert)</span></div>
+                <div class="legend-item"><div class="legend-color" style="background: #6b4423;"></div><span>Pine cone (Forest)</span></div>
                 <div class="legend-item"><div class="legend-color" style="width:20px;height:20px;border-radius:6px;background:#8a2f2f;box-shadow:0 0 6px rgba(138,47,47,0.6);"></div><span>Suuba (Predator — hunts Seepas)</span></div>
                 <div class="legend-item"><div class="legend-color" style="width:16px;height:16px;background:#ffd2d9;"></div><span>Siiba (hunts Suubas, eaten by Seepas)</span></div>
             </div>
@@ -285,12 +299,15 @@
             <div class="section-title">How it works</div>
             <div class="info-text">
                 <ul style="margin-left: 15px; margin-top: 4px;">
-                    <li>Seepas drink from ponds and eat fruit, apples and Siibas</li>
-                    <li>Seepas flee from nearby Suubas — speed is inherited and mutates, so faster bloodlines survive!</li>
-                    <li>Food regrows slower in winter and faster in summer</li>
-                    <li>Snow falls in winter, rain in autumn</li>
-                    <li>Seepas move slower at night</li>
-                    <li>If a species nearly dies out, a few wanderers migrate in</li>
+                    <li>Seepas drink from ponds and eat fruit, apples, cactus flowers, pine cones and Siibas</li>
+                    <li>The map has four biomes — grassland (berry bushes &amp; apple trees), forest (pines), desert (cacti) and wetland (extra ponds) — each with its own food</li>
+                    <li>Ponds, bushes and trees never overlap, and the map grows to fit your device</li>
+                    <li>All three species inherit speed and size genes that mutate each generation — natural selection in action!</li>
+                    <li>Suubas are nocturnal: fierce hunters at night, sluggish and reluctant by day</li>
+                    <li>Siibas hide inside bushes and trees at night where predators can't reach them</li>
+                    <li>In winter creatures slowly freeze — they huddle near bushes and trees to stay warm. Bigger Seepas resist cold better, Suubas have thick hides</li>
+                    <li>Food regrows slower in winter, faster in summer; snow falls in winter, rain in autumn</li>
+                    <li>Migration rescue (optional): a small flock wanders in if a species nearly dies out</li>
                 </ul>
             </div>
         </div>
@@ -340,7 +357,9 @@
                 siibaSpawn: 14,
                 predatorsEnabled: true,
                 flockingEnabled: true,
-                clickMode: 'inspect'
+                rescueEnabled: true,
+                clickMode: 'inspect',
+                currentView: 'auto'
             }
         };
 
@@ -394,20 +413,67 @@
             ctx.globalAlpha = 1;
         }
 
-        // ---------- Genetics helpers ----------
+        // ---------- Genetics helpers (all three species evolve) ----------
+        const GENE_RANGES = {
+            seepa: { spMin: 0.8, spMax: 2.8, szMin: 3.5, szMax: 10 },
+            suuba: { spMin: 0.9, spMax: 2.0, szMin: 20, szMax: 34 },
+            siiba: { spMin: 1.0, spMax: 2.4, szMin: 6, szMax: 12 }
+        };
+
         function makeRandomGenes() {
+            return { speed: 1.3 + Math.random() * 0.4, size: 5 + Math.random() * 2 };
+        }
+        function makeSuubaGenes() {
+            return { speed: 1.2 + Math.random() * 0.4, size: 24 + Math.random() * 8 };
+        }
+        function makeSiibaGenes() {
+            return { speed: 1.4 + Math.random() * 0.4, size: 7 + Math.random() * 3 };
+        }
+
+        function inheritGenes(a, b, range) {
+            range = range || GENE_RANGES.seepa;
+            const mut = () => 1 + (Math.random() - 0.5) * 0.24; // up to ±12%
             return {
-                speed: 1.3 + Math.random() * 0.4,
-                size: 5 + Math.random() * 2
+                speed: Math.min(range.spMax, Math.max(range.spMin, ((a.speed + b.speed) / 2) * mut())),
+                size: Math.min(range.szMax, Math.max(range.szMin, ((a.size + b.size) / 2) * mut()))
             };
         }
 
-        function inheritGenes(a, b) {
-            const mut = () => 1 + (Math.random() - 0.5) * 0.24; // up to ±12%
-            return {
-                speed: Math.min(2.8, Math.max(0.8, ((a.speed + b.speed) / 2) * mut())),
-                size: Math.min(10, Math.max(3.5, ((a.size + b.size) / 2) * mut()))
-            };
+        // ---------- Shelter & winter cold ----------
+        function shelterSpots() {
+            const spots = [];
+            for (const b of gameState.bushes || []) spots.push({ x: b.x, y: b.y, r: b.radius });
+            for (const t of gameState.trees || []) spots.push({ x: t.x, y: t.y - t.foliageRadius * 0.5, r: t.foliageRadius });
+            return spots;
+        }
+
+        function nearestShelter(x, y) {
+            let best = null; let bestD = Infinity;
+            for (const s of shelterSpots()) {
+                const d2 = distanceSq(x, y, s.x, s.y);
+                if (d2 < bestD) { bestD = d2; best = s; }
+            }
+            return best;
+        }
+
+        function isSheltered(x, y, extra) {
+            for (const s of shelterSpots()) {
+                const rr = s.r + (extra || 8);
+                if (distanceSq(x, y, s.x, s.y) < rr * rr) return true;
+            }
+            return false;
+        }
+
+        function updateCold(creature, dtSeconds, ratePerSec) {
+            if (getSeasonName() === 'Winter') {
+                if (creature.hidden || isSheltered(creature.x, creature.y, 10)) {
+                    creature.cold = Math.max(0, creature.cold - 14 * dtSeconds);
+                } else {
+                    creature.cold = Math.min(120, creature.cold + ratePerSec * dtSeconds);
+                }
+            } else {
+                creature.cold = Math.max(0, creature.cold - 25 * dtSeconds);
+            }
         }
 
         // ---------- Seepa ----------
@@ -427,6 +493,7 @@
                 this.age = Math.random() * 80;
                 this.post18Color = null;
                 this.fleeing = false;
+                this.cold = 0;
                 this.hunger = Math.random() * 50;
                 this.thirst = Math.random() * 50;
                 this.maxStats = 100;
@@ -464,8 +531,24 @@
                     }
                 }
 
+                // Winter freezing — larger genes resist cold better (selection pressure)
+                updateCold(this, deltaTime, 9 * (6.5 / this.genes.size));
+
                 if (!this.fleeing) {
-                    this.moveTowardTarget(gameState);
+                    if (getSeasonName() === 'Winter' && this.cold > 45) {
+                        // Too cold: huddle by the nearest bush or tree
+                        const sh = nearestShelter(this.x, this.y);
+                        if (sh) {
+                            const dx = sh.x - this.x; const dy = sh.y - this.y;
+                            const d = Math.sqrt(dx * dx + dy * dy) || 1e-6;
+                            this.vx = lerp(this.vx, dx / d, 0.4);
+                            this.vy = lerp(this.vy, dy / d, 0.4);
+                        } else {
+                            this.moveTowardTarget(gameState);
+                        }
+                    } else {
+                        this.moveTowardTarget(gameState);
+                    }
                 }
 
                 // Slower at night, faster when fleeing
@@ -566,6 +649,7 @@
                 if (gameState.siibas && gameState.siibas.length > 0) {
                     for (let i = 0; i < gameState.siibas.length; i++) {
                         const siiba = gameState.siibas[i];
+                        if (siiba.hidden) continue; // safe inside a bush or tree
                         const dSq = distanceSq(this.x, this.y, siiba.x, siiba.y);
                         const minSq = (siiba.radius + this.radius) * (siiba.radius + this.radius);
                         if (dSq < minSq) {
@@ -655,7 +739,7 @@
             }
 
             isAlive() {
-                return this.hunger < 100 && this.thirst < 100 && this.age <= 100;
+                return this.hunger < 100 && this.thirst < 100 && this.age <= 100 && this.cold < 100;
             }
 
             draw() {
@@ -720,6 +804,16 @@
                 ctx.ellipse(-this.radius * 0.25, -this.radius * 0.45, this.radius * 0.28, this.radius * 0.12, 0, 0, Math.PI * 2);
                 ctx.fill();
 
+                // Icy tint when freezing
+                if (this.cold > 25) {
+                    ctx.globalAlpha = Math.min(0.55, (this.cold - 25) / 120);
+                    ctx.fillStyle = '#9fd6ff';
+                    ctx.beginPath();
+                    ctx.ellipse(0, 0, this.radius * 1.25, this.radius, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.globalAlpha = 1;
+                }
+
                 ctx.restore();
 
                 const barWidth = 26;
@@ -754,12 +848,14 @@
 
         // ---------- Siiba (small predator, flees Seepas) ----------
         class Siiba {
-            constructor(x, y) {
+            constructor(x, y, genes, generation) {
                 this.x = x; this.y = y;
-                this.radius = 8 + Math.random() * 3;
+                this.genes = genes || makeSiibaGenes();
+                this.generation = generation || 1;
+                this.radius = this.genes.size;
                 this.vx = (Math.random() - 0.5) * 2;
                 this.vy = (Math.random() - 0.5) * 2;
-                this.speed = 1.6;
+                this.speed = this.genes.speed;
                 this.energy = 120;
                 this.hunger = Math.random() * 30 + 10;
                 this.thirst = Math.random() * 30 + 10;
@@ -769,6 +865,8 @@
                 this.eatCooldown = Math.random() * 1.5;
                 this.sex = Math.random() < 0.5 ? 'male' : 'female';
                 this.lastReproduction = -Infinity;
+                this.hidden = false;
+                this.cold = 0;
             }
 
             update(deltaTime, gameState) {
@@ -780,6 +878,36 @@
 
                 const drainFactor = 1 + (this.hunger / this.maxStats) * 0.9 + (this.thirst / this.maxStats) * 1.2;
                 this.energy = Math.max(0, this.energy - 4 * deltaTime * drainFactor);
+
+                // Winter freezing (hiding inside shelter keeps them warm)
+                updateCold(this, deltaTime, 8 * (8.5 / this.genes.size));
+
+                // At night, retreat into a bush or tree where predators can't reach
+                const night = getDayPhase() === 'Night';
+                if (night) {
+                    const sh = nearestShelter(this.x, this.y);
+                    if (sh) {
+                        const dx = sh.x - this.x; const dy = sh.y - this.y;
+                        const d = Math.sqrt(dx * dx + dy * dy) || 1e-6;
+                        this.hidden = d < sh.r;
+                        if (!this.hidden) {
+                            this.vx = lerp(this.vx, dx / d, 0.5);
+                            this.vy = lerp(this.vy, dy / d, 0.5);
+                            this.x += this.vx * this.speed * 1.1 * deltaTime * 60;
+                            this.y += this.vy * this.speed * 1.1 * deltaTime * 60;
+                        } else {
+                            // tucked in — drift gently, recover a little energy
+                            this.vx *= 0.9; this.vy *= 0.9;
+                            this.x += this.vx * 0.2 * deltaTime * 60;
+                            this.y += this.vy * 0.2 * deltaTime * 60;
+                            this.energy = Math.min(this.maxStats, this.energy + 3 * deltaTime);
+                        }
+                        this.x = Math.max(this.radius, Math.min(canvas.width - this.radius, this.x));
+                        this.y = Math.max(this.radius, Math.min(canvas.height - this.radius, this.y));
+                        return;
+                    }
+                }
+                this.hidden = false;
 
                 // Flee nearby Seepas first (they eat Siibas!)
                 let fleeing = false;
@@ -847,7 +975,9 @@
                                 if (d2 < 800) {
                                     const bx = (this.x + other.x) / 2 + (Math.random() - 0.5) * 6;
                                     const by = (this.y + other.y) / 2 + (Math.random() - 0.5) * 6;
-                                    const baby = new Siiba(bx, by);
+                                    const childGenes = inheritGenes(this.genes, other.genes, GENE_RANGES.siiba);
+                                    const childGen = Math.max(this.generation, other.generation) + 1;
+                                    const baby = new Siiba(bx, by, childGenes, childGen);
                                     baby.age = 0; baby.energy = 90; baby.hunger = 10; baby.thirst = 10;
                                     gameState.siibas.push(baby);
                                     spawnParticles(bx, by, '#ffd2d9', 8, 1.4);
@@ -869,38 +999,140 @@
                 this.y = Math.max(this.radius, Math.min(canvas.height - this.radius, this.y));
             }
 
-            isAlive() { return this.energy > 0 && this.age < this.lifeSpan && this.hunger < this.maxStats && this.thirst < this.maxStats; }
+            isAlive() { return this.energy > 0 && this.age < this.lifeSpan && this.hunger < this.maxStats && this.thirst < this.maxStats && this.cold < 100; }
 
             draw() {
+                // Hidden Siibas show only as a faint rustle inside their shelter
+                if (this.hidden) {
+                    ctx.save();
+                    ctx.globalAlpha = 0.35;
+                    ctx.fillStyle = '#ffb9c4';
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.radius * 0.5, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.globalAlpha = 1;
+                    ctx.restore();
+                    return;
+                }
+
                 ctx.save(); ctx.translate(this.x, this.y);
                 const r = this.radius;
-                const g = ctx.createRadialGradient(-r * 0.3, -r * 0.3, 1, 0, 0, r * 1.4);
-                g.addColorStop(0, '#fff4f0'); g.addColorStop(0.6, '#ffd2d9'); g.addColorStop(1, '#ff9fb3');
-                ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
-                ctx.beginPath(); ctx.ellipse(-r * 0.6, -r * 0.6, r * 0.35, r * 0.25, -0.6, 0, Math.PI * 2); ctx.fill();
-                ctx.beginPath(); ctx.ellipse(r * 0.6, -r * 0.6, r * 0.35, r * 0.25, 0.6, 0, Math.PI * 2); ctx.fill();
-                ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(-r * 0.25, -r * 0.05, Math.max(1.2, r * 0.15), 0, Math.PI * 2); ctx.fill();
-                ctx.beginPath(); ctx.arc(r * 0.25, -r * 0.05, Math.max(1.2, r * 0.15), 0, Math.PI * 2); ctx.fill();
+                const angle = Math.atan2(this.vy, this.vx);
+                ctx.rotate(angle * 0.1);
 
-                const barW = r * 2.0;
-                const barX = -barW / 2;
-                const ageY = -r - 10;
+                // Soft ground shadow
+                ctx.fillStyle = 'rgba(0,0,0,0.16)';
+                ctx.beginPath();
+                ctx.ellipse(0, r * 0.85, r * 1.05, r * 0.4, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Bushy tail behind the body
+                const tailG = ctx.createLinearGradient(-r * 1.7, 0, -r * 0.6, 0);
+                tailG.addColorStop(0, '#ff8fa6');
+                tailG.addColorStop(1, '#ffc2cd');
+                ctx.fillStyle = tailG;
+                ctx.beginPath();
+                ctx.ellipse(-r * 1.15, r * 0.15, r * 0.62, r * 0.4, -0.5, 0, Math.PI * 2);
+                ctx.fill();
+                // White tail tip
+                ctx.fillStyle = '#fff6f8';
+                ctx.beginPath();
+                ctx.arc(-r * 1.6, r * 0.02, r * 0.26, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Tufted ears (outer + inner)
+                const earOut = '#ff9fb3';
+                const earIn = '#c96b7d';
+                for (const side of [-1, 1]) {
+                    ctx.fillStyle = earOut;
+                    ctx.beginPath();
+                    ctx.moveTo(side * r * 0.5, -r * 0.55);
+                    ctx.lineTo(side * r * 0.95, -r * 1.25);
+                    ctx.lineTo(side * r * 0.15, -r * 0.85);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.fillStyle = earIn;
+                    ctx.beginPath();
+                    ctx.moveTo(side * r * 0.52, -r * 0.62);
+                    ctx.lineTo(side * r * 0.78, -r * 1.05);
+                    ctx.lineTo(side * r * 0.32, -r * 0.82);
+                    ctx.closePath();
+                    ctx.fill();
+                }
+
+                // Body
+                const g = ctx.createRadialGradient(-r * 0.3, -r * 0.4, 1, 0, 0, r * 1.4);
+                g.addColorStop(0, '#fff4f0');
+                g.addColorStop(0.55, '#ffc6d0');
+                g.addColorStop(1, '#f47e96');
+                ctx.fillStyle = g;
+                ctx.beginPath();
+                ctx.ellipse(0, 0, r * 1.05, r, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Pale cheek/snout area
+                ctx.fillStyle = 'rgba(255, 250, 250, 0.85)';
+                ctx.beginPath();
+                ctx.ellipse(r * 0.5, r * 0.12, r * 0.55, r * 0.45, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Pointed snout
+                ctx.fillStyle = '#f9a8b8';
+                ctx.beginPath();
+                ctx.moveTo(r * 0.85, -r * 0.12);
+                ctx.lineTo(r * 1.4, r * 0.1);
+                ctx.lineTo(r * 0.85, r * 0.32);
+                ctx.closePath();
+                ctx.fill();
+                // Nose
+                ctx.fillStyle = '#5a2330';
+                ctx.beginPath();
+                ctx.arc(r * 1.36, r * 0.1, r * 0.12, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Eyes (almond, alert)
+                for (const ey of [-1, 1]) {
+                    const eyY = -r * 0.12 + ey * r * 0.28;
+                    ctx.fillStyle = '#fffaf5';
+                    ctx.beginPath();
+                    ctx.ellipse(r * 0.32, eyY, r * 0.2, r * 0.16, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = '#241015';
+                    ctx.beginPath();
+                    ctx.arc(r * 0.38, eyY, r * 0.1, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // Icy tint when freezing
+                if (this.cold > 25) {
+                    ctx.globalAlpha = Math.min(0.5, (this.cold - 25) / 120);
+                    ctx.fillStyle = '#bfe6ff';
+                    ctx.beginPath();
+                    ctx.ellipse(0, 0, r * 1.05, r, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.globalAlpha = 1;
+                }
+
+                ctx.restore();
+
+                // Status bars
+                const barW = Math.max(20, r * 2.0);
+                const barX = this.x - barW / 2;
+                const ageY = this.y - r - 12;
                 const ageFrac = Math.max(0, Math.min(1, this.age / this.lifeSpan));
                 ctx.fillStyle = 'rgba(0,0,0,0.22)'; ctx.fillRect(barX, ageY, barW, 5);
                 const ageGrad = ctx.createLinearGradient(barX, 0, barX + barW, 0);
                 ageGrad.addColorStop(0, '#7bed9f'); ageGrad.addColorStop(1, '#ff6b6b');
                 ctx.fillStyle = ageGrad; ctx.fillRect(barX, ageY, barW * ageFrac, 5);
 
-                const hydY = r + 6;
-                const hunY = hydY + 8;
+                const hydY = this.y + r + 6;
+                const hunY = hydY + 7;
                 ctx.fillStyle = 'rgba(0,0,0,0.22)'; ctx.fillRect(barX, hydY, barW, 5);
                 ctx.fillStyle = 'rgba(0,0,0,0.22)'; ctx.fillRect(barX, hunY, barW, 5);
                 const hydFrac = Math.max(0, 1 - (this.thirst / this.maxStats));
                 const hunFrac = Math.max(0, 1 - (this.hunger / this.maxStats));
                 ctx.fillStyle = '#4aa6ff'; ctx.fillRect(barX, hydY, barW * hydFrac, 5);
                 ctx.fillStyle = '#4ad94a'; ctx.fillRect(barX, hunY, barW * hunFrac, 5);
-
-                ctx.restore();
             }
         }
 
@@ -991,6 +1223,145 @@
             return sum / max;
         }
 
+        // ---------- Biomes ----------
+        // Low-frequency noise carves the map into large contiguous regions,
+        // each with its own terrain colour and its own food source.
+        function biomeAt(x, y) {
+            const n = fractalNoise(x + 3000, y + 7000, 3, 0.5, 0.0027);
+            if (n < 0.43) return 'desert';
+            if (n < 0.57) return 'grassland';
+            if (n < 0.75) return 'forest';
+            return 'wetland';
+        }
+
+        // ---------- No-overlap placement ----------
+        // Returns a point at least (spacingR + each placed item's spacingR) away
+        // from everything already placed. Prefers a biome if given, else anywhere.
+        function placeSpot(spacingR, margin, placed, biomePref, tries) {
+            tries = tries || 50;
+            const W = canvas.width, H = canvas.height;
+            let fallback = null;
+            for (let t = 0; t < tries; t++) {
+                const x = randomBetween(margin, W - margin);
+                const y = randomBetween(margin, H - margin);
+                let ok = true;
+                for (const p of placed) {
+                    const minD = spacingR + p.spacingR;
+                    if (distanceSq(x, y, p.x, p.y) < minD * minD) { ok = false; break; }
+                }
+                if (!ok) continue;
+                if (!biomePref) return { x, y };
+                if (biomeAt(x, y) === biomePref) return { x, y };
+                if (!fallback) fallback = { x, y };
+            }
+            return fallback;
+        }
+
+        // ---------- Food makers (kind drives how they're drawn & where they grow) ----------
+        function makeBush(x, y) {
+            const cap = Math.floor(Math.random() * 5) + 3;
+            return { x, y, radius: 36 + Math.random() * 8, kind: 'bush', maxFruits: cap, fruits: createFruits(cap) };
+        }
+        function makeCactus(x, y) {
+            const cap = 2 + Math.floor(Math.random() * 3);
+            return { x, y, radius: 24 + Math.random() * 8, kind: 'cactus', maxFruits: cap, fruits: createFruits(cap) };
+        }
+        function makeAppleTree(x, y) {
+            const fr = 26 + Math.random() * 10;
+            return { x, y, kind: 'apple', trunkHeight: 38 + Math.random() * 16, foliageRadius: fr, apples: createTreeApples(3 + Math.floor(Math.random() * 3), fr) };
+        }
+        function makePine(x, y) {
+            const fr = 26 + Math.random() * 10;
+            return { x, y, kind: 'pine', trunkHeight: 44 + Math.random() * 18, foliageRadius: fr, apples: createTreeApples(2 + Math.floor(Math.random() * 3), fr) };
+        }
+
+        // ---------- World generation (collision-free, biome-aware, scaled to map size) ----------
+        function generateWorld() {
+            const W = canvas.width, H = canvas.height;
+            const scale = (W * H) / (1200 * 800);
+            const placed = [];
+
+            // Water — more ponds on bigger maps, biased toward wetland
+            gameState.ponds = [];
+            const pondCount = Math.max(3, Math.round(3.5 * scale));
+            for (let i = 0; i < pondCount; i++) {
+                const radius = 46 + Math.random() * 26;
+                const spot = placeSpot(radius + 28, radius + 36, placed, i % 2 === 0 ? 'wetland' : null, 60);
+                if (!spot) continue;
+                gameState.ponds.push({ x: spot.x, y: spot.y, radius });
+                placed.push({ x: spot.x, y: spot.y, spacingR: radius + 22 });
+            }
+            while (gameState.ponds.length < 2) {
+                const radius = 50 + Math.random() * 16;
+                const spot = placeSpot(radius + 28, radius + 36, placed, null, 80) ||
+                    { x: randomBetween(120, W - 120), y: randomBetween(120, H - 120) };
+                gameState.ponds.push({ x: spot.x, y: spot.y, radius });
+                placed.push({ x: spot.x, y: spot.y, spacingR: radius + 22 });
+            }
+
+            // Food — type depends on the biome the spot lands in
+            gameState.bushes = [];
+            gameState.trees = [];
+            const foodCount = Math.round(22 * scale);
+            for (let i = 0; i < foodCount; i++) {
+                const spot = placeSpot(44, 60, placed, null, 36);
+                if (!spot) continue;
+                const b = biomeAt(spot.x, spot.y);
+                let obj, spacingR;
+                if (b === 'desert') {
+                    obj = makeCactus(spot.x, spot.y); gameState.bushes.push(obj); spacingR = obj.radius + 20;
+                } else if (b === 'forest') {
+                    obj = makePine(spot.x, spot.y); gameState.trees.push(obj); spacingR = obj.foliageRadius + 22;
+                } else if (b === 'wetland') {
+                    obj = makeBush(spot.x, spot.y); gameState.bushes.push(obj); spacingR = obj.radius + 20;
+                } else {
+                    if (Math.random() < 0.5) {
+                        obj = makeAppleTree(spot.x, spot.y); gameState.trees.push(obj); spacingR = obj.foliageRadius + 22;
+                    } else {
+                        obj = makeBush(spot.x, spot.y); gameState.bushes.push(obj); spacingR = obj.radius + 20;
+                    }
+                }
+                placed.push({ x: spot.x, y: spot.y, spacingR });
+            }
+
+            // Guarantee a minimum amount of food even on tiny maps
+            while (gameState.bushes.length + gameState.trees.length < 8) {
+                const spot = placeSpot(40, 56, placed, null, 40);
+                if (!spot) break;
+                const obj = makeBush(spot.x, spot.y);
+                gameState.bushes.push(obj);
+                placed.push({ x: spot.x, y: spot.y, spacingR: obj.radius + 18 });
+            }
+        }
+
+        // ---------- View / device sizing ----------
+        function detectDevice() {
+            const w = window.innerWidth;
+            if (w < 700) return 'mobilePortrait';
+            if (w < 1100) return 'tablet';
+            return 'desktop';
+        }
+
+        function viewDimensions(mode) {
+            switch (mode) {
+                case 'desktop': return { w: 1600, h: 1080 };
+                case 'tablet': return { w: 1024, h: 768 };   // 4:3
+                case 'mobilePortrait': return { w: 720, h: 960 }; // 3:4
+                case 'mobile43': return { w: 800, h: 600 };   // 4:3
+                default: return { w: 1600, h: 1080 };
+            }
+        }
+
+        function applyView(mode) {
+            const resolved = (mode === 'auto') ? detectDevice() : mode;
+            const dim = viewDimensions(resolved);
+            canvas.width = dim.w;
+            canvas.height = dim.h;
+            backgroundCanvas.width = dim.w;
+            backgroundCanvas.height = dim.h;
+            gameState.settings.currentView = mode;
+        }
+
         // ---------- Init ----------
         function init() {
             noiseSeed = Math.random() * 1000;
@@ -1003,28 +1374,7 @@
             gameState.weather = { type: null, drops: [] };
             gameState.time = gameState.dayDuration * (8 / 24); // start 8:00 AM
 
-            gameState.ponds = [
-                { x: randomBetween(120, canvas.width - 120), y: randomBetween(120, canvas.height - 120), radius: 50 + Math.random() * 16 },
-                { x: randomBetween(120, canvas.width - 120), y: randomBetween(120, canvas.height - 120), radius: 50 + Math.random() * 24 }
-            ];
-
-            const bushDefs = [{ radius: 40 }, { radius: 36 }, { radius: 38 }, { radius: 42 }];
-            gameState.bushes = bushDefs.map(d => {
-                const cap = Math.floor(Math.random() * 5) + 3;
-                return {
-                    x: randomBetween(100, canvas.width - 100),
-                    y: randomBetween(100, canvas.height - 100),
-                    radius: d.radius,
-                    maxFruits: cap,
-                    fruits: createFruits(cap)
-                };
-            });
-
-            gameState.trees = [
-                { x: randomBetween(80, canvas.width - 80), y: randomBetween(120, canvas.height - 120), trunkHeight: 40, foliageRadius: 28, apples: createTreeApples(3, 28) },
-                { x: randomBetween(80, canvas.width - 80), y: randomBetween(120, canvas.height - 120), trunkHeight: 48, foliageRadius: 34, apples: createTreeApples(4, 34) },
-                { x: randomBetween(80, canvas.width - 80), y: randomBetween(120, canvas.height - 120), trunkHeight: 52, foliageRadius: 30, apples: createTreeApples(3, 30) }
-            ];
+            generateWorld();
 
             for (let i = 0; i < gameState.settings.seepaSpawn; i++) {
                 gameState.seepas.push(new Seepa(Math.random() * canvas.width, Math.random() * canvas.height));
@@ -1046,26 +1396,50 @@
 
         // ---------- Background ----------
         function buildEnvironmentBackground() {
+            const W = canvas.width, H = canvas.height;
             bgCtx.fillStyle = '#1a3a1a';
-            bgCtx.fillRect(0, 0, canvas.width, canvas.height);
+            bgCtx.fillRect(0, 0, W, H);
 
-            for (let y = 0; y < canvas.height; y += 8) {
-                for (let x = 0; x < canvas.width; x += 8) {
+            const step = 8;
+            for (let y = 0; y < H; y += step) {
+                for (let x = 0; x < W; x += step) {
+                    const b = biomeAt(x, y);
                     const n = fractalNoise(x, y) * 1.4 - 0.2;
-                    let color = '#1b3a1a';
-                    if (n < 0.1) color = '#3d5b2d';
-                    else if (n < 0.35) color = '#2c4e20';
-                    else if (n < 0.65) color = '#1a3516';
-                    else color = '#143012';
+                    let color;
+                    if (b === 'desert') {
+                        color = n < 0.3 ? '#dcc086' : n < 0.55 ? '#cdaa6c' : n < 0.75 ? '#bf9a58' : '#aa863f';
+                    } else if (b === 'forest') {
+                        color = n < 0.2 ? '#1d3c1c' : n < 0.45 ? '#16311b' : n < 0.7 ? '#112814' : '#0c2110';
+                    } else if (b === 'wetland') {
+                        color = n < 0.3 ? '#254f3b' : n < 0.55 ? '#1d4231' : n < 0.75 ? '#173726' : '#123a31';
+                    } else {
+                        color = n < 0.1 ? '#3d5b2d' : n < 0.35 ? '#2c4e20' : n < 0.65 ? '#1a3516' : '#143012';
+                    }
                     bgCtx.fillStyle = color;
-                    bgCtx.fillRect(x, y, 8, 8);
+                    bgCtx.fillRect(x, y, step, step);
                 }
             }
 
-            // Scatter rocks and clearings for variety
-            for (let i = 0; i < 14; i++) {
-                const rx = randomBetween(30, canvas.width - 30);
-                const ry = randomBetween(30, canvas.height - 30);
+            // Biome ground detail — sand grit, fallen needles, marsh dots
+            const detailCount = Math.round(W * H / 7000);
+            for (let i = 0; i < detailCount; i++) {
+                const x = randomBetween(6, W - 6);
+                const y = randomBetween(6, H - 6);
+                const b = biomeAt(x, y);
+                if (b === 'desert') { bgCtx.fillStyle = 'rgba(120,95,50,0.5)'; bgCtx.fillRect(x, y, 2, 2); }
+                else if (b === 'forest') { bgCtx.fillStyle = 'rgba(60,40,20,0.45)'; bgCtx.fillRect(x, y, 2, 3); }
+                else if (b === 'wetland') {
+                    bgCtx.fillStyle = 'rgba(70,130,95,0.4)';
+                    bgCtx.beginPath(); bgCtx.arc(x, y, 1.5, 0, Math.PI * 2); bgCtx.fill();
+                }
+            }
+
+            // Rocks — mostly on dry ground, never in the marsh
+            const rockCount = Math.round(W * H / 70000) + 6;
+            for (let i = 0; i < rockCount; i++) {
+                const rx = randomBetween(30, W - 30);
+                const ry = randomBetween(30, H - 30);
+                if (biomeAt(rx, ry) === 'wetland') continue;
                 const rr = 4 + Math.random() * 9;
                 const rg = bgCtx.createRadialGradient(rx - rr * 0.3, ry - rr * 0.3, 1, rx, ry, rr);
                 rg.addColorStop(0, '#9a9a92');
@@ -1383,6 +1757,7 @@
 
         function drawBushes() {
             const bushes = gameState.bushes || [];
+            const winter = getSeasonName() === 'Winter';
             const cloudOffsets = [
                 { x: -22, y: 0, r: 22 },
                 { x: -6, y: -8, r: 26 },
@@ -1395,19 +1770,59 @@
                 ctx.save();
                 ctx.translate(bush.x, bush.y);
 
+                // Shadow
                 ctx.fillStyle = 'rgba(0,0,0,0.15)';
                 ctx.beginPath();
                 ctx.ellipse(0, bush.radius * 0.55, bush.radius * 1.2, bush.radius * 0.55, 0, 0, Math.PI * 2);
                 ctx.fill();
 
+                if (bush.kind === 'cactus') {
+                    // Cactus: a central column plus two arms
+                    const s = bush.radius / 30;
+                    const col1 = '#3f8f4a', col2 = '#246b32';
+                    const drawLimb = (cx, cy, w, h) => {
+                        const gg = ctx.createLinearGradient(cx - w, 0, cx + w, 0);
+                        gg.addColorStop(0, col2); gg.addColorStop(0.5, col1); gg.addColorStop(1, col2);
+                        ctx.fillStyle = gg;
+                        roundRect(ctx, cx - w, cy - h, w * 2, h * 2, w, true, false);
+                    };
+                    drawLimb(0, 2 * s, 9 * s, 26 * s);          // trunk
+                    drawLimb(-13 * s, -2 * s, 6 * s, 12 * s);   // left arm base
+                    drawLimb(-13 * s, -10 * s, 6 * s, 8 * s);   // left arm up
+                    drawLimb(13 * s, 0, 6 * s, 12 * s);         // right arm base
+                    drawLimb(13 * s, -8 * s, 6 * s, 8 * s);     // right arm up
+                    // spines
+                    ctx.strokeStyle = 'rgba(230,240,200,0.5)';
+                    ctx.lineWidth = 1;
+                    for (let yy = -22 * s; yy < 24 * s; yy += 6 * s) {
+                        ctx.beginPath(); ctx.moveTo(-3 * s, yy); ctx.lineTo(-7 * s, yy - 2); ctx.stroke();
+                        ctx.beginPath(); ctx.moveTo(3 * s, yy); ctx.lineTo(7 * s, yy - 2); ctx.stroke();
+                    }
+                    if (winter) { ctx.fillStyle = 'rgba(240,248,255,0.35)'; roundRect(ctx, -9 * s, -24 * s, 18 * s, 6 * s, 3 * s, true, false); }
+
+                    // Cactus flowers/fruit on top
+                    const flowerPositions = [{ x: 0, y: -26 * s }, { x: -13 * s, y: -18 * s }, { x: 13 * s, y: -16 * s }, { x: -6 * s, y: -22 * s }];
+                    if (bush.fruits) {
+                        bush.fruits.forEach((fruit, idx) => {
+                            if (!fruit.available) return;
+                            const p = flowerPositions[idx % flowerPositions.length];
+                            const fg = ctx.createRadialGradient(p.x, p.y, 1, p.x, p.y, 6);
+                            fg.addColorStop(0, '#ffe6f2'); fg.addColorStop(0.5, '#ff7ab0'); fg.addColorStop(1, '#d63b7e');
+                            ctx.fillStyle = fg;
+                            ctx.beginPath(); ctx.arc(p.x, p.y, 5, 0, Math.PI * 2); ctx.fill();
+                        });
+                    }
+                    ctx.restore();
+                    continue;
+                }
+
+                // Leafy bush (grassland / wetland)
                 for (const c of cloudOffsets) {
-                    const cx = c.x;
-                    const cy = c.y;
+                    const cx = c.x, cy = c.y;
                     const cr = c.r * (bush.radius / 35);
                     const cg = ctx.createRadialGradient(cx - cr * 0.3, cy - cr * 0.3, 1, cx, cy, cr);
-                    cg.addColorStop(0, '#e0ffc8');
-                    cg.addColorStop(0.5, '#7bc671');
-                    cg.addColorStop(1, '#2f7c2f');
+                    if (winter) { cg.addColorStop(0, '#eef7ff'); cg.addColorStop(0.5, '#bcd6cf'); cg.addColorStop(1, '#5f8466'); }
+                    else { cg.addColorStop(0, '#e0ffc8'); cg.addColorStop(0.5, '#7bc671'); cg.addColorStop(1, '#2f7c2f'); }
                     ctx.fillStyle = cg;
                     ctx.beginPath();
                     ctx.arc(cx, cy, cr, 0, Math.PI * 2);
@@ -1421,8 +1836,7 @@
                 if (bush && bush.fruits) {
                     bush.fruits.forEach((fruit, idx) => {
                         const pos = fruitPositions[idx % fruitPositions.length];
-                        const fx = pos.x;
-                        const fy = pos.y;
+                        const fx = pos.x, fy = pos.y;
                         if (fruit.available) {
                             ctx.fillStyle = 'rgba(0,0,0,0.16)';
                             ctx.beginPath();
@@ -1454,32 +1868,65 @@
             if (!gameState.trees) return;
             const winter = getSeasonName() === 'Winter';
             for (const tr of gameState.trees) {
-                const trunkWidth = 14;
+                const trunkWidth = tr.kind === 'pine' ? 12 : 14;
                 const trunkHeight = tr.trunkHeight;
-                ctx.fillStyle = '#4d311d';
+                ctx.fillStyle = tr.kind === 'pine' ? '#5a3a22' : '#4d311d';
                 ctx.fillRect(tr.x - trunkWidth / 2, tr.y, trunkWidth, trunkHeight);
 
                 const fr = tr.foliageRadius;
+
+                if (tr.kind === 'pine') {
+                    // Conifer: three stacked triangular tiers
+                    const tiers = [
+                        { y: -fr * 0.2, w: fr * 1.1, h: fr * 0.9 },
+                        { y: -fr * 0.9, w: fr * 0.9, h: fr * 0.85 },
+                        { y: -fr * 1.55, w: fr * 0.65, h: fr * 0.8 }
+                    ];
+                    for (const t of tiers) {
+                        const grad = ctx.createLinearGradient(tr.x - t.w, 0, tr.x + t.w, 0);
+                        if (winter) { grad.addColorStop(0, '#5d7d72'); grad.addColorStop(0.5, '#cfe6ee'); grad.addColorStop(1, '#5d7d72'); }
+                        else { grad.addColorStop(0, '#15431f'); grad.addColorStop(0.5, '#2f7e3a'); grad.addColorStop(1, '#10391a'); }
+                        ctx.fillStyle = grad;
+                        ctx.beginPath();
+                        ctx.moveTo(tr.x, t.y - t.h);
+                        ctx.lineTo(tr.x - t.w, t.y);
+                        ctx.lineTo(tr.x + t.w, t.y);
+                        ctx.closePath();
+                        ctx.fill();
+                    }
+                    // Pine cones (the "apples")
+                    if (tr.apples) {
+                        for (const cone of tr.apples) {
+                            if (!cone.available) continue;
+                            const ax = tr.x + cone.offsetX;
+                            const ay = tr.y + cone.offsetY - fr * 0.3;
+                            ctx.fillStyle = '#6b4423';
+                            ctx.beginPath();
+                            ctx.ellipse(ax, ay, 3.2, 4.6, 0, 0, Math.PI * 2);
+                            ctx.fill();
+                            ctx.strokeStyle = 'rgba(40,24,10,0.6)';
+                            ctx.lineWidth = 0.6;
+                            ctx.beginPath(); ctx.moveTo(ax, ay - 4); ctx.lineTo(ax, ay + 4); ctx.stroke();
+                        }
+                    }
+                    continue;
+                }
+
+                // Apple tree (grassland)
                 const fg = ctx.createRadialGradient(tr.x - fr * 0.2, tr.y - fr * 0.6, 2, tr.x, tr.y - fr * 0.2, fr);
                 if (winter) {
-                    fg.addColorStop(0, '#f4fbff');
-                    fg.addColorStop(0.45, '#cfe6ee');
-                    fg.addColorStop(1, '#7fa3ae');
+                    fg.addColorStop(0, '#f4fbff'); fg.addColorStop(0.45, '#cfe6ee'); fg.addColorStop(1, '#7fa3ae');
                 } else {
-                    fg.addColorStop(0, '#eafde2');
-                    fg.addColorStop(0.45, '#85d17a');
-                    fg.addColorStop(1, '#2f7e33');
+                    fg.addColorStop(0, '#eafde2'); fg.addColorStop(0.45, '#85d17a'); fg.addColorStop(1, '#2f7e33');
                 }
                 ctx.fillStyle = fg;
 
                 ctx.beginPath();
                 ctx.arc(tr.x, tr.y - fr * 0.8, fr * 0.95, 0, Math.PI * 2);
                 ctx.fill();
-
                 ctx.beginPath();
                 ctx.arc(tr.x - fr * 0.55, tr.y - fr * 0.2, fr * 0.76, 0, Math.PI * 2);
                 ctx.fill();
-
                 ctx.beginPath();
                 ctx.arc(tr.x + fr * 0.55, tr.y - fr * 0.25, fr * 0.76, 0, Math.PI * 2);
                 ctx.fill();
@@ -1623,13 +2070,16 @@
 
         // ---------- Suuba (predator) ----------
         class Suuba {
-            constructor(x, y) {
+            constructor(x, y, genes, generation) {
                 this.x = x;
                 this.y = y;
-                this.radius = 28;
+                this.genes = genes || makeSuubaGenes();
+                this.generation = generation || 1;
+                this.adultRadius = this.genes.size;
+                this.radius = this.adultRadius;
                 this.vx = (Math.random() - 0.5) * 2;
                 this.vy = (Math.random() - 0.5) * 2;
-                this.speed = 1.4;
+                this.speed = this.genes.speed;
                 this.energy = 220;
                 this.eatCooldown = 0;
                 this.hunger = Math.random() * 40 + 10;
@@ -1640,7 +2090,7 @@
                 this.lastReproduction = -Infinity;
                 this.lifeSpan = 360;
                 this.birthRadius = this.radius;
-                this.adultRadius = 28;
+                this.cold = 0;
             }
 
             update(deltaTime, gameState) {
@@ -1652,8 +2102,18 @@
                 this.thirst = Math.min(this.maxStats, this.thirst + 3 * deltaTime * careFactor);
                 if (this.eatCooldown > 0) this.eatCooldown -= deltaTime;
 
+                // Nocturnal: hunt eagerly at night, reluctantly by day
+                const phase = getDayPhase();
+                const isNight = phase === 'Night';
+                const isDay = phase === 'Day';
+                const huntThreshold = isNight ? 25 : (isDay ? 70 : 45);
+                const nightSpeedMul = isNight ? 1.25 : (isDay ? 0.7 : 1.0);
+
+                // Winter freezing — thick-hided, so they resist cold well
+                updateCold(this, deltaTime, 5 * (28 / this.genes.size));
+
                 const needWater = this.thirst > 75;
-                const needFood = gameState.settings.predatorsEnabled && this.hunger > 45;
+                const needFood = gameState.settings.predatorsEnabled && this.hunger > huntThreshold;
 
                 const nearestPond = () => {
                     if (!gameState.ponds || gameState.ponds.length === 0) return null;
@@ -1717,10 +2177,11 @@
                             if (d2 < 1200) {
                                 const bx = (this.x + other.x) / 2 + (Math.random() - 0.5) * 8;
                                 const by = (this.y + other.y) / 2 + (Math.random() - 0.5) * 8;
-                                const baby = new Suuba(bx, by);
+                                const childGenes = inheritGenes(this.genes, other.genes, GENE_RANGES.suuba);
+                                const childGen = Math.max(this.generation, other.generation) + 1;
+                                const baby = new Suuba(bx, by, childGenes, childGen);
                                 baby.radius = 12 + Math.random() * 4;
                                 baby.birthRadius = baby.radius;
-                                baby.adultRadius = 28;
                                 baby.age = 0;
                                 baby.energy = 220;
                                 baby.hunger = 8;
@@ -1737,8 +2198,8 @@
 
                 const vlen = Math.sqrt(this.vx * this.vx + this.vy * this.vy) || 1e-6;
                 if (vlen > 1.8) { this.vx *= 1.8 / vlen; this.vy *= 1.8 / vlen; }
-                this.x += this.vx * this.speed * deltaTime * 60;
-                this.y += this.vy * this.speed * deltaTime * 60;
+                this.x += this.vx * this.speed * nightSpeedMul * deltaTime * 60;
+                this.y += this.vy * this.speed * nightSpeedMul * deltaTime * 60;
 
                 this.x = Math.max(this.radius, Math.min(canvas.width - this.radius, this.x));
                 this.y = Math.max(this.radius, Math.min(canvas.height - this.radius, this.y));
@@ -1749,7 +2210,7 @@
             }
 
             isAlive() {
-                return this.energy > 0 && this.age < this.lifeSpan;
+                return this.energy > 0 && this.age < this.lifeSpan && this.cold < 100;
             }
 
             draw() {
@@ -1797,13 +2258,21 @@
                 ctx.ellipse(0, size * 0.16, size * 0.28, size * 0.2, 0, 0, Math.PI * 2);
                 ctx.fill();
 
-                // Eyes
+                // Eyes — glow amber at night when they're most active
+                const nightHunter = getDayPhase() === 'Night';
                 const eyeR = Math.max(2.6, this.radius * 0.2);
                 for (const ex of [-size * 0.18, size * 0.18]) {
-                    ctx.fillStyle = '#fff8e6';
+                    if (nightHunter) {
+                        ctx.fillStyle = '#ffcf4d';
+                        ctx.shadowColor = '#ffb000';
+                        ctx.shadowBlur = 8;
+                    } else {
+                        ctx.fillStyle = '#fff8e6';
+                    }
                     ctx.beginPath();
                     ctx.arc(ex, -size * 0.12, eyeR, 0, Math.PI * 2);
                     ctx.fill();
+                    ctx.shadowBlur = 0;
                     ctx.fillStyle = '#1a0a0a';
                     ctx.beginPath();
                     ctx.arc(ex + eyeR * 0.25, -size * 0.12, eyeR * 0.5, 0, Math.PI * 2);
@@ -1841,20 +2310,31 @@
                 ctx.fillStyle = '#4aa6ff'; ctx.fillRect(barX, hy, barW * hydFrac, 6);
                 const hunFrac = Math.max(0, 1 - (this.hunger / this.maxStats));
                 ctx.fillStyle = '#4ad94a'; ctx.fillRect(barX, hh, barW * hunFrac, 6);
+
+                // Icy tint when freezing
+                if (this.cold > 25) {
+                    ctx.globalAlpha = Math.min(0.5, (this.cold - 25) / 120);
+                    ctx.fillStyle = '#bfe6ff';
+                    roundRect(ctx, -size / 2, -size / 2, size, size, size * 0.22, true, false);
+                    ctx.globalAlpha = 1;
+                }
                 ctx.restore();
             }
         }
 
         // ---------- Rescue: stop total extinction ----------
         function handleRescue() {
+            if (!gameState.settings.rescueEnabled) return;
             if (gameState.time - gameState.lastRescue < 6000) return;
             gameState.lastRescue = gameState.time;
 
             if (gameState.seepas.length < 5 && gameState.settings.seepaSpawn > 0) {
+                const surv = gameState.seepas[0];
                 for (let i = 0; i < 6; i++) {
                     const x = randomBetween(40, canvas.width - 40);
                     const y = randomBetween(40, canvas.height - 40);
-                    const s = new Seepa(x, y);
+                    const genes = surv ? inheritGenes(surv.genes, surv.genes, GENE_RANGES.seepa) : null;
+                    const s = new Seepa(x, y, genes, surv ? surv.generation : 1);
                     s.age = 20 + Math.random() * 20;
                     gameState.seepas.push(s);
                     spawnParticles(x, y, '#9fd3ff', 6, 1.4);
@@ -2031,6 +2511,8 @@
             document.getElementById('fps').textContent = fps;
             let maxGen = 1;
             for (const s of gameState.seepas) if (s.generation > maxGen) maxGen = s.generation;
+            for (const s of gameState.suubas) if (s.generation > maxGen) maxGen = s.generation;
+            for (const s of gameState.siibas) if (s.generation > maxGen) maxGen = s.generation;
             document.getElementById('genLabel').textContent = maxGen;
             updateInspector();
         }
@@ -2053,6 +2535,8 @@
             else html += ' / 100s';
             html += '<br>Food: ' + hungerPct + '% &nbsp; Water: ' + thirstPct + '%';
             if (typeof c.energy === 'number') html += '<br>Energy: ' + Math.round(c.energy);
+            if (typeof c.cold === 'number' && c.cold > 1) html += '<br>Cold: ' + Math.round(c.cold) + '%';
+            if (c.hidden) html += '<br><em>🌙 Hiding in shelter</em>';
             if (c.genes) {
                 html += '<br>Genes — speed: ' + c.genes.speed.toFixed(2) + ', size: ' + c.genes.size.toFixed(2);
                 html += '<br>Generation: ' + c.generation;
@@ -2112,6 +2596,10 @@
             gameState.settings.flockingEnabled = e.target.checked;
         });
 
+        document.getElementById('rescueToggle').addEventListener('change', (e) => {
+            gameState.settings.rescueEnabled = e.target.checked;
+        });
+
         function bindPopSlider(sliderId, labelId, key) {
             const slider = document.getElementById(sliderId);
             const label = document.getElementById(labelId);
@@ -2159,7 +2647,34 @@
             }
         });
 
+        document.getElementById('viewSelect').addEventListener('change', (e) => {
+            applyView(e.target.value);
+            init();
+            gameState.paused = false;
+            document.getElementById('pausePlayBtn').textContent = '⏸ PAUSE';
+            lastTime = Date.now();
+            updateStats();
+        });
+
+        // Re-detect on resize/rotate while in Auto mode
+        let resizeTimer = null;
+        window.addEventListener('resize', () => {
+            if (gameState.settings.currentView !== 'auto') return;
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(() => {
+                const want = detectDevice();
+                const dim = viewDimensions(want);
+                if (canvas.width !== dim.w || canvas.height !== dim.h) {
+                    applyView('auto');
+                    init();
+                    lastTime = Date.now();
+                    updateStats();
+                }
+            }, 300);
+        });
+
         // Start the game
+        applyView('auto');
         init();
         updateStats();
         gameLoop();
