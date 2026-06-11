@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Evolution Simulator - Seepas</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            background: #1a1a1a;
+            color: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+        }
+        
+        .canvas-wrapper {
+            position: relative;
+            z-index: 1;
+        }
+        
+        canvas {
+            border: 3px solid #444;
+            background: #2a2a2a;
+            display: block;
+        }
+        
+        .controls {
+            background: #333;
+            padding: 20px;
+            border-radius: 8px;
+            border: 2px solid #444;
+            min-width: 250px;
+            position: relative;
+            z-index: 10; /* ensure controls are above canvas */
+        }
+        
+        .control-group {
+            margin-bottom: 15px;
+        }
+        
+        .control-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        
+        button {
+            background: #0066cc;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+            width: 100%;
+        }
+        
+        button:hover {
+            background: #0052a3;
+        }
+        
+        button:active {
+            background: #003d7a;
+        }
+        
+        .speed-control {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        input[type="range"] {
+            flex: 1;
+        }
+        
+        .stats {
+            background: #2a2a2a;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 15px;
+            font-size: 13px;
+            line-height: 1.8;
+        }
+        
+        .stat-line {
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .legend {
+            background: #2a2a2a;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 15px;
+            font-size: 12px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        
+        .info-text {
+            font-size: 12px;
+            color: #aaa;
+            margin-top: 15px;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="canvas-wrapper">
+            <canvas id="canvas" width="1200" height="800"></canvas>
+        </div>
+        
+        <div class="controls">
+            <div class="control-group">
+                <button id="pausePlayBtn">⏸ PAUSE</button>
+            </div>
+            
+            <div class="control-group">
+                <label>Simulation Speed:</label>
+                <div class="speed-control">
+                    <input type="range" id="speedSlider" min="0.5" max="3" step="0.5" value="1">
+                    <span id="speedLabel">1x</span>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <button id="resetBtn">RESET</button>
+            </div>
+            
+            <div class="stats">
+                <div class="stat-line">
+                    <span>Total Seepas:</span>
+                    <strong id="seepasCount">0</strong>
+                </div>
+                <div class="stat-line">
+                    <span>Sim Time:</span>
+                    <strong id="simTime">0s</strong>
+                </div>
+                <div class="stat-line">
+                    <span>FPS:</span>
+                    <strong id="fps">0</strong>
+                </div>
+            </div>
+            
+            <div class="legend">
+                <strong>Legend:</strong>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #4488ff;"></div>
+                    <span>Seepa</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #0066ff;"></div>
+                    <span>Water (Pond)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #22dd22;"></div>
+                    <span>Fruit (Bush)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #d24132;"></div>
+                    <span>Apple (Tree)</span>
+                </div>
+            </div>
+            
+            <div class="info-text">
+                <strong>How it works:</strong>
+                <ul style="margin-left: 15px; margin-top: 8px;">
+                    <li>Seepas drink from the pond to reduce thirst</li>
+                    <li>Seepas eat fruits from the bush to reduce hunger</li>
+                    <li>Fruits regrow after 20 seconds</li>
+                    <li>More features coming soon!</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Game state
+        let gameState = {
+            paused: false,
+            speed: 1,
+            time: 0,
+            seepas: [],
+            ponds: [],
+            bushes: [],
+            trees: [],
+            fruitRegrowTime: 2 * 1000, // 2 seconds in ms
+            appleRegrowTime: 8 * 1000 // 8 seconds in ms
+        };
+        
+        let fps = 0;
+        let frameCount = 0;
+        let lastFpsTime = Date.now();
+        let noiseSeed = 0;
+
+        // Creature class
+        class Seepa {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.radius = 6;
+                this.vx = (Math.random() - 0.5) * 2;
+                this.vy = (Math.random() - 0.5) * 2;
+                this.speed = 1.5;
+                // Start with hunger/thirst randomly between 0-50 so bars show 50%-100% full
+                this.hunger = Math.random() * 50; // 0-50 (0 = full, 50 = half-empty)
+                this.thirst = Math.random() * 50; // 0-50
+                this.maxStats = 100;
+            }
+            
+            update(deltaTime, gameState) {
+                deltaTime = deltaTime / 1000; // Convert to seconds
+                
+                // Increase hunger and thirst over time
+                    this.hunger += 3 * deltaTime;
+                    this.thirst += 4 * deltaTime;
+                
+                // Cap at max
+                this.hunger = Math.min(this.hunger, this.maxStats);
+                this.thirst = Math.min(this.thirst, this.maxStats);
+                
+                // Movement logic
+                this.moveTowardTarget(gameState);
+                
+                // Update position
+                this.x += this.vx * this.speed * deltaTime * 60;
+                this.y += this.vy * this.speed * deltaTime * 60;
+                
+                // Bounce off canvas edges so Seepas stay on-screen
+                if (this.x - this.radius < 0) {
+                    this.x = this.radius;
+                    this.vx *= -1;
+                }
+                if (this.x + this.radius > canvas.width) {
+                    this.x = canvas.width - this.radius;
+                    this.vx *= -1;
+                }
+                if (this.y - this.radius < 0) {
+                    this.y = this.radius;
+                    this.vy *= -1;
+                }
+                if (this.y + this.radius > canvas.height) {
+                    this.y = canvas.height - this.radius;
+                    this.vy *= -1;
+                }
+                
+                // Check interactions
+                this.checkWaterInteraction(gameState);
+                this.checkFruitInteraction(gameState);
+            }
+            
+            moveTowardTarget(gameState) {
+                let targetX, targetY;
+                let needWater = this.thirst > 75; // Thirst bar below 25%
+                let needFood = this.hunger > 75;  // Hunger bar below 25%
+
+                // Helper to find nearest pond/bush
+                const nearestPond = () => {
+                    if (!gameState.ponds || gameState.ponds.length === 0) return null;
+                    let best = null; let bestD = Infinity;
+                    for (const p of gameState.ponds) {
+                        const dx = p.x - this.x; const dy = p.y - this.y;
+                        const d = Math.sqrt(dx*dx+dy*dy);
+                        if (d < bestD) { bestD = d; best = p; }
+                    }
+                    return best;
+                };
+                const nearestBushWithFruit = () => {
+                    if (!gameState.bushes || gameState.bushes.length === 0) return null;
+                    let best = null; let bestD = Infinity;
+                    for (const b of gameState.bushes) {
+                        if (!b.fruits || !b.fruits.some(f=>f.available)) continue;
+                        const dx = b.x - this.x; const dy = b.y - this.y;
+                        const d = Math.sqrt(dx*dx+dy*dy);
+                        if (d < bestD) { bestD = d; best = b; }
+                    }
+                    return best;
+                };
+
+                if (needWater && needFood) {
+                    // choose whichever is more critical (higher value)
+                    if (this.thirst >= this.hunger) {
+                        const p = nearestPond(); if (!p) return; targetX = p.x; targetY = p.y;
+                    } else {
+                        const b = nearestBushWithFruit(); if (!b) return; targetX = b.x; targetY = b.y;
+                    }
+                } else if (needWater) {
+                    const p = nearestPond(); if (!p) return; targetX = p.x; targetY = p.y;
+                } else if (needFood) {
+                    const b = nearestBushWithFruit(); if (!b) return; targetX = b.x; targetY = b.y;
+                } else {
+                    // Random wandering
+                    return;
+                }
+
+                const dx = targetX - this.x;
+                const dy = targetY - this.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+
+                if (dist > 0) {
+                    this.vx = (dx / dist) * 0.8 + (Math.random() - 0.5) * 0.2;
+                    this.vy = (dy / dist) * 0.8 + (Math.random() - 0.5) * 0.2;
+                }
+            }
+            
+            checkWaterInteraction(gameState) {
+                if (!gameState.ponds) return;
+                for (const pond of gameState.ponds) {
+                    const dx = this.x - pond.x;
+                    const dy = this.y - pond.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < pond.radius + this.radius) {
+                        // Drinking
+                        this.thirst = Math.max(0, this.thirst - 40);
+                        return true;
+                    }
+                }
+                return false;
+            }
+            
+            checkFruitInteraction(gameState) {
+                if (!gameState.bushes && !gameState.trees) return false;
+                if (this.hunger < 30) return false; // Can't eat if hunger bar above 70%
+
+                // Eat fruit from bushes first
+                for (const bush of gameState.bushes || []) {
+                    if (!bush.fruits || bush.fruits.length === 0) continue;
+                    const dx = this.x - bush.x;
+                    const dy = this.y - bush.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < bush.radius + this.radius) {
+                        for (let i = 0; i < bush.fruits.length; i++) {
+                            if (bush.fruits[i].available) {
+                                this.hunger = Math.max(0, this.hunger - 50);
+                                bush.fruits[i].available = false;
+                                bush.fruits[i].eatTime = gameState.time;
+                                return true;
+                            }
+                        }
+                    }
+                }
+
+                // Then eat apples from trees
+                for (const tree of gameState.trees || []) {
+                    if (!tree.apples || tree.apples.length === 0) continue;
+                    const dx = this.x - tree.x;
+                    const dy = this.y - (tree.y - tree.foliageRadius * 0.5);
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < tree.foliageRadius + this.radius) {
+                        for (let apple of tree.apples) {
+                            if (apple.available) {
+                                const ax = tree.x + apple.offsetX;
+                                const ay = tree.y + apple.offsetY;
+                                const adx = this.x - ax;
+                                const ady = this.y - ay;
+                                const adist = Math.sqrt(adx * adx + ady * ady);
+                                if (adist < this.radius + 6) {
+                                    this.hunger = Math.max(0, this.hunger - 40);
+                                    apple.available = false;
+                                    apple.eatTime = gameState.time;
+                                    return true;
+                                }
+                            }
+                        }
+                    }
+                }
+                return false;
+            }
+            
+            isAlive() {
+                return this.hunger < 100 && this.thirst < 100;
+            }
+            
+            draw() {
+                // Polished Seepa: shadow, gradient body, eye, shine, outline
+                // Shadow
+                ctx.fillStyle = 'rgba(0,0,0,0.14)';
+                ctx.beginPath();
+                ctx.ellipse(this.x, this.y + this.radius + 4, this.radius * 1.6, this.radius * 0.9, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Body with slight rotation based on velocity
+                const angle = Math.atan2(this.vy, this.vx);
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(angle * 0.12);
+
+                // Radial gradient for depth
+                const g = ctx.createRadialGradient(-this.radius * 0.3, -this.radius * 0.3, 1, 0, 0, this.radius * 1.2);
+                g.addColorStop(0, '#9fd3ff');
+                g.addColorStop(0.5, '#63a6ff');
+                g.addColorStop(1, '#2f6fbf');
+                ctx.fillStyle = g;
+                ctx.beginPath();
+                ctx.ellipse(0, 0, this.radius * 1.25, this.radius, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Outline
+                ctx.strokeStyle = '#15345a';
+                ctx.lineWidth = 1.4;
+                ctx.stroke();
+
+                // Eye
+                const eyeX = this.radius * 0.35;
+                const eyeY = -this.radius * 0.15;
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(eyeX, eyeY, this.radius * 0.36, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#0b0b0b';
+                ctx.beginPath();
+                ctx.arc(eyeX + this.radius * 0.1, eyeY, this.radius * 0.16, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Specular shine
+                ctx.fillStyle = 'rgba(255,255,255,0.55)';
+                ctx.beginPath();
+                ctx.ellipse(-this.radius * 0.25, -this.radius * 0.45, this.radius * 0.28, this.radius * 0.12, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.restore();
+
+                // Draw bars above creature
+                const barWidth = 26;
+                const barHeight = 4;
+                const barY = this.y - this.radius - 16;
+                const barGap = 4;
+
+                // Water/Thirst bar (left)
+                const waterBarX = this.x - barWidth / 2 - barGap / 2;
+                const waterPercent = 1 - (this.thirst / this.maxStats);
+
+                // Background
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+                roundRect(ctx, waterBarX, barY, barWidth, barHeight, 3, true, false);
+                // Fill
+                ctx.fillStyle = '#2e90ff';
+                roundRect(ctx, waterBarX, barY, barWidth * waterPercent, barHeight, 3, true, false);
+
+                // Food/Hunger bar (right)
+                const foodBarX = this.x + barGap / 2;
+                const foodPercent = 1 - (this.hunger / this.maxStats);
+
+                // Background
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+                roundRect(ctx, foodBarX, barY, barWidth, barHeight, 3, true, false);
+                // Fill
+                ctx.fillStyle = '#27c227';
+                roundRect(ctx, foodBarX, barY, barWidth * foodPercent, barHeight, 3, true, false);
+            }
+        }
+        
+        // Helper: random value between min and max
+        function randomBetween(min, max) {
+            return min + Math.random() * (max - min);
+        }
+
+        function lerp(a, b, t) {
+            return a + (b - a) * t;
+        }
+
+        function fade(t) {
+            return t * t * t * (t * (t * 6 - 15) + 10);
+        }
+
+        function hash2D(x, y) {
+            const sinSeed = Math.sin(x * 127.1 + y * 311.7 + noiseSeed * 13.13) * 43758.5453;
+            return sinSeed - Math.floor(sinSeed);
+        }
+
+        function noise2D(x, y) {
+            const x0 = Math.floor(x);
+            const y0 = Math.floor(y);
+            const xf = x - x0;
+            const yf = y - y0;
+
+            const v00 = hash2D(x0, y0);
+            const v10 = hash2D(x0 + 1, y0);
+            const v01 = hash2D(x0, y0 + 1);
+            const v11 = hash2D(x0 + 1, y0 + 1);
+
+            const u = fade(xf);
+            const v = fade(yf);
+
+            const nx0 = lerp(v00, v10, u);
+            const nx1 = lerp(v01, v11, u);
+            return lerp(nx0, nx1, v);
+        }
+
+        function fractalNoise(x, y, octaves = 4, persistence = 0.55, baseFrequency = 0.006) {
+            let amplitude = 1;
+            let frequency = baseFrequency;
+            let sum = 0;
+            let max = 0;
+            for (let i = 0; i < octaves; i++) {
+                sum += noise2D(x * frequency, y * frequency) * amplitude;
+                max += amplitude;
+                amplitude *= persistence;
+                frequency *= 2;
+            }
+            return sum / max;
+        }
+
+        // Initialize game
+        function init() {
+            noiseSeed = Math.random() * 1000;
+            gameState.seepas = [];
+            gameState.time = 0;
+            
+            // Create ponds (water sources) in new random locations each reset
+            gameState.ponds = [
+                { x: randomBetween(120, canvas.width - 120), y: randomBetween(120, canvas.height - 120), radius: 50 + Math.random() * 16 },
+                { x: randomBetween(120, canvas.width - 120), y: randomBetween(120, canvas.height - 120), radius: 50 + Math.random() * 24 }
+            ];
+
+            // Create multiple bushes (food sources) and give each a random fruit cap (3-7)
+            const bushDefs = [
+                { radius: 40 },
+                { radius: 36 },
+                { radius: 38 },
+                { radius: 42 }
+            ];
+            gameState.bushes = bushDefs.map(d => {
+                const cap = Math.floor(Math.random() * 5) + 3; // 3..7 fruits
+                return {
+                    x: randomBetween(100, canvas.width - 100),
+                    y: randomBetween(100, canvas.height - 100),
+                    radius: d.radius,
+                    maxFruits: cap,
+                    fruits: createFruits(cap)
+                };
+            });
+            
+            // Create some trees in random locations each reset
+            gameState.trees = [
+                { x: randomBetween(80, canvas.width - 80), y: randomBetween(120, canvas.height - 120), trunkHeight: 40, foliageRadius: 28, apples: createTreeApples(3, 28) },
+                { x: randomBetween(80, canvas.width - 80), y: randomBetween(120, canvas.height - 120), trunkHeight: 48, foliageRadius: 34, apples: createTreeApples(4, 34) },
+                { x: randomBetween(80, canvas.width - 80), y: randomBetween(120, canvas.height - 120), trunkHeight: 52, foliageRadius: 30, apples: createTreeApples(3, 30) }
+            ];
+            
+            // Spawn initial seepas
+            for (let i = 0; i < 100; i++) {
+                const x = Math.random() * canvas.width;
+                const y = Math.random() * canvas.height;
+                gameState.seepas.push(new Seepa(x, y));
+            }
+        }
+        
+        // Render environment
+        function drawEnvironment() {
+            // Draw grass background with grid
+            ctx.fillStyle = '#1a3a1a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw biome background using fractal noise
+            const t = gameState.time || 0;
+            for (let y = 0; y < canvas.height; y += 8) {
+                for (let x = 0; x < canvas.width; x += 8) {
+                    const n = fractalNoise(x, y) * 1.4 - 0.2;
+                    let color = '#1b3a1a';
+                    if (n < 0.1) color = '#3d5b2d';
+                    else if (n < 0.35) color = '#2c4e20';
+                    else if (n < 0.65) color = '#1a3516';
+                    else color = '#143012';
+                    ctx.fillStyle = color;
+                    ctx.fillRect(x, y, 8, 8);
+                }
+            }
+
+            // Draw ponds (polished)
+            const rippleAmp = 2.0;
+            const rippleSpeed = 300; // ms
+            for (const pond of gameState.ponds) {
+                // Sand ring around pond
+                const sandRadius = pond.radius + 16;
+                const sandGradient = ctx.createRadialGradient(pond.x, pond.y, pond.radius * 0.9, pond.x, pond.y, sandRadius);
+                sandGradient.addColorStop(0, 'rgba(242,221,174,0)');
+                sandGradient.addColorStop(0.75, 'rgba(245,227,175,0.55)');
+                sandGradient.addColorStop(1, 'rgba(235,196,145,1)');
+                ctx.fillStyle = sandGradient;
+                ctx.beginPath();
+                ctx.arc(pond.x, pond.y, sandRadius, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Pond shadow / shore
+                ctx.fillStyle = 'rgba(10,40,10,0.25)';
+                ctx.beginPath();
+                ctx.ellipse(pond.x, pond.y + 6, pond.radius * 1.15, pond.radius * 0.8, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Radial gradient water
+                const pg = ctx.createRadialGradient(pond.x - pond.radius * 0.2, pond.y - pond.radius * 0.2, pond.radius * 0.1, pond.x, pond.y, pond.radius);
+                pg.addColorStop(0, '#9fd6ff');
+                pg.addColorStop(0.5, '#4aa0ff');
+                pg.addColorStop(1, '#0b5fbf');
+                ctx.fillStyle = pg;
+                ctx.beginPath();
+                ctx.arc(pond.x, pond.y, pond.radius, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Subtle ripples animated by time
+                ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+                ctx.lineWidth = 1;
+                for (let i = 1; i <= 2; i++) {
+                    ctx.beginPath();
+                    const r = pond.radius - 6 - i * 6 + Math.sin((t + i * 120) / rippleSpeed) * rippleAmp;
+                    ctx.arc(pond.x, pond.y, Math.max(6, r), 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+
+                // Surface shimmer highlight
+                ctx.fillStyle = 'rgba(255,255,255,0.06)';
+                ctx.beginPath();
+                ctx.ellipse(pond.x - pond.radius * 0.3, pond.y - pond.radius * 0.4, pond.radius * 0.6, pond.radius * 0.25, -0.5, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+        }
+
+        // Draw cloud-shaped bushes after Seepas so they occlude creatures fully
+        function drawBushes() {
+            const bushes = gameState.bushes || [];
+            const cloudOffsets = [
+                {x: -22, y: 0, r: 22},
+                {x: -6, y: -8, r: 26},
+                {x: 12, y: -2, r: 24},
+                {x: 30, y: 6, r: 18},
+                {x: 0, y: 10, r: 20}
+            ];
+
+            for (const bush of bushes) {
+                ctx.save();
+                ctx.translate(bush.x, bush.y);
+
+                // bush shadow
+                ctx.fillStyle = 'rgba(0,0,0,0.15)';
+                ctx.beginPath();
+                ctx.ellipse(0, bush.radius * 0.55, bush.radius * 1.2, bush.radius * 0.55, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // leaf clusters
+                for (const c of cloudOffsets) {
+                    const cx = c.x;
+                    const cy = c.y;
+                    const cr = c.r * (bush.radius / 35);
+                    const cg = ctx.createRadialGradient(cx - cr * 0.3, cy - cr * 0.3, 1, cx, cy, cr);
+                    cg.addColorStop(0, '#e0ffc8');
+                    cg.addColorStop(0.5, '#7bc671');
+                    cg.addColorStop(1, '#2f7c2f');
+                    ctx.fillStyle = cg;
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, cr, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // no dark outline around bush shape
+
+                // Draw fruits on bush
+                const fruitPositions = [
+                    { x: -12, y: -12 },
+                    { x: 12, y: -12 },
+                    { x: 0, y: 0 },
+                    { x: -12, y: 12 },
+                    { x: 12, y: 12 },
+                    { x: -18, y: 6 },
+                    { x: 18, y: 6 }
+                ];
+                if (bush && bush.fruits) {
+                    bush.fruits.forEach((fruit, idx) => {
+                        const pos = fruitPositions[idx % fruitPositions.length];
+                        const fx = pos.x;
+                        const fy = pos.y;
+                        if (fruit.available) {
+                            ctx.fillStyle = 'rgba(0,0,0,0.16)';
+                            ctx.beginPath();
+                            ctx.ellipse(fx + 1.5, fy + 2, 5.5, 3, 0, 0, Math.PI * 2);
+                            ctx.fill();
+
+                            const fg = ctx.createRadialGradient(fx - 2, fy - 2, 1, fx, fy, 7);
+                            fg.addColorStop(0, '#ffe0a8');
+                            fg.addColorStop(0.5, '#ff9b44');
+                            fg.addColorStop(1, '#cc550f');
+                            ctx.fillStyle = fg;
+                            ctx.beginPath();
+                            ctx.arc(fx, fy, 6, 0, Math.PI * 2);
+                            ctx.fill();
+
+                            ctx.fillStyle = 'rgba(255,255,255,0.65)';
+                            ctx.beginPath();
+                            ctx.arc(fx - 2.2, fy - 2.2, 2, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                    });
+                }
+
+                ctx.restore();
+            }
+        }
+
+        // Draw full trees after Seepas so trees occlude the entire creature
+        function drawTrees() {
+            if (!gameState.trees) return;
+            for (const tr of gameState.trees) {
+                const trunkWidth = 14;
+                const trunkHeight = tr.trunkHeight;
+                ctx.fillStyle = '#4d311d';
+                ctx.fillRect(tr.x - trunkWidth / 2, tr.y, trunkWidth, trunkHeight);
+
+                const fr = tr.foliageRadius;
+                const fg = ctx.createRadialGradient(tr.x - fr * 0.2, tr.y - fr * 0.6, 2, tr.x, tr.y - fr * 0.2, fr);
+                fg.addColorStop(0, '#eafde2');
+                fg.addColorStop(0.45, '#85d17a');
+                fg.addColorStop(1, '#2f7e33');
+                ctx.fillStyle = fg;
+
+                ctx.beginPath();
+                ctx.arc(tr.x, tr.y - fr * 0.8, fr * 0.95, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.beginPath();
+                ctx.arc(tr.x - fr * 0.55, tr.y - fr * 0.2, fr * 0.76, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.beginPath();
+                ctx.arc(tr.x + fr * 0.55, tr.y - fr * 0.25, fr * 0.76, 0, Math.PI * 2);
+                ctx.fill();
+
+                if (tr.apples) {
+                    for (const apple of tr.apples) {
+                        const ax = tr.x + apple.offsetX;
+                        const ay = tr.y + apple.offsetY;
+                        if (!apple.available) continue;
+
+                        ctx.fillStyle = 'rgba(210, 65, 50, 0.9)';
+                        ctx.beginPath();
+                        ctx.arc(ax, ay, 6, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        ctx.strokeStyle = '#5b1b08';
+                        ctx.lineWidth = 1;
+                        ctx.beginPath();
+                        ctx.moveTo(ax + 1, ay - 6);
+                        ctx.lineTo(ax + 1, ay - 10);
+                        ctx.stroke();
+
+                        ctx.fillStyle = 'rgba(255,255,255,0.65)';
+                        ctx.beginPath();
+                        ctx.arc(ax - 2, ay - 2, 1.6, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
+            }
+        }
+
+        // Helper: draw rounded rect (used for bars)
+        function roundRect(ctx, x, y, width, height, radius, fill, stroke) {
+            if (typeof stroke === 'undefined') {
+                stroke = true;
+            }
+            if (typeof radius === 'undefined') {
+                radius = 5;
+            }
+            ctx.beginPath();
+            ctx.moveTo(x + radius, y);
+            ctx.arcTo(x + width, y, x + width, y + height, radius);
+            ctx.arcTo(x + width, y + height, x, y + height, radius);
+            ctx.arcTo(x, y + height, x, y, radius);
+            ctx.arcTo(x, y, x + width, y, radius);
+            ctx.closePath();
+            if (fill) ctx.fill();
+            if (stroke) ctx.stroke();
+        }
+
+        // Helper: create fruits array
+        function createFruits(count) {
+            const arr = [];
+            for (let i = 0; i < count; i++) arr.push({ available: true, eatTime: -Infinity });
+            return arr;
+        }
+
+        function createTreeApples(count, foliageRadius) {
+            const apples = [];
+            for (let i = 0; i < count; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const radius = Math.random() * (foliageRadius * 0.45) + foliageRadius * 0.2;
+                apples.push({
+                    offsetX: Math.cos(angle) * radius,
+                    offsetY: Math.sin(angle) * radius - foliageRadius * 0.2,
+                    available: true,
+                    eatTime: -Infinity
+                });
+            }
+            return apples;
+        }
+
+        // NOTE: old tree layering helpers have been replaced by drawTrees() below.
+        
+        
+        // Main update loop
+        function update(deltaTime) {
+            if (gameState.paused) return;
+
+            gameState.time += deltaTime;
+
+            // Update fruit respawn timers for all bushes
+            if (gameState.bushes) {
+                for (const bush of gameState.bushes) {
+                    if (!bush.fruits) continue;
+                    for (let fruit of bush.fruits) {
+                        if (!fruit.available && gameState.time - fruit.eatTime >= gameState.fruitRegrowTime) {
+                            fruit.available = true;
+                        }
+                    }
+                }
+            }
+
+            if (gameState.trees) {
+                for (const tree of gameState.trees) {
+                    if (!tree.apples) continue;
+                    for (let apple of tree.apples) {
+                        if (!apple.available && gameState.time - apple.eatTime >= gameState.appleRegrowTime) {
+                            apple.available = true;
+                        }
+                    }
+                }
+            }
+
+            // Update seepas
+            for (let i = gameState.seepas.length - 1; i >= 0; i--) {
+                const seepa = gameState.seepas[i];
+                seepa.update(deltaTime, gameState);
+
+                // Remove dead seepas
+                if (!seepa.isAlive()) {
+                    gameState.seepas.splice(i, 1);
+                }
+            }
+        }
+        
+        // Main render loop
+        function render() {
+            drawEnvironment();
+            
+            // Draw seepas behind bushes and trees
+            for (const seepa of gameState.seepas) {
+                seepa.draw();
+            }
+
+            drawBushes();
+            drawTrees();
+            
+            // Draw UI text
+            ctx.fillStyle = '#fff';
+            ctx.font = '12px Arial';
+            ctx.fillText(`Time: ${gameState.time.toFixed(1)}s`, 10, 20);
+            ctx.fillText(`Seepas: ${gameState.seepas.length}`, 10, 35);
+            
+            if (gameState.paused) {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 24px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('PAUSED', canvas.width / 2, canvas.height / 2);
+                ctx.textAlign = 'left';
+            }
+        }
+        
+        // Game loop
+        let lastTime = Date.now();
+        function gameLoop() {
+            const now = Date.now();
+            let deltaTime = (now - lastTime) * gameState.speed;
+            lastTime = now;
+            
+            // Cap deltaTime to prevent large jumps
+            deltaTime = Math.min(deltaTime, 50);
+            
+            update(deltaTime);
+            render();
+            
+            // Calculate FPS
+            frameCount++;
+            if (now - lastFpsTime >= 1000) {
+                fps = frameCount;
+                frameCount = 0;
+                lastFpsTime = now;
+                updateStats();
+            }
+            
+            requestAnimationFrame(gameLoop);
+        }
+        
+        // Update UI stats
+        function updateStats() {
+            document.getElementById('seepasCount').textContent = gameState.seepas.length;
+            document.getElementById('simTime').textContent = gameState.time.toFixed(1) + 's';
+            document.getElementById('fps').textContent = fps;
+        }
+        
+        // Event listeners
+        document.getElementById('pausePlayBtn').addEventListener('click', () => {
+            gameState.paused = !gameState.paused;
+            const btn = document.getElementById('pausePlayBtn');
+            btn.textContent = gameState.paused ? '▶ PLAY' : '⏸ PAUSE';
+            if (!gameState.paused) {
+                lastTime = Date.now();
+            }
+            updateStats();
+        });
+
+        // Keyboard shortcut: Space toggles play/pause
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                document.getElementById('pausePlayBtn').click();
+            }
+        });
+        
+        document.getElementById('speedSlider').addEventListener('input', (e) => {
+            gameState.speed = parseFloat(e.target.value);
+            document.getElementById('speedLabel').textContent = gameState.speed.toFixed(1) + 'x';
+        });
+        
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            init();
+            // ensure simulation runs after reset
+            gameState.paused = false;
+            lastTime = Date.now();
+            updateStats();
+        });
+        
+        // Start the game
+        init();
+        updateStats();
+        gameLoop();
+    </script>
+</body>
+</html>
