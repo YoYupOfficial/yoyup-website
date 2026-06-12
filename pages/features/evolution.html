@@ -78,7 +78,7 @@
         }
 
         button {
-            background: #f59c0c;
+            background: #0066cc;
             color: white;
             border: none;
             padding: 10px 20px;
@@ -88,8 +88,8 @@
             transition: background 0.2s;
             width: 100%;
         }
-        button:hover { background: #f5bb0c; }
-        button:active { background: #f5a00c; }
+        button:hover { background: #0052a3; }
+        button:active { background: #003d7a; }
 
         select {
             width: 100%;
@@ -195,7 +195,7 @@
         <div class="controls">
             <div class="section-title">Controls</div>
             <div class="control-group">
-                <button id="pausePlayBtn">⏸ Pause</button>
+                <button id="pausePlayBtn">⏸ PAUSE</button>
             </div>
             <div class="control-group">
                 <label>Simulation Speed:</label>
@@ -205,7 +205,7 @@
                 </div>
             </div>
             <div class="control-group">
-                <button id="resetBtn">🗘  Reset</button>
+                <button id="resetBtn">RESET</button>
             </div>
             <div class="control-group">
                 <label>Map view:</label>
@@ -228,8 +228,8 @@
                 </select>
             </div>
             <div class="control-group">
-                <label class="toggle-row"><input type="checkbox" id="predToggle" checked> Predators hunt</label>
-                <label class="toggle-row"><input type="checkbox" id="flockToggle" checked> Flocking (spring mornings)</label>
+                <label class="toggle-row"><input type="checkbox" id="predToggle" checked> Predators hunt (off = peaceful, they graze)</label>
+                <label class="toggle-row"><input type="checkbox" id="flockToggle" checked> Flocking (spring)</label>
                 <label class="toggle-row"><input type="checkbox" id="rescueToggle" checked> Migration rescue (new flock arrives if a species dies out)</label>
             </div>
 
@@ -241,7 +241,7 @@
                 <input type="range" id="suubaPop" min="0" max="60" step="1" value="8">
                 <div class="pop-slider-row"><span>Siibas</span><strong id="siibaPopLabel">14</strong></div>
                 <input type="range" id="siibaPop" min="0" max="60" step="1" value="14">
-                <div class="hint">Applied when you press Reset</div>
+                <div class="hint">Applied when you press RESET</div>
             </div>
 
             <div class="section-title">Inspector</div>
@@ -303,10 +303,12 @@
                     <li>The map has four biomes — grassland (berry bushes &amp; apple trees), forest (pines), desert (cacti) and wetland (extra ponds) — each with its own food</li>
                     <li>Ponds, bushes and trees never overlap, and the map grows to fit your device</li>
                     <li>All three species inherit speed and size genes that mutate each generation — natural selection in action!</li>
+                    <li>In spring, Seepas flock together — they align, group up and keep their distance like a real shoal (toggleable)</li>
                     <li>Suubas are nocturnal: fierce hunters at night, sluggish and reluctant by day</li>
                     <li>Siibas hide inside bushes and trees at night where predators can't reach them</li>
                     <li>In winter creatures slowly freeze — they huddle near bushes and trees to stay warm. Bigger Seepas resist cold better, Suubas have thick hides</li>
-                    <li>Food regrows slower in winter, faster in summer; snow falls in winter, rain in autumn</li>
+                    <li>Autumn is harvest season — leaves drift down and food grows fast and plentiful, so animals can fatten up</li>
+                    <li>Winter is harsh — snow falls and food becomes scarce (most berries and apples stay barren), so populations are tested</li>
                     <li>Migration rescue (optional): a small flock wanders in if a species nearly dies out</li>
                 </ul>
             </div>
@@ -420,6 +422,27 @@
             siiba: { spMin: 1.0, spMax: 2.4, szMin: 6, szMax: 12 }
         };
 
+        // Survival viability: a creature must be able to physically reach a resource
+        // before it starves/dehydrates. Slow-gened individuals get a smaller "reach"
+        // and so naturally die off — this is the selection pressure made explicit.
+        // Returns the urgency threshold at which the creature should start seeking,
+        // scaled so slower creatures must react earlier (but may still not make it).
+        function seekThreshold(speed, base) {
+            // Faster creatures can afford to wait longer (higher threshold);
+            // slower ones must leave earlier. Clamped to a sane band.
+            const t = base - (1.6 - Math.min(speed, 1.6)) * 28;
+            return Math.max(35, Math.min(base, t));
+        }
+
+        // Soft population caps (scaled to map size) so no species can explode and
+        // tank performance — important in peaceful mode where prey isn't culled.
+        function popCap(kind) {
+            const scale = (canvas.width * canvas.height) / (1600 * 1080);
+            if (kind === 'seepa') return Math.round(260 * scale);
+            if (kind === 'suuba') return Math.round(70 * scale);
+            return Math.round(95 * scale); // siiba
+        }
+
         function makeRandomGenes() {
             return { speed: 1.3 + Math.random() * 0.4, size: 5 + Math.random() * 2 };
         }
@@ -503,8 +526,8 @@
                 deltaTime = deltaTime / 1000;
 
                 // Hunger rises faster for fast/large genes (an evolutionary trade-off)
-                this.hunger += (1.8 + this.genes.speed * 0.7 + this.genes.size * 0.08) * deltaTime;
-                this.thirst += 4 * deltaTime;
+                this.hunger += (1.6 + this.genes.speed * 0.6 + this.genes.size * 0.07) * deltaTime;
+                this.thirst += 3.2 * deltaTime;
                 this.age += deltaTime;
 
                 if (this.age >= 18 && this.post18Color === null) {
@@ -568,8 +591,12 @@
 
             moveTowardTarget(gameState) {
                 let targetX, targetY;
-                let needWater = this.thirst > 75;
-                let needFood = this.hunger > 75;
+                // Slow Seepas must commit to seeking earlier — but being slow,
+                // they often still won't reach the resource in time and die.
+                const waterTh = seekThreshold(this.genes.speed, 72);
+                const foodTh = seekThreshold(this.genes.speed, 72);
+                let needWater = this.thirst > waterTh;
+                let needFood = this.hunger > foodTh;
 
                 const nearestPond = () => {
                     if (!gameState.ponds || gameState.ponds.length === 0) return null;
@@ -645,8 +672,8 @@
                 if (!gameState.bushes && !gameState.trees) return false;
                 if (this.hunger < 30) return false;
 
-                // Eat Siibas if hungry
-                if (gameState.siibas && gameState.siibas.length > 0) {
+                // Eat Siibas if hungry (only when hunting is enabled)
+                if (gameState.settings.predatorsEnabled && gameState.siibas && gameState.siibas.length > 0) {
                     for (let i = 0; i < gameState.siibas.length; i++) {
                         const siiba = gameState.siibas[i];
                         if (siiba.hidden) continue; // safe inside a bush or tree
@@ -705,37 +732,49 @@
             }
 
             calculateFlock(gameState) {
-                let alignX = 0, alignY = 0, cohesionX = 0, cohesionY = 0, separationX = 0, separationY = 0;
-                let count = 0;
-                const season = getSeasonName();
-                const springGroupOnly = season === 'Spring';
-                if (springGroupOnly && this.groupId == null) return null;
-                const neighborRadiusSq = 70 * 70;
+                // Classic boids: alignment + cohesion + separation, with ALL nearby
+                // Seepas as neighbours (no group requirement, which is why it failed before).
+                let alignX = 0, alignY = 0, cohX = 0, cohY = 0, sepX = 0, sepY = 0;
+                let count = 0, sepCount = 0;
+                const neighborR = 95, neighborRSq = neighborR * neighborR;
+                const sepR = 24, sepRSq = sepR * sepR;
 
                 for (const other of gameState.seepas) {
                     if (other === this) continue;
-                    if (springGroupOnly && other.groupId !== this.groupId) continue;
                     const dSq = distanceSq(this.x, this.y, other.x, other.y);
-                    if (dSq > 0 && dSq < neighborRadiusSq) {
+                    if (dSq < neighborRSq) {
                         alignX += other.vx; alignY += other.vy;
-                        cohesionX += other.x; cohesionY += other.y;
-                        separationX += this.x - other.x; separationY += this.y - other.y;
+                        cohX += other.x; cohY += other.y;
                         count++;
+                        if (dSq > 0 && dSq < sepRSq) {
+                            const d = Math.sqrt(dSq);
+                            sepX += (this.x - other.x) / d;
+                            sepY += (this.y - other.y) / d;
+                            sepCount++;
+                        }
                     }
                 }
 
                 if (count === 0) return null;
-                alignX /= count; alignY /= count;
-                cohesionX = cohesionX / count - this.x;
-                cohesionY = cohesionY / count - this.y;
-                separationX /= count; separationY /= count;
 
-                const fx = alignX * 0.45 + cohesionX * 0.025 + separationX * 0.12;
-                const fy = alignY * 0.45 + cohesionY * 0.025 + separationY * 0.12;
-                const magSq = fx * fx + fy * fy;
-                if (magSq < 0.0001) return null;
-                const invMag = 1 / Math.sqrt(magSq);
-                return { x: fx * invMag, y: fy * invMag };
+                // Alignment — match average heading of neighbours
+                let aMag = Math.hypot(alignX, alignY) || 1;
+                const ax = alignX / aMag, ay = alignY / aMag;
+
+                // Cohesion — steer toward the flock's centre of mass
+                cohX = cohX / count - this.x;
+                cohY = cohY / count - this.y;
+                const cMag = Math.hypot(cohX, cohY) || 1;
+                const cx = cohX / cMag, cy = cohY / cMag;
+
+                // Separation — push away from crowding neighbours
+                if (sepCount > 0) { sepX /= sepCount; sepY /= sepCount; }
+
+                const fx = ax * 0.55 + cx * 0.5 + sepX * 0.85;
+                const fy = ay * 0.55 + cy * 0.5 + sepY * 0.85;
+                const m = Math.hypot(fx, fy);
+                if (m < 1e-4) return null;
+                return { x: fx / m, y: fy / m };
             }
 
             isAlive() {
@@ -743,106 +782,183 @@
             }
 
             draw() {
-                const isSpringFlock = getSeasonName() === 'Spring' && gameState.flockingActive && this.groupId;
+                const r = this.radius;
+                const mx = this.x, my = this.y;
+
+                // ── Spring flock glow (all Seepas glow softly while flocking) ──
+                const isSpringFlock = getSeasonName() === 'Spring' && gameState.flockingActive;
                 if (isSpringFlock) {
-                    const highlightColors = ['rgba(190, 255, 170, 0.18)', 'rgba(150, 235, 130, 0.25)', 'rgba(105, 205, 110, 0.18)'];
-                    ctx.fillStyle = highlightColors[this.groupId % highlightColors.length];
-                    ctx.beginPath();
-                    ctx.arc(this.x, this.y, this.radius * 2.8, 0, Math.PI * 2);
-                    ctx.fill();
+                    const glow = ctx.createRadialGradient(mx, my, r * 0.5, mx, my, r * 3.0);
+                    glow.addColorStop(0, 'rgba(120,235,120,0.16)');
+                    glow.addColorStop(1, 'rgba(0,0,0,0)');
+                    ctx.fillStyle = glow;
+                    ctx.beginPath(); ctx.arc(mx, my, r * 3.0, 0, Math.PI * 2); ctx.fill();
                 }
 
-                // Shadow
-                ctx.fillStyle = 'rgba(0,0,0,0.14)';
-                ctx.beginPath();
-                ctx.ellipse(this.x, this.y + this.radius + 4, this.radius * 1.6, this.radius * 0.9, 0, 0, Math.PI * 2);
-                ctx.fill();
-
+                // ── Direction angle for orientation ──
                 const angle = Math.atan2(this.vy, this.vx);
-                ctx.save();
-                ctx.translate(this.x, this.y);
-                ctx.rotate(angle * 0.12);
 
-                const g = ctx.createRadialGradient(-this.radius * 0.3, -this.radius * 0.3, 1, 0, 0, this.radius * 1.2);
+                ctx.save();
+                ctx.translate(mx, my);
+                ctx.rotate(angle);
+
+                // ── Soft drop-shadow ──
+                ctx.save();
+                ctx.shadowColor = 'rgba(0,0,0,0.32)';
+                ctx.shadowBlur = r * 1.4;
+                ctx.shadowOffsetY = r * 0.5;
+                ctx.fillStyle = 'rgba(0,0,0,0.01)'; // need a fill to trigger shadow
+                ctx.beginPath(); ctx.ellipse(0, r * 0.3, r * 1.1, r * 0.5, 0, 0, Math.PI * 2); ctx.fill();
+                ctx.restore();
+
+                // ── Pick colour palette based on life stage ──
+                let bodyA, bodyB, bodyC, outlineCol;
                 if (this.age > 60) {
-                    g.addColorStop(0, '#d8f7d6'); g.addColorStop(0.5, '#93e07b'); g.addColorStop(1, '#4fa83f');
+                    // Elder — mottled sage green
+                    bodyA = '#e8fce3'; bodyB = '#7dce66'; bodyC = '#3d8a2e'; outlineCol = '#1e4a14';
+                } else if (this.age < 18) {
+                    // Hatchling — soft warm yellow
+                    bodyA = '#fffde0'; bodyB = '#ffe566'; bodyC = '#d4a800'; outlineCol = '#7a5c00';
                 } else if (this.age < 30) {
-                    if (this.age < 18 || this.post18Color === null) {
-                        g.addColorStop(0, '#fff7c2'); g.addColorStop(0.5, '#ffd84d'); g.addColorStop(1, '#e5b700');
-                    } else if (this.post18Color === 'blue') {
-                        g.addColorStop(0, '#cfeeff'); g.addColorStop(0.5, '#88cfff'); g.addColorStop(1, '#3fa1ff');
+                    // Juvenile — post18 colour
+                    if (this.post18Color === 'blue') {
+                        bodyA = '#dff4ff'; bodyB = '#72c8ff'; bodyC = '#2d8ed4'; outlineCol = '#0e3d6b';
                     } else {
-                        g.addColorStop(0, '#ffd2d2'); g.addColorStop(0.5, '#ff8f8f'); g.addColorStop(1, '#ff5a5a');
+                        bodyA = '#ffe8f0'; bodyB = '#ff85b3'; bodyC = '#d43070'; outlineCol = '#6b0030';
                     }
                 } else if (this.sex === 'male') {
-                    g.addColorStop(0, '#9fd3ff'); g.addColorStop(0.5, '#63a6ff'); g.addColorStop(1, '#2f6fbf');
+                    // Adult male — deep teal-blue
+                    bodyA = '#c8eeff'; bodyB = '#48aaee'; bodyC = '#1464a8'; outlineCol = '#082840';
                 } else {
-                    g.addColorStop(0, '#ffdff0'); g.addColorStop(0.5, '#ff9fcf'); g.addColorStop(1, '#d46f9a');
+                    // Adult female — warm coral-pink
+                    bodyA = '#ffe4f5'; bodyB = '#ff80c8'; bodyC = '#c83878'; outlineCol = '#580028';
                 }
-                ctx.fillStyle = g;
+
+                // ── Body: teardrop (wider at back, pointed at front) ──
+                // Drawn along X axis — front is +X (direction of travel)
                 ctx.beginPath();
-                ctx.ellipse(0, 0, this.radius * 1.25, this.radius, 0, 0, Math.PI * 2);
+                ctx.moveTo(r * 1.3, 0);                         // snout tip
+                ctx.bezierCurveTo(r * 1.0, -r * 0.85,  -r * 1.0, -r * 0.9, -r * 1.2,  0);
+                ctx.bezierCurveTo(-r * 1.0,  r * 0.9,   r * 1.0,  r * 0.85,  r * 1.3,  0);
+                ctx.closePath();
+
+                const bodyGrad = ctx.createRadialGradient(-r * 0.2, -r * 0.3, r * 0.1, 0, 0, r * 1.5);
+                bodyGrad.addColorStop(0, bodyA);
+                bodyGrad.addColorStop(0.45, bodyB);
+                bodyGrad.addColorStop(1, bodyC);
+                ctx.fillStyle = bodyGrad;
                 ctx.fill();
 
-                ctx.strokeStyle = '#15345a';
-                ctx.lineWidth = 1.4;
+                // Outline
+                ctx.strokeStyle = outlineCol;
+                ctx.lineWidth = 1.2;
                 ctx.stroke();
 
-                const eyeX = this.radius * 0.35;
-                const eyeY = -this.radius * 0.15;
-                ctx.fillStyle = '#ffffff';
+                // ── Belly stripe — lighter band along the underside ──
+                const bellyGrad = ctx.createLinearGradient(0, -r * 0.15, 0, r * 0.55);
+                bellyGrad.addColorStop(0, 'rgba(255,255,255,0)');
+                bellyGrad.addColorStop(1, 'rgba(255,255,255,0.22)');
+                ctx.fillStyle = bellyGrad;
                 ctx.beginPath();
-                ctx.arc(eyeX, eyeY, this.radius * 0.36, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.fillStyle = '#0b0b0b';
-                ctx.beginPath();
-                ctx.arc(eyeX + this.radius * 0.1, eyeY, this.radius * 0.16, 0, Math.PI * 2);
+                ctx.ellipse(0, r * 0.25, r * 0.65, r * 0.38, 0, 0, Math.PI * 2);
                 ctx.fill();
 
-                ctx.fillStyle = 'rgba(255,255,255,0.55)';
+                // ── Tiny back fin ──
+                ctx.fillStyle = bodyC;
                 ctx.beginPath();
-                ctx.ellipse(-this.radius * 0.25, -this.radius * 0.45, this.radius * 0.28, this.radius * 0.12, 0, 0, Math.PI * 2);
+                ctx.moveTo(-r * 0.1, -r * 0.82);
+                ctx.bezierCurveTo(-r * 0.3, -r * 1.35, r * 0.3, -r * 1.35, r * 0.1, -r * 0.82);
+                ctx.closePath();
+                ctx.fill();
+                ctx.strokeStyle = outlineCol; ctx.lineWidth = 0.9; ctx.stroke();
+
+                // ── Tail — small forked flick at the back ──
+                ctx.strokeStyle = outlineCol; ctx.lineWidth = 1.4;
+                ctx.beginPath();
+                ctx.moveTo(-r * 1.2, 0);
+                ctx.quadraticCurveTo(-r * 1.7, -r * 0.55, -r * 1.85, -r * 0.35);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(-r * 1.2, 0);
+                ctx.quadraticCurveTo(-r * 1.7,  r * 0.55, -r * 1.85,  r * 0.35);
+                ctx.stroke();
+
+                // ── Eye — large expressive eye near snout ──
+                const ex = r * 0.55, ey = -r * 0.22;
+                // Eye white (sclera)
+                const eyeGrad = ctx.createRadialGradient(ex - r * 0.08, ey - r * 0.08, 0, ex, ey, r * 0.38);
+                eyeGrad.addColorStop(0, '#ffffff');
+                eyeGrad.addColorStop(1, '#dce8f0');
+                ctx.fillStyle = eyeGrad;
+                ctx.beginPath(); ctx.arc(ex, ey, r * 0.38, 0, Math.PI * 2); ctx.fill();
+                // Iris
+                const irisCol = this.age > 60 ? '#3a7a1a' : (this.sex === 'male' ? '#1255a0' : '#8a1a50');
+                ctx.fillStyle = irisCol;
+                ctx.beginPath(); ctx.arc(ex + r * 0.08, ey, r * 0.22, 0, Math.PI * 2); ctx.fill();
+                // Pupil
+                ctx.fillStyle = '#060606';
+                ctx.beginPath(); ctx.arc(ex + r * 0.10, ey, r * 0.10, 0, Math.PI * 2); ctx.fill();
+                // Catchlight
+                ctx.fillStyle = 'rgba(255,255,255,0.85)';
+                ctx.beginPath(); ctx.arc(ex + r * 0.04, ey - r * 0.10, r * 0.075, 0, Math.PI * 2); ctx.fill();
+                // Lower eyelid curve
+                ctx.strokeStyle = 'rgba(0,0,0,0.25)'; ctx.lineWidth = 0.8;
+                ctx.beginPath();
+                ctx.arc(ex, ey, r * 0.4, Math.PI * 0.1, Math.PI * 0.9, false);
+                ctx.stroke();
+
+                // ── Specular highlight on body ──
+                ctx.fillStyle = 'rgba(255,255,255,0.38)';
+                ctx.beginPath();
+                ctx.ellipse(r * 0.15, -r * 0.5, r * 0.3, r * 0.1, -0.35, 0, Math.PI * 2);
                 ctx.fill();
 
-                // Icy tint when freezing
+                // ── Freeze overlay ──
                 if (this.cold > 25) {
-                    ctx.globalAlpha = Math.min(0.55, (this.cold - 25) / 120);
-                    ctx.fillStyle = '#9fd6ff';
+                    ctx.globalAlpha = Math.min(0.6, (this.cold - 25) / 100);
+                    const iceG = ctx.createRadialGradient(0, 0, 0, 0, 0, r * 1.5);
+                    iceG.addColorStop(0, 'rgba(200,235,255,0.7)');
+                    iceG.addColorStop(1, 'rgba(120,190,255,0.15)');
+                    ctx.fillStyle = iceG;
                     ctx.beginPath();
-                    ctx.ellipse(0, 0, this.radius * 1.25, this.radius, 0, 0, Math.PI * 2);
+                    ctx.moveTo(r * 1.3, 0);
+                    ctx.bezierCurveTo(r * 1.0, -r * 0.85, -r * 1.0, -r * 0.9, -r * 1.2, 0);
+                    ctx.bezierCurveTo(-r * 1.0, r * 0.9, r * 1.0, r * 0.85, r * 1.3, 0);
+                    ctx.closePath();
                     ctx.fill();
                     ctx.globalAlpha = 1;
                 }
 
                 ctx.restore();
 
-                const barWidth = 26;
-                const barHeight = 4;
-                const barGap = 4;
-                const ageBarY = this.y - this.radius - 22;
-                const barY = this.y - this.radius - 16;
+                // ── Status bars — now stacked vertically to the left of creature ──
+                const barH = 4;
+                const barW = 28;
+                const bx = mx - r * 1.8 - barW - 2;
+                const by = my - barH * 1.5;
 
-                const agePercent = Math.min(1, this.age / 100);
-                ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
-                roundRect(ctx, this.x - barWidth / 2, ageBarY, barWidth, barHeight, 3, true, false);
-                if (this.age > 60) ctx.fillStyle = '#6ab04c';
-                else if (this.age < 30) ctx.fillStyle = '#ffd84d';
-                else ctx.fillStyle = '#aaaaaa';
-                roundRect(ctx, this.x - barWidth / 2, ageBarY, barWidth * agePercent, barHeight, 3, true, false);
+                // Thirst bar (blue)
+                ctx.fillStyle = 'rgba(0,0,0,0.5)';
+                roundRect(ctx, bx, by, barW, barH, 2, true, false);
+                ctx.fillStyle = '#38b6ff';
+                roundRect(ctx, bx, by, barW * Math.max(0, 1 - this.thirst / this.maxStats), barH, 2, true, false);
 
-                const waterBarX = this.x - barWidth / 2 - barGap / 2;
-                const waterPercent = 1 - (this.thirst / this.maxStats);
-                ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
-                roundRect(ctx, waterBarX, barY, barWidth, barHeight, 3, true, false);
-                ctx.fillStyle = '#2e90ff';
-                roundRect(ctx, waterBarX, barY, barWidth * waterPercent, barHeight, 3, true, false);
+                // Hunger bar (amber/green)
+                ctx.fillStyle = 'rgba(0,0,0,0.5)';
+                roundRect(ctx, bx, by + barH + 2, barW, barH, 2, true, false);
+                const hungerFrac = Math.max(0, 1 - this.hunger / this.maxStats);
+                const hungerColor = hungerFrac > 0.5 ? '#4edf4e' : hungerFrac > 0.25 ? '#f0c030' : '#ff4444';
+                ctx.fillStyle = hungerColor;
+                roundRect(ctx, bx, by + barH + 2, barW * hungerFrac, barH, 2, true, false);
 
-                const foodBarX = this.x + barGap / 2;
-                const foodPercent = 1 - (this.hunger / this.maxStats);
-                ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
-                roundRect(ctx, foodBarX, barY, barWidth, barHeight, 3, true, false);
-                ctx.fillStyle = '#27c227';
-                roundRect(ctx, foodBarX, barY, barWidth * foodPercent, barHeight, 3, true, false);
+                // Age bar (above creature head — thin, subtle)
+                const ageBarY = my - r * 1.6 - 6;
+                const ageBarW = r * 2.6;
+                ctx.fillStyle = 'rgba(0,0,0,0.35)';
+                roundRect(ctx, mx - ageBarW / 2, ageBarY, ageBarW, 3, 1.5, true, false);
+                const ageFrac = Math.min(1, this.age / 100);
+                ctx.fillStyle = this.age > 60 ? '#6ab04c' : this.age < 30 ? '#ffd84d' : '#aaaaaa';
+                roundRect(ctx, mx - ageBarW / 2, ageBarY, ageBarW * ageFrac, 3, 1.5, true, false);
             }
         }
 
@@ -872,19 +988,58 @@
             update(deltaTime, gameState) {
                 deltaTime = deltaTime / 1000;
                 this.age += deltaTime;
-                this.hunger = Math.min(this.maxStats, this.hunger + 2 * deltaTime);
-                this.thirst = Math.min(this.maxStats, this.thirst + 2.5 * deltaTime);
+                this.hunger = Math.min(this.maxStats, this.hunger + 2.4 * deltaTime);
+                if (!gameState.settings.predatorsEnabled) {
+                    // Peaceful mode: grazes instead of hunting Suubas (recovers enough to offset drain)
+                    this.hunger = Math.max(0, this.hunger - 5.5 * deltaTime);
+                    this.energy = Math.min(this.maxStats, this.energy + 6 * deltaTime);
+                }
+                this.thirst = Math.min(this.maxStats, this.thirst + 2.8 * deltaTime);
                 if (this.eatCooldown > 0) this.eatCooldown -= deltaTime;
 
-                const drainFactor = 1 + (this.hunger / this.maxStats) * 0.9 + (this.thirst / this.maxStats) * 1.2;
+                // Energy drains faster the hungrier/thirstier they are — starvation spiral
+                const drainFactor = 1 + (this.hunger / this.maxStats) * 1.3 + (this.thirst / this.maxStats) * 1.6;
                 this.energy = Math.max(0, this.energy - 4 * deltaTime * drainFactor);
 
                 // Winter freezing (hiding inside shelter keeps them warm)
                 updateCold(this, deltaTime, 8 * (8.5 / this.genes.size));
 
+                // Survival priorities (gene-scaled — slow ones must react earlier)
+                const thirstTh = seekThreshold(this.genes.speed, this.maxStats * 0.6);
+                const hungerTh = seekThreshold(this.genes.speed, this.maxStats * 0.55);
+                const desperateThirst = this.thirst > thirstTh;
+                const desperateHunger = this.hunger > hungerTh;
+
+                // ── Drink when thirsty (Siibas can now drink to survive) ──
+                if (desperateThirst && gameState.ponds && gameState.ponds.length) {
+                    let p = null, bd = Infinity;
+                    for (const pond of gameState.ponds) {
+                        const d2 = distanceSq(pond.x, pond.y, this.x, this.y);
+                        if (d2 < bd) { bd = d2; p = pond; }
+                    }
+                    if (p) {
+                        const d = Math.sqrt(bd) || 1e-6;
+                        this.vx = lerp(this.vx, (p.x - this.x) / d, 0.45);
+                        this.vy = lerp(this.vy, (p.y - this.y) / d, 0.45);
+                        if (d < p.radius + this.radius + 6) {
+                            this.thirst = Math.max(0, this.thirst - 70);
+                            this.energy = Math.min(this.maxStats, this.energy + 12);
+                            spawnParticles(this.x, this.y, '#7fc6ff', 4, 1.0);
+                        }
+                        // Still move this frame toward water, then bail out of rest of AI
+                        const vlen0 = Math.sqrt(this.vx * this.vx + this.vy * this.vy) || 1e-6;
+                        if (vlen0 > 2.2) { this.vx *= 2.2 / vlen0; this.vy *= 2.2 / vlen0; }
+                        this.x += this.vx * this.speed * deltaTime * 60;
+                        this.y += this.vy * this.speed * deltaTime * 60;
+                        this.x = Math.max(this.radius, Math.min(canvas.width - this.radius, this.x));
+                        this.y = Math.max(this.radius, Math.min(canvas.height - this.radius, this.y));
+                        return;
+                    }
+                }
+
                 // At night, retreat into a bush or tree where predators can't reach
                 const night = getDayPhase() === 'Night';
-                if (night) {
+                if (night && !desperateHunger && !desperateThirst) {
                     const sh = nearestShelter(this.x, this.y);
                     if (sh) {
                         const dx = sh.x - this.x; const dy = sh.y - this.y;
@@ -896,7 +1051,6 @@
                             this.x += this.vx * this.speed * 1.1 * deltaTime * 60;
                             this.y += this.vy * this.speed * 1.1 * deltaTime * 60;
                         } else {
-                            // tucked in — drift gently, recover a little energy
                             this.vx *= 0.9; this.vy *= 0.9;
                             this.x += this.vx * 0.2 * deltaTime * 60;
                             this.y += this.vy * 0.2 * deltaTime * 60;
@@ -909,9 +1063,9 @@
                 }
                 this.hidden = false;
 
-                // Flee nearby Seepas first (they eat Siibas!)
+                // Flee nearby Seepas first (they eat Siibas!) — but not if starving
                 let fleeing = false;
-                if (gameState.seepas && gameState.seepas.length > 0) {
+                if (gameState.seepas && gameState.seepas.length > 0 && !desperateHunger) {
                     let danger = null; let dBest = Infinity;
                     for (const s of gameState.seepas) {
                         const d2 = distanceSq(this.x, this.y, s.x, s.y);
@@ -934,13 +1088,15 @@
                             if (d2 < bestD) { bestD = d2; target = s; }
                         }
                     }
-                    const seeRange = 120;
-                    const needFood = this.hunger > 50;
+                    // Hungry Siibas hunt much more aggressively (wider sight, lower bar)
+                    const seeRange = desperateHunger ? 260 : 120;
+                    const needFood = this.hunger > hungerTh * 0.7;
                     if (target && (needFood || bestD < seeRange * seeRange)) {
                         const d = Math.sqrt(bestD) || 1e-6;
                         this.vx = lerp(this.vx, (target.x - this.x) / d, 0.45);
                         this.vy = lerp(this.vy, (target.y - this.y) / d, 0.45);
-                        if (d < this.radius + target.radius + 8 && this.eatCooldown <= 0 && this.hunger < (this.maxStats * 0.25)) {
+                        // Can attack whenever hungry (not just under 25%) so they can actually feed
+                        if (d < this.radius + target.radius + 8 && this.eatCooldown <= 0 && this.hunger > 30) {
                             const idx = gameState.suubas.indexOf(target);
                             if (idx !== -1) {
                                 target.energy = Math.max(0, target.energy - 90);
@@ -961,31 +1117,55 @@
                             }
                         }
                     } else {
-                        this.vx += (Math.random() - 0.5) * 0.06;
-                        this.vy += (Math.random() - 0.5) * 0.06;
-
-                        if (this.age > 20 && this.energy > 100 && (gameState.time - (this.lastReproduction || -Infinity)) > 40000) {
-                            for (const other of gameState.siibas || []) {
-                                if (other === this) continue;
-                                if (other.sex === this.sex) continue;
-                                if (other.age < 20) continue;
-                                if ((gameState.time - (other.lastReproduction || -Infinity)) <= 40000) continue;
-                                if (other.energy < 80) continue;
-                                const d2 = distanceSq(this.x, this.y, other.x, other.y);
-                                if (d2 < 800) {
-                                    const bx = (this.x + other.x) / 2 + (Math.random() - 0.5) * 6;
-                                    const by = (this.y + other.y) / 2 + (Math.random() - 0.5) * 6;
-                                    const childGenes = inheritGenes(this.genes, other.genes, GENE_RANGES.siiba);
-                                    const childGen = Math.max(this.generation, other.generation) + 1;
-                                    const baby = new Siiba(bx, by, childGenes, childGen);
-                                    baby.age = 0; baby.energy = 90; baby.hunger = 10; baby.thirst = 10;
-                                    gameState.siibas.push(baby);
-                                    spawnParticles(bx, by, '#ffd2d9', 8, 1.4);
-                                    this.energy -= 50; other.energy -= 50;
-                                    this.lastReproduction = gameState.time; other.lastReproduction = gameState.time;
-                                    break;
-                                }
+                        // Healthy and ready to breed? Actively seek the nearest eligible mate.
+                        const ready = this.age > 16 && this.energy > 55 &&
+                            this.hunger < this.maxStats * 0.7 && this.thirst < this.maxStats * 0.7 &&
+                            (gameState.time - (this.lastReproduction || -Infinity)) > 18000;
+                        let mate = null, mBest = Infinity;
+                        if (ready) {
+                            for (const o of gameState.siibas) {
+                                if (o === this || o.sex === this.sex || o.age < 16) continue;
+                                if (o.energy < 45 || o.hunger > o.maxStats * 0.7) continue;
+                                const d2 = distanceSq(this.x, this.y, o.x, o.y);
+                                if (d2 < mBest) { mBest = d2; mate = o; }
                             }
+                        }
+                        if (mate) {
+                            const d = Math.sqrt(mBest) || 1e-6;
+                            this.vx = lerp(this.vx, (mate.x - this.x) / d, 0.3);
+                            this.vy = lerp(this.vy, (mate.y - this.y) / d, 0.3);
+                        } else {
+                            this.vx += (Math.random() - 0.5) * 0.06;
+                            this.vy += (Math.random() - 0.5) * 0.06;
+                        }
+                    }
+                }
+
+                // ── Reproduction — checked every frame when healthy enough ──
+                // (Previously gated behind energy>110 which was impossible to sustain.)
+                if (this.age > 16 && this.energy > 55 &&
+                    this.hunger < this.maxStats * 0.7 && this.thirst < this.maxStats * 0.7 &&
+                    gameState.siibas.length < popCap('siiba') &&
+                    (gameState.time - (this.lastReproduction || -Infinity)) > 18000) {
+                    for (const other of gameState.siibas || []) {
+                        if (other === this) continue;
+                        if (other.sex === this.sex) continue;
+                        if (other.age < 16) continue;
+                        if ((gameState.time - (other.lastReproduction || -Infinity)) <= 18000) continue;
+                        if (other.energy < 45 || other.hunger > other.maxStats * 0.7) continue;
+                        const d2 = distanceSq(this.x, this.y, other.x, other.y);
+                        if (d2 < 1600) { // within ~40px
+                            const bx = (this.x + other.x) / 2 + (Math.random() - 0.5) * 6;
+                            const by = (this.y + other.y) / 2 + (Math.random() - 0.5) * 6;
+                            const childGenes = inheritGenes(this.genes, other.genes, GENE_RANGES.siiba);
+                            const childGen = Math.max(this.generation, other.generation) + 1;
+                            const baby = new Siiba(bx, by, childGenes, childGen);
+                            baby.age = 0; baby.energy = 90; baby.hunger = 10; baby.thirst = 10;
+                            gameState.siibas.push(baby);
+                            spawnParticles(bx, by, '#ffd2d9', 8, 1.4);
+                            this.energy -= 28; other.energy -= 28;
+                            this.lastReproduction = gameState.time; other.lastReproduction = gameState.time;
+                            break;
                         }
                     }
                 }
@@ -999,7 +1179,11 @@
                 this.y = Math.max(this.radius, Math.min(canvas.height - this.radius, this.y));
             }
 
-            isAlive() { return this.energy > 0 && this.age < this.lifeSpan && this.hunger < this.maxStats && this.thirst < this.maxStats && this.cold < 100; }
+            // Dies from: starvation, dehydration, energy collapse, old age, or freezing
+            isAlive() {
+                return this.energy > 0 && this.age < this.lifeSpan &&
+                       this.hunger < this.maxStats && this.thirst < this.maxStats && this.cold < 100;
+            }
 
             draw() {
                 // Hidden Siibas show only as a faint rustle inside their shelter
@@ -1165,8 +1349,8 @@
         function seasonRegrowMultiplier() {
             switch (getSeasonName()) {
                 case 'Summer': return 0.7;
-                case 'Autumn': return 1.4;
-                case 'Winter': return 2.6;
+                case 'Autumn': return 0.45;  // harvest season — food regrows fast and plentiful
+                case 'Winter': return 4.5;   // harsh scarcity — food regrows very slowly
                 default: return 1;
             }
         }
@@ -1188,9 +1372,7 @@
 
         function isFlockingTime() {
             if (!gameState.settings.flockingEnabled) return false;
-            const season = getSeasonName();
-            const hour = getDayTime();
-            return season === 'Spring' && hour >= 6 && hour < 11;
+            return getSeasonName() === 'Spring';
         }
 
         function lerp(a, b, t) { return a + (b - a) * t; }
@@ -1370,6 +1552,7 @@
             gameState.popHistory = [];
             gameState.lastSample = 0;
             gameState.lastRescue = 0;
+            gameState.lastSeason = null;
             gameState.inspected = null;
             gameState.weather = { type: null, drops: [] };
             gameState.time = gameState.dayDuration * (8 / 24); // start 8:00 AM
@@ -1456,49 +1639,118 @@
             }
 
             for (const pond of gameState.ponds) {
-                const sandRadius = pond.radius + 16;
-                const sandGradient = bgCtx.createRadialGradient(pond.x, pond.y, pond.radius * 0.9, pond.x, pond.y, sandRadius);
-                sandGradient.addColorStop(0, 'rgba(242,221,174,0)');
-                sandGradient.addColorStop(0.75, 'rgba(245,227,175,0.55)');
-                sandGradient.addColorStop(1, 'rgba(235,196,145,1)');
-                bgCtx.fillStyle = sandGradient;
+                const px = pond.x, py = pond.y, pr = pond.radius;
+
+                // ── Solid sandy shore ring ──
+                bgCtx.fillStyle = '#c8a96e';
                 bgCtx.beginPath();
-                bgCtx.arc(pond.x, pond.y, sandRadius, 0, Math.PI * 2);
+                bgCtx.arc(px, py, pr + 28, 0, Math.PI * 2);
                 bgCtx.fill();
 
-                bgCtx.fillStyle = 'rgba(10,40,10,0.25)';
+                // ── Solid wet mud ring just inside shore ──
+                bgCtx.fillStyle = '#8a6535';
                 bgCtx.beginPath();
-                bgCtx.ellipse(pond.x, pond.y + 6, pond.radius * 1.15, pond.radius * 0.8, 0, 0, Math.PI * 2);
+                bgCtx.arc(px, py, pr + 7, 0, Math.PI * 2);
                 bgCtx.fill();
 
-                const pg = bgCtx.createRadialGradient(pond.x - pond.radius * 0.2, pond.y - pond.radius * 0.2, pond.radius * 0.1, pond.x, pond.y, pond.radius);
-                pg.addColorStop(0, '#9fd6ff');
-                pg.addColorStop(0.5, '#4aa0ff');
-                pg.addColorStop(1, '#0b5fbf');
-                bgCtx.fillStyle = pg;
+                // ── Water body — deep centre, lighter edges ──
+                const waterGrad = bgCtx.createRadialGradient(
+                    px - pr * 0.25, py - pr * 0.25, pr * 0.05,
+                    px, py, pr
+                );
+                waterGrad.addColorStop(0,   '#b8e8ff');
+                waterGrad.addColorStop(0.28, '#5ab8f5');
+                waterGrad.addColorStop(0.62, '#1a7fd4');
+                waterGrad.addColorStop(1,    '#0a4f9e');
+                bgCtx.fillStyle = waterGrad;
                 bgCtx.beginPath();
-                bgCtx.arc(pond.x, pond.y, pond.radius, 0, Math.PI * 2);
+                bgCtx.arc(px, py, pr, 0, Math.PI * 2);
                 bgCtx.fill();
 
-                bgCtx.fillStyle = 'rgba(255,255,255,0.06)';
+                // ── Depth shadow at far shore ──
+                bgCtx.fillStyle = 'rgba(0,20,60,0.18)';
                 bgCtx.beginPath();
-                bgCtx.ellipse(pond.x - pond.radius * 0.3, pond.y - pond.radius * 0.4, pond.radius * 0.6, pond.radius * 0.25, -0.5, 0, Math.PI * 2);
+                bgCtx.ellipse(px + pr * 0.18, py + pr * 0.22, pr * 0.7, pr * 0.55, 0.4, 0, Math.PI * 2);
                 bgCtx.fill();
+
+                // ── Glassy near-shore highlight band ──
+                const nearShore = bgCtx.createRadialGradient(px, py, pr * 0.72, px, py, pr * 0.98);
+                nearShore.addColorStop(0, 'rgba(255,255,255,0)');
+                nearShore.addColorStop(1, 'rgba(200,235,255,0.22)');
+                bgCtx.fillStyle = nearShore;
+                bgCtx.beginPath();
+                bgCtx.arc(px, py, pr * 0.98, 0, Math.PI * 2);
+                bgCtx.fill();
+
+                // ── Bright specular patch ──
+                bgCtx.fillStyle = 'rgba(255,255,255,0.18)';
+                bgCtx.beginPath();
+                bgCtx.ellipse(px - pr * 0.32, py - pr * 0.36, pr * 0.36, pr * 0.14, -0.55, 0, Math.PI * 2);
+                bgCtx.fill();
+
+                // ── Scattered pebbles around the shore ──
+                const rng = (a, b) => a + Math.abs(Math.sin(px * 0.07 + py * 0.13 + a * 7.3)) * (b - a);
+                for (let p = 0; p < 14; p++) {
+                    const pa = (p / 14) * Math.PI * 2;
+                    const pd = pr + 6 + rng(p, 18);
+                    const pbx = px + Math.cos(pa) * pd;
+                    const pby = py + Math.sin(pa) * pd;
+                    const pr2 = 1.5 + rng(p, 3.5);
+                    bgCtx.fillStyle = `rgba(${140 + Math.floor(rng(p,40))},${115 + Math.floor(rng(p,30))},${80 + Math.floor(rng(p,25))},0.75)`;
+                    bgCtx.beginPath();
+                    bgCtx.ellipse(pbx, pby, pr2, pr2 * 0.7, pa, 0, Math.PI * 2);
+                    bgCtx.fill();
+                }
+
+                // ── Waterline edge stroke ──
+                bgCtx.strokeStyle = 'rgba(8,50,110,0.45)';
+                bgCtx.lineWidth = 1.5;
+                bgCtx.beginPath();
+                bgCtx.arc(px, py, pr, 0, Math.PI * 2);
+                bgCtx.stroke();
             }
         }
 
         function drawAnimatedPondRipples() {
             const t = gameState.time || 0;
-            ctx.strokeStyle = 'rgba(255,255,255,0.08)';
-            ctx.lineWidth = 1;
-            const rippleAmp = 2.0;
-            const rippleSpeed = 300;
             for (const pond of gameState.ponds) {
-                for (let i = 1; i <= 2; i++) {
+                const px = pond.x, py = pond.y, pr = pond.radius;
+
+                // ── Four expanding concentric ripples at different phases ──
+                for (let i = 0; i < 4; i++) {
+                    const phase = (t / 420 + i * 0.25) % 1;       // 0→1 cycle
+                    const rr = pr * (0.18 + phase * 0.72);
+                    const alpha = (1 - phase) * 0.18;
+                    ctx.strokeStyle = `rgba(180,220,255,${alpha.toFixed(3)})`;
+                    ctx.lineWidth = 1.2 - phase * 0.8;
                     ctx.beginPath();
-                    const r = pond.radius - 6 - i * 6 + Math.sin((t + i * 120) / rippleSpeed) * rippleAmp;
-                    ctx.arc(pond.x, pond.y, Math.max(6, r), 0, Math.PI * 2);
+                    ctx.arc(px, py, rr, 0, Math.PI * 2);
                     ctx.stroke();
+                }
+
+                // ── Animated glint that drifts across the surface ──
+                const glintAngle = (t / 1800) % (Math.PI * 2);
+                const gx = px + Math.cos(glintAngle) * pr * 0.3;
+                const gy = py + Math.sin(glintAngle) * pr * 0.18;
+                const glintAlpha = 0.1 + Math.abs(Math.sin(t / 700)) * 0.12;
+                ctx.fillStyle = `rgba(255,255,255,${glintAlpha.toFixed(3)})`;
+                ctx.beginPath();
+                ctx.ellipse(gx, gy, pr * 0.22, pr * 0.07, glintAngle + 0.4, 0, Math.PI * 2);
+                ctx.fill();
+
+                // ── Small sparkle dots at surface ──
+                ctx.fillStyle = 'rgba(220,240,255,0.5)';
+                for (let s = 0; s < 3; s++) {
+                    const sa = (t / 600 + s * 2.1) % (Math.PI * 2);
+                    const sd = pr * (0.35 + s * 0.15);
+                    ctx.beginPath();
+                    ctx.arc(
+                        px + Math.cos(sa) * sd,
+                        py + Math.sin(sa) * sd * 0.5,
+                        1.2 + Math.abs(Math.sin(t / 300 + s)) * 1.2,
+                        0, Math.PI * 2
+                    );
+                    ctx.fill();
                 }
             }
         }
@@ -1541,21 +1793,26 @@
             const season = getSeasonName();
             let type = null;
             if (season === 'Winter') type = 'snow';
-            else if (season === 'Autumn') type = 'rain';
+            else if (season === 'Autumn') type = 'leaves';
 
             const w = gameState.weather;
             if (type !== w.type) {
                 w.type = type;
                 w.drops = [];
                 if (type) {
-                    const n = type === 'snow' ? 130 : 110;
+                    const leafColors = ['#d9772f', '#c0431f', '#e0a52e', '#a8521a', '#b86b2a'];
+                    const n = type === 'snow' ? 130 : 90;
                     for (let i = 0; i < n; i++) {
                         w.drops.push({
                             x: Math.random() * canvas.width,
                             y: Math.random() * canvas.height,
-                            spd: type === 'snow' ? 18 + Math.random() * 35 : 260 + Math.random() * 140,
+                            spd: type === 'snow' ? 18 + Math.random() * 35 : 30 + Math.random() * 45,
                             phase: Math.random() * Math.PI * 2,
-                            size: type === 'snow' ? 1.2 + Math.random() * 2 : 0
+                            size: type === 'snow' ? 1.2 + Math.random() * 2 : 4 + Math.random() * 4,
+                            rot: Math.random() * Math.PI * 2,
+                            rotSpd: (Math.random() - 0.5) * 3,
+                            sway: 18 + Math.random() * 28,
+                            color: leafColors[i % leafColors.length]
                         });
                     }
                 }
@@ -1564,11 +1821,16 @@
             const dt = deltaTime / 1000;
             for (const d of w.drops) {
                 d.y += d.spd * dt;
-                if (w.type === 'snow') d.x += Math.sin(gameState.time / 700 + d.phase) * 18 * dt;
-                else d.x += 40 * dt;
-                if (d.y > canvas.height + 8) { d.y = -8; d.x = Math.random() * canvas.width; }
-                if (d.x > canvas.width + 8) d.x = -8;
-                if (d.x < -8) d.x = canvas.width + 8;
+                if (w.type === 'snow') {
+                    d.x += Math.sin(gameState.time / 700 + d.phase) * 18 * dt;
+                } else {
+                    // Leaves sway side to side and tumble as they fall
+                    d.x += Math.sin(gameState.time / 600 + d.phase) * d.sway * dt + 14 * dt;
+                    d.rot += d.rotSpd * dt;
+                }
+                if (d.y > canvas.height + 10) { d.y = -10; d.x = Math.random() * canvas.width; }
+                if (d.x > canvas.width + 10) d.x = -10;
+                if (d.x < -10) d.x = canvas.width + 10;
             }
         }
 
@@ -1584,15 +1846,30 @@
                     ctx.fill();
                 }
                 ctx.globalAlpha = 1;
-            } else {
-                ctx.strokeStyle = 'rgba(150, 190, 255, 0.45)';
-                ctx.lineWidth = 1.2;
-                ctx.beginPath();
+            } else if (w.type === 'leaves') {
                 for (const d of w.drops) {
-                    ctx.moveTo(d.x, d.y);
-                    ctx.lineTo(d.x - 2.5, d.y - 12);
+                    ctx.save();
+                    ctx.translate(d.x, d.y);
+                    ctx.rotate(d.rot);
+                    ctx.globalAlpha = 0.85;
+                    ctx.fillStyle = d.color;
+                    // Simple leaf: two mirrored arcs meeting at a point
+                    const s = d.size;
+                    ctx.beginPath();
+                    ctx.moveTo(0, -s);
+                    ctx.quadraticCurveTo(s, 0, 0, s);
+                    ctx.quadraticCurveTo(-s, 0, 0, -s);
+                    ctx.fill();
+                    // Midrib
+                    ctx.globalAlpha = 0.5;
+                    ctx.strokeStyle = 'rgba(80,40,15,0.6)';
+                    ctx.lineWidth = 0.8;
+                    ctx.beginPath();
+                    ctx.moveTo(0, -s); ctx.lineTo(0, s);
+                    ctx.stroke();
+                    ctx.restore();
                 }
-                ctx.stroke();
+                ctx.globalAlpha = 1;
             }
         }
 
@@ -1816,47 +2093,119 @@
                     continue;
                 }
 
-                // Leafy bush (grassland / wetland)
-                for (const c of cloudOffsets) {
-                    const cx = c.x, cy = c.y;
-                    const cr = c.r * (bush.radius / 35);
-                    const cg = ctx.createRadialGradient(cx - cr * 0.3, cy - cr * 0.3, 1, cx, cy, cr);
-                    if (winter) { cg.addColorStop(0, '#eef7ff'); cg.addColorStop(0.5, '#bcd6cf'); cg.addColorStop(1, '#5f8466'); }
-                    else { cg.addColorStop(0, '#e0ffc8'); cg.addColorStop(0.5, '#7bc671'); cg.addColorStop(1, '#2f7c2f'); }
-                    ctx.fillStyle = cg;
+                // Leafy bush (grassland / wetland) — layered canopy with twisted stems
+                const s = bush.radius / 38;
+                const isWinter = winter;
+
+                // Stem cluster from base
+                const stemCol = isWinter ? '#4a3520' : '#3a2810';
+                ctx.strokeStyle = stemCol;
+                const stemPts = [
+                    { ex: -14*s, ey: -18*s }, { ex: 0, ey: -26*s },
+                    { ex: 14*s, ey: -20*s }, { ex: -8*s, ey: -14*s },
+                    { ex: 10*s, ey: -12*s }
+                ];
+                for (const sp of stemPts) {
+                    ctx.lineWidth = 1.2 + Math.random() * 0.6;
                     ctx.beginPath();
-                    ctx.arc(cx, cy, cr, 0, Math.PI * 2);
-                    ctx.fill();
+                    ctx.moveTo(0, 6*s);
+                    ctx.quadraticCurveTo(sp.ex * 0.4, sp.ey * 0.5, sp.ex, sp.ey);
+                    ctx.stroke();
                 }
 
-                const fruitPositions = [
-                    { x: -12, y: -12 }, { x: 12, y: -12 }, { x: 0, y: 0 },
-                    { x: -12, y: 12 }, { x: 12, y: 12 }, { x: -18, y: 6 }, { x: 18, y: 6 }
-                ];
-                if (bush && bush.fruits) {
-                    bush.fruits.forEach((fruit, idx) => {
-                        const pos = fruitPositions[idx % fruitPositions.length];
-                        const fx = pos.x, fy = pos.y;
-                        if (fruit.available) {
-                            ctx.fillStyle = 'rgba(0,0,0,0.16)';
-                            ctx.beginPath();
-                            ctx.ellipse(fx + 1.5, fy + 2, 5.5, 3, 0, 0, Math.PI * 2);
-                            ctx.fill();
+                // Three canopy layers (back to front, slightly offset for depth)
+                const leafLayers = isWinter
+                    ? [
+                        { cx: -8*s, cy: -14*s, r: 18*s, c1:'#55706a', c2:'#3d5550', c3:'#2a3d38' },
+                        { cx:  6*s, cy: -22*s, r: 20*s, c1:'#607a74', c2:'#445c56', c3:'#2c4040' },
+                        { cx: -2*s, cy: -10*s, r: 16*s, c1:'#4d6b65', c2:'#374e49', c3:'#253832' }
+                      ]
+                    : [
+                        { cx: -10*s, cy: -16*s, r: 20*s, c1:'#c8f5a0', c2:'#5ebc40', c3:'#27751a' },
+                        { cx:  8*s,  cy: -24*s, r: 22*s, c1:'#d4faa8', c2:'#70cc55', c3:'#2f8820' },
+                        { cx: -1*s,  cy: -12*s, r: 18*s, c1:'#b8f090', c2:'#52aa38', c3:'#1e6614' }
+                      ];
 
-                            const fg = ctx.createRadialGradient(fx - 2, fy - 2, 1, fx, fy, 7);
-                            fg.addColorStop(0, '#ffe0a8');
-                            fg.addColorStop(0.5, '#ff9b44');
-                            fg.addColorStop(1, '#cc550f');
-                            ctx.fillStyle = fg;
-                            ctx.beginPath();
-                            ctx.arc(fx, fy, 6, 0, Math.PI * 2);
-                            ctx.fill();
+                for (const l of leafLayers) {
+                    const lg = ctx.createRadialGradient(
+                        l.cx - l.r * 0.3, l.cy - l.r * 0.3, l.r * 0.08,
+                        l.cx, l.cy, l.r
+                    );
+                    lg.addColorStop(0, l.c1);
+                    lg.addColorStop(0.5, l.c2);
+                    lg.addColorStop(1, l.c3);
+                    ctx.fillStyle = lg;
 
-                            ctx.fillStyle = 'rgba(255,255,255,0.65)';
+                    // Irregular blob shape via bezier offsets
+                    const jit = (n) => l.r * (0.85 + Math.abs(Math.sin(n * 2.7 + l.cx)) * 0.28);
+                    ctx.beginPath();
+                    ctx.moveTo(l.cx + jit(0), l.cy);
+                    ctx.bezierCurveTo(l.cx + jit(1), l.cy - jit(2) * 0.7, l.cx - jit(3) * 0.5, l.cy - jit(4) * 0.9, l.cx - jit(5), l.cy);
+                    ctx.bezierCurveTo(l.cx - jit(6) * 0.8, l.cy + jit(7) * 0.65, l.cx + jit(8) * 0.5, l.cy + jit(9) * 0.6, l.cx + jit(0), l.cy);
+                    ctx.fill();
+
+                    // Leaf vein texture
+                    if (!isWinter) {
+                        ctx.strokeStyle = 'rgba(20,80,10,0.12)';
+                        ctx.lineWidth = 0.7;
+                        for (let v = 0; v < 4; v++) {
+                            const va = (v / 4) * Math.PI * 2 + l.cx * 0.1;
                             ctx.beginPath();
-                            ctx.arc(fx - 2.2, fy - 2.2, 2, 0, Math.PI * 2);
-                            ctx.fill();
+                            ctx.moveTo(l.cx, l.cy);
+                            ctx.lineTo(l.cx + Math.cos(va) * l.r * 0.72, l.cy + Math.sin(va) * l.r * 0.72);
+                            ctx.stroke();
                         }
+                    }
+                }
+
+                // Specular sheen on top layer
+                ctx.fillStyle = isWinter ? 'rgba(220,240,235,0.18)' : 'rgba(255,255,255,0.14)';
+                const tl = leafLayers[1];
+                ctx.beginPath();
+                ctx.ellipse(tl.cx - tl.r * 0.18, tl.cy - tl.r * 0.38, tl.r * 0.28, tl.r * 0.11, -0.4, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Berries — nestled in the foliage
+                const berryPositions = [
+                    { x: -14*s, y: -20*s }, { x: 4*s, y: -28*s }, { x: 14*s, y: -22*s },
+                    { x: -5*s, y: -16*s }, { x: 8*s, y: -14*s }, { x: -12*s, y: -10*s }, { x: 2*s, y: -10*s }
+                ];
+                if (bush.fruits) {
+                    bush.fruits.forEach((fruit, idx) => {
+                        if (!fruit.available) return;
+                        const bp = berryPositions[idx % berryPositions.length];
+                        const bx2 = bp.x, by2 = bp.y, br = 5 * s;
+
+                        // Berry shadow
+                        ctx.fillStyle = 'rgba(0,0,0,0.2)';
+                        ctx.beginPath();
+                        ctx.ellipse(bx2 + 1.5, by2 + 2, br * 1.1, br * 0.55, 0, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        // Berry body
+                        const bg2 = ctx.createRadialGradient(bx2 - br*0.3, by2 - br*0.3, br*0.05, bx2, by2, br);
+                        bg2.addColorStop(0, '#ffeecc');
+                        bg2.addColorStop(0.35, '#ff7733');
+                        bg2.addColorStop(0.75, '#cc2200');
+                        bg2.addColorStop(1, '#881100');
+                        ctx.fillStyle = bg2;
+                        ctx.beginPath();
+                        ctx.arc(bx2, by2, br, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        // Stem nub
+                        ctx.strokeStyle = '#3a2810';
+                        ctx.lineWidth = 0.9;
+                        ctx.beginPath();
+                        ctx.moveTo(bx2, by2 - br);
+                        ctx.lineTo(bx2 + 1.5*s, by2 - br - 3*s);
+                        ctx.stroke();
+
+                        // Shine dot
+                        ctx.fillStyle = 'rgba(255,255,255,0.7)';
+                        ctx.beginPath();
+                        ctx.arc(bx2 - br*0.28, by2 - br*0.3, br * 0.26, 0, Math.PI * 2);
+                        ctx.fill();
                     });
                 }
 
@@ -1868,51 +2217,90 @@
             if (!gameState.trees) return;
             const winter = getSeasonName() === 'Winter';
             for (const tr of gameState.trees) {
-                const trunkWidth = tr.kind === 'pine' ? 12 : 14;
+                const trunkWidth = tr.kind === 'pine' ? 11 : 14;
                 const trunkHeight = tr.trunkHeight;
-                ctx.fillStyle = tr.kind === 'pine' ? '#5a3a22' : '#4d311d';
-                ctx.fillRect(tr.x - trunkWidth / 2, tr.y, trunkWidth, trunkHeight);
-
-                const fr = tr.foliageRadius;
 
                 if (tr.kind === 'pine') {
-                    // Conifer: three stacked triangular tiers
+                    // tr.y is top of the trunk, trunk goes DOWN by trunkHeight (same as apple tree)
+                    // Foliage tiers go UPWARD from tr.y
+                    const fr = tr.foliageRadius;
+
+                    // Tiers — baseY is the wide base of each triangle, apex points upward.
+                    // Anchored relative to tr.y so they sit right on top of the trunk.
                     const tiers = [
-                        { y: -fr * 0.2, w: fr * 1.1, h: fr * 0.9 },
-                        { y: -fr * 0.9, w: fr * 0.9, h: fr * 0.85 },
-                        { y: -fr * 1.55, w: fr * 0.65, h: fr * 0.8 }
+                        { baseY: tr.y + fr * 0.15,  halfW: fr * 1.1,  tierH: fr * 1.05 },  // lowest, widest
+                        { baseY: tr.y - fr * 0.55,  halfW: fr * 0.82, tierH: fr * 0.95 },  // middle
+                        { baseY: tr.y - fr * 1.22,  halfW: fr * 0.54, tierH: fr * 0.85 }   // top, narrowest
                     ];
+
+                    // Draw trunk (same direction as apple tree)
+                    ctx.fillStyle = '#5a3a22';
+                    ctx.fillRect(tr.x - trunkWidth / 2, tr.y, trunkWidth, trunkHeight);
+
                     for (const t of tiers) {
-                        const grad = ctx.createLinearGradient(tr.x - t.w, 0, tr.x + t.w, 0);
-                        if (winter) { grad.addColorStop(0, '#5d7d72'); grad.addColorStop(0.5, '#cfe6ee'); grad.addColorStop(1, '#5d7d72'); }
-                        else { grad.addColorStop(0, '#15431f'); grad.addColorStop(0.5, '#2f7e3a'); grad.addColorStop(1, '#10391a'); }
+                        const grad = ctx.createLinearGradient(tr.x - t.halfW, 0, tr.x + t.halfW, 0);
+                        if (winter) {
+                            grad.addColorStop(0, '#4a6b62');
+                            grad.addColorStop(0.4, '#cfe6ee');
+                            grad.addColorStop(1, '#4a6b62');
+                        } else {
+                            grad.addColorStop(0, '#0f3618');
+                            grad.addColorStop(0.45, '#2a7033');
+                            grad.addColorStop(1, '#0d2e15');
+                        }
                         ctx.fillStyle = grad;
                         ctx.beginPath();
-                        ctx.moveTo(tr.x, t.y - t.h);
-                        ctx.lineTo(tr.x - t.w, t.y);
-                        ctx.lineTo(tr.x + t.w, t.y);
+                        ctx.moveTo(tr.x, t.baseY - t.tierH);   // apex (up)
+                        ctx.lineTo(tr.x - t.halfW, t.baseY);   // bottom-left
+                        ctx.lineTo(tr.x + t.halfW, t.baseY);   // bottom-right
+                        ctx.closePath();
+                        ctx.fill();
+
+                        ctx.strokeStyle = winter ? 'rgba(200,230,240,0.25)' : 'rgba(10,40,15,0.4)';
+                        ctx.lineWidth = 0.8;
+                        ctx.stroke();
+                    }
+
+                    // Snow cap on top tier in winter
+                    if (winter) {
+                        const t = tiers[2];
+                        ctx.fillStyle = 'rgba(240,250,255,0.75)';
+                        ctx.beginPath();
+                        ctx.moveTo(tr.x, t.baseY - t.tierH);
+                        ctx.lineTo(tr.x - t.halfW * 0.42, t.baseY - t.tierH * 0.52);
+                        ctx.lineTo(tr.x + t.halfW * 0.42, t.baseY - t.tierH * 0.52);
                         ctx.closePath();
                         ctx.fill();
                     }
-                    // Pine cones (the "apples")
+
+                    // Pine cones tucked into the lowest tier
                     if (tr.apples) {
                         for (const cone of tr.apples) {
                             if (!cone.available) continue;
-                            const ax = tr.x + cone.offsetX;
-                            const ay = tr.y + cone.offsetY - fr * 0.3;
-                            ctx.fillStyle = '#6b4423';
+                            const ax = tr.x + cone.offsetX * 0.5;
+                            const ay = tiers[0].baseY - tiers[0].tierH * 0.32 + cone.offsetY * 0.25;
+                            ctx.fillStyle = '#7a4f28';
                             ctx.beginPath();
-                            ctx.ellipse(ax, ay, 3.2, 4.6, 0, 0, Math.PI * 2);
+                            ctx.ellipse(ax, ay, 3.5, 5, 0, 0, Math.PI * 2);
                             ctx.fill();
-                            ctx.strokeStyle = 'rgba(40,24,10,0.6)';
-                            ctx.lineWidth = 0.6;
-                            ctx.beginPath(); ctx.moveTo(ax, ay - 4); ctx.lineTo(ax, ay + 4); ctx.stroke();
+                            ctx.strokeStyle = 'rgba(40,24,10,0.5)';
+                            ctx.lineWidth = 0.7;
+                            for (let sc = -3; sc <= 3; sc += 2) {
+                                ctx.beginPath();
+                                ctx.moveTo(ax - 2.5, ay + sc);
+                                ctx.lineTo(ax + 2.5, ay + sc);
+                                ctx.stroke();
+                            }
                         }
                     }
                     continue;
                 }
 
-                // Apple tree (grassland)
+                // Apple / other trees — draw trunk normally
+                ctx.fillStyle = '#4d311d';
+                ctx.fillRect(tr.x - trunkWidth / 2, tr.y, trunkWidth, trunkHeight);
+
+                const fr = tr.foliageRadius;
                 const fg = ctx.createRadialGradient(tr.x - fr * 0.2, tr.y - fr * 0.6, 2, tr.x, tr.y - fr * 0.2, fr);
                 if (winter) {
                     fg.addColorStop(0, '#f4fbff'); fg.addColorStop(0.45, '#cfe6ee'); fg.addColorStop(1, '#7fa3ae');
@@ -2018,30 +2406,35 @@
             const season = getSeasonName();
             if (!(season === 'Spring' || season === 'Summer')) return;
             const now = gameState.time;
-            const reproRadiusSq = 30 * 30;
-            const reproCooldown = 15000; // 15 seconds between reproductions per parent
-            const newbornLimit = 12;
+            const reproRadiusSq = 42 * 42;
+            const reproCooldown = 9000; // 9 seconds between reproductions per parent
+            const newbornLimit = 18;
             let births = 0;
+            const cap = popCap('seepa');
+            if (gameState.seepas.length >= cap) return;
 
             for (let i = 0; i < gameState.seepas.length && births < newbornLimit; i++) {
                 const a = gameState.seepas[i];
                 if (now - a.lastReproduction < reproCooldown) continue;
-                if (a.age < 16) continue;
+                if (a.age < 13) continue;
+                // Only healthy, well-fed adults breed — keeps population focused on survivors
                 const aFullness = 1 - (a.hunger / a.maxStats);
                 const aHydration = 1 - (a.thirst / a.maxStats);
-                if (aFullness <= 0.5 || aHydration <= 0.5) continue;
+                if (aFullness <= 0.6 || aHydration <= 0.6) continue;
+                if (a.cold > 30) continue;
 
                 for (let j = i + 1; j < gameState.seepas.length && births < newbornLimit; j++) {
                     const b = gameState.seepas[j];
                     if (a.sex === b.sex) continue;
                     if (now - b.lastReproduction < reproCooldown) continue;
-                    if (b.age < 16) continue;
+                    if (b.age < 13) continue;
                     const dx = a.x - b.x; const dy = a.y - b.y;
                     const dSq = dx * dx + dy * dy;
                     if (dSq > reproRadiusSq) continue;
                     const bFullness = 1 - (b.hunger / b.maxStats);
                     const bHydration = 1 - (b.thirst / b.maxStats);
-                    if (bFullness <= 0.5 || bHydration <= 0.5) continue;
+                    if (bFullness <= 0.6 || bHydration <= 0.6) continue;
+                    if (b.cold > 30) continue;
 
                     const nx = (a.x + b.x) / 2 + (Math.random() - 0.5) * 6;
                     const ny = (a.y + b.y) / 2 + (Math.random() - 0.5) * 6;
@@ -2098,22 +2491,32 @@
                 this.age += deltaTime;
                 const careFactor = this.age < 18 ? 0.35 : 1.0;
                 this.energy -= 2 * deltaTime * careFactor;
-                this.hunger = Math.min(this.maxStats, this.hunger + 2 * deltaTime * careFactor);
+                if (gameState.settings.predatorsEnabled) {
+                    this.hunger = Math.min(this.maxStats, this.hunger + 2 * deltaTime * careFactor);
+                } else {
+                    // Peaceful mode: grazes on plants instead of hunting, so it stays alive
+                    this.hunger = Math.max(0, this.hunger - 5 * deltaTime);
+                    this.energy = Math.min(this.maxStats, this.energy + 2 * deltaTime);
+                }
                 this.thirst = Math.min(this.maxStats, this.thirst + 3 * deltaTime * careFactor);
                 if (this.eatCooldown > 0) this.eatCooldown -= deltaTime;
 
-                // Nocturnal: hunt eagerly at night, reluctantly by day
+                // Nocturnal: hunt eagerly at night, reluctantly by day.
+                // Slow Suubas must start hunting earlier (lower threshold) or starve.
                 const phase = getDayPhase();
                 const isNight = phase === 'Night';
                 const isDay = phase === 'Day';
-                const huntThreshold = isNight ? 25 : (isDay ? 70 : 45);
+                const baseThreshold = isNight ? 25 : (isDay ? 70 : 45);
+                const huntThreshold = seekThreshold(this.genes.speed, baseThreshold);
                 const nightSpeedMul = isNight ? 1.25 : (isDay ? 0.7 : 1.0);
+                // When truly starving, hunt regardless of time of day
+                const starving = this.hunger > this.maxStats * 0.7;
 
                 // Winter freezing — thick-hided, so they resist cold well
                 updateCold(this, deltaTime, 5 * (28 / this.genes.size));
 
-                const needWater = this.thirst > 75;
-                const needFood = gameState.settings.predatorsEnabled && this.hunger > huntThreshold;
+                const needWater = this.thirst > seekThreshold(this.genes.speed, this.maxStats * 0.6);
+                const needFood = gameState.settings.predatorsEnabled && (this.hunger > huntThreshold || starving);
 
                 const nearestPond = () => {
                     if (!gameState.ponds || gameState.ponds.length === 0) return null;
@@ -2159,7 +2562,7 @@
                                 gameState.seepas.splice(idx, 1);
                                 this.energy = Math.min(this.maxStats, this.energy + 120);
                                 this.hunger = Math.max(0, this.hunger - 80);
-                                this.eatCooldown = 1.2;
+                                this.eatCooldown = 2.4;
                             }
                         }
                     }
@@ -2167,12 +2570,15 @@
                     this.vx += (Math.random() - 0.5) * 0.06;
                     this.vy += (Math.random() - 0.5) * 0.06;
 
-                    if (this.age > 30 && this.energy > 160 && (gameState.time - (this.lastReproduction || -Infinity)) > 45000) {
+                    if (this.age > 30 && this.energy > 170 && this.hunger < this.maxStats * 0.5 &&
+                        this.thirst < this.maxStats * 0.5 && gameState.suubas.length < popCap('suuba') &&
+                        (gameState.time - (this.lastReproduction || -Infinity)) > 45000) {
                         for (const other of gameState.suubas || []) {
                             if (other === this) continue;
                             if (other.sex === this.sex) continue;
                             if (other.age < 30) continue;
                             if ((gameState.time - (other.lastReproduction || -Infinity)) <= 45000) continue;
+                            if (other.energy < 150 || other.hunger > other.maxStats * 0.5) continue;
                             const d2 = distanceSq(this.x, this.y, other.x, other.y);
                             if (d2 < 1200) {
                                 const bx = (this.x + other.x) / 2 + (Math.random() - 0.5) * 8;
@@ -2209,8 +2615,10 @@
                 this.radius = lerp(this.birthRadius, this.adultRadius, growT);
             }
 
+            // Dies from: starvation, dehydration, energy collapse, old age, or freezing
             isAlive() {
-                return this.energy > 0 && this.age < this.lifeSpan && this.cold < 100;
+                return this.energy > 0 && this.age < this.lifeSpan && this.cold < 100 &&
+                       this.hunger < this.maxStats && this.thirst < this.maxStats;
             }
 
             draw() {
@@ -2366,13 +2774,35 @@
             gameState.flockingActive = isFlockingTime();
 
             const regrowMult = seasonRegrowMultiplier();
+            const season = getSeasonName();
+            const winterScarcity = season === 'Winter';
+
+            // Season transitions: winter culls most fruit into dormancy; spring revives it
+            if (season !== gameState.lastSeason) {
+                if (season === 'Winter') {
+                    for (const b of gameState.bushes || []) for (const f of b.fruits)
+                        if (Math.random() < 0.6) { f.available = false; f.winterDormant = true; }
+                    for (const t of gameState.trees || []) for (const a of t.apples)
+                        if (Math.random() < 0.6) { a.available = false; a.winterDormant = true; }
+                } else if (gameState.lastSeason === 'Winter') {
+                    for (const b of gameState.bushes || []) for (const f of b.fruits) { f.winterDormant = false; f.eatTime = gameState.time; }
+                    for (const t of gameState.trees || []) for (const a of t.apples) { a.winterDormant = false; a.eatTime = gameState.time; }
+                }
+                gameState.lastSeason = season;
+            }
 
             if (gameState.bushes) {
                 for (const bush of gameState.bushes) {
                     if (!bush.fruits) continue;
                     for (let fruit of bush.fruits) {
+                        if (fruit.winterDormant) continue; // stays barren all winter
                         if (!fruit.available && gameState.time - fruit.eatTime >= gameState.fruitRegrowTime * regrowMult) {
-                            fruit.available = true;
+                            // In winter, even the remaining berries are slow and unreliable
+                            if (winterScarcity && Math.random() < 0.5) {
+                                fruit.eatTime = gameState.time;
+                            } else {
+                                fruit.available = true;
+                            }
                         }
                     }
                 }
@@ -2382,8 +2812,13 @@
                 for (const tree of gameState.trees) {
                     if (!tree.apples) continue;
                     for (let apple of tree.apples) {
+                        if (apple.winterDormant) continue;
                         if (!apple.available && gameState.time - apple.eatTime >= gameState.appleRegrowTime * regrowMult) {
-                            apple.available = true;
+                            if (winterScarcity && Math.random() < 0.5) {
+                                apple.eatTime = gameState.time;
+                            } else {
+                                apple.available = true;
+                            }
                         }
                     }
                 }
