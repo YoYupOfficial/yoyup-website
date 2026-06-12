@@ -1,0 +1,3495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Evolution Simulator - Seepas</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #1a1a1a;
+            color: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            justify-content: center;
+            width: 100%;
+            max-width: 1700px;
+        }
+
+        .canvas-wrapper {
+            position: relative;
+            z-index: 1;
+            flex: 1 1 600px;
+            max-width: 1200px;
+        }
+
+        canvas#canvas {
+            border: 3px solid #444;
+            background: #2a2a2a;
+            display: block;
+            width: 100%;
+            height: auto;
+            cursor: crosshair;
+        }
+
+        .controls {
+            background: #333;
+            padding: 20px;
+            border-radius: 8px;
+            border: 2px solid #444;
+            width: 300px;
+            flex: 0 0 300px;
+            position: relative;
+            z-index: 10;
+            max-height: 92vh;
+            overflow-y: auto;
+        }
+
+        .section-title {
+            font-size: 11px;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: #8fb3d9;
+            border-bottom: 1px solid #4a4a4a;
+            padding-bottom: 4px;
+            margin: 18px 0 10px 0;
+        }
+        .section-title:first-child { margin-top: 0; }
+
+        .control-group { margin-bottom: 12px; }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            font-size: 13px;
+        }
+
+        button {
+            background: #0066cc;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+            width: 100%;
+        }
+        button:hover { background: #0052a3; }
+        button:active { background: #003d7a; }
+
+        select {
+            width: 100%;
+            background: #222;
+            color: #fff;
+            border: 1px solid #555;
+            border-radius: 4px;
+            padding: 8px;
+            font-size: 13px;
+        }
+
+        .speed-control { display: flex; gap: 10px; align-items: center; }
+        input[type="range"] { flex: 1; }
+
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            margin-bottom: 6px;
+            cursor: pointer;
+        }
+        .toggle-row input { cursor: pointer; }
+
+        .pop-slider-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            margin-bottom: 2px;
+        }
+        .hint { font-size: 11px; color: #888; margin-top: 4px; }
+
+        .stats {
+            background: #2a2a2a;
+            padding: 12px;
+            border-radius: 4px;
+            font-size: 13px;
+            line-height: 1.8;
+        }
+        .stat-line { display: flex; justify-content: space-between; }
+
+        .legend {
+            background: #2a2a2a;
+            padding: 12px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .legend-item { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+        .legend-color { width: 18px; height: 18px; border-radius: 50%; flex-shrink: 0; }
+
+        .clock-panel { display: flex; gap: 12px; justify-content: space-between; }
+        .clock-widget {
+            display: flex; flex-direction: column; align-items: center; gap: 6px;
+            width: 110px; background: #232323; padding: 10px;
+            border-radius: 10px; border: 1px solid #3d3d3d;
+        }
+        .clock-canvas {
+            width: 100px; height: 100px; border-radius: 50%;
+            background: #111; border: 1px solid #4d4d4d;
+        }
+        .clock-label { font-size: 12px; color: #ddd; text-align: center; }
+
+        .graph-panel {
+            background: #2a2a2a;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        #graphCanvas {
+            width: 100%;
+            background: #1c1c1c;
+            border-radius: 4px;
+            border: 1px solid #3a3a3a;
+        }
+        .graph-legend { display: flex; gap: 12px; font-size: 11px; margin-top: 6px; }
+        .graph-legend span { display: flex; align-items: center; gap: 4px; }
+        .graph-dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+
+        .inspector {
+            background: #2a2a2a;
+            padding: 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            line-height: 1.7;
+            min-height: 60px;
+            border: 1px solid #3a3a3a;
+        }
+        .inspector .insp-title { font-weight: bold; font-size: 13px; color: #ffd84d; }
+
+        .info-text { font-size: 12px; color: #aaa; line-height: 1.6; }
+
+        @media (max-width: 760px) {
+            .controls { flex: 1 1 100%; width: auto; max-height: none; }
+            body { padding: 10px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="canvas-wrapper">
+            <canvas id="canvas" width="1200" height="800"></canvas>
+        </div>
+
+        <div class="controls">
+            <div class="section-title">Controls</div>
+            <div class="control-group">
+                <button id="pausePlayBtn">⏸ PAUSE</button>
+            </div>
+            <div class="control-group">
+                <label>Simulation Speed:</label>
+                <div class="speed-control">
+                    <input type="range" id="speedSlider" min="0.5" max="10" step="0.5" value="1">
+                    <span id="speedLabel">1x</span>
+                </div>
+            </div>
+            <div class="control-group">
+                <button id="resetBtn">RESET</button>
+            </div>
+            <div class="control-group">
+                <label>Map view:</label>
+                <select id="viewSelect">
+                    <option value="auto">Auto-detect device</option>
+                    <option value="desktop">Desktop — large (3:2)</option>
+                    <option value="tablet">Tablet — 4:3</option>
+                    <option value="mobilePortrait">Mobile — portrait (3:4)</option>
+                    <option value="mobile43">Mobile — 4:3</option>
+                </select>
+                <div class="hint">Changing this rebuilds the world at a new size</div>
+            </div>
+            <div class="control-group">
+                <label>Click Action:</label>
+                <select id="clickModeSelect">
+                    <option value="inspect">🔍 Inspect creature</option>
+                    <option value="seepa">➕ Spawn Seepa</option>
+                    <option value="suuba">➕ Spawn Suuba</option>
+                    <option value="siiba">➕ Spawn Siiba</option>
+                    <option value="fish">➕ Spawn Fish (in sea)</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label class="toggle-row"><input type="checkbox" id="predToggle" checked> Predators hunt (off = peaceful, they graze)</label>
+                <label class="toggle-row"><input type="checkbox" id="flockToggle" checked> Flocking (spring)</label>
+                <label class="toggle-row"><input type="checkbox" id="rescueToggle" checked> Migration rescue (new flock arrives if a species dies out)</label>
+                <label class="toggle-row"><input type="checkbox" id="agingToggle" checked> Aging (creatures grow old and die)</label>
+            </div>
+
+            <div class="section-title">Starting Populations</div>
+            <div class="control-group">
+                <div class="pop-slider-row"><span>Seepas</span><strong id="seepaPopLabel">100</strong></div>
+                <input type="range" id="seepaPop" min="10" max="300" step="10" value="100">
+                <div class="pop-slider-row"><span>Suubas</span><strong id="suubaPopLabel">8</strong></div>
+                <input type="range" id="suubaPop" min="0" max="60" step="1" value="8">
+                <div class="pop-slider-row"><span>Siibas</span><strong id="siibaPopLabel">14</strong></div>
+                <input type="range" id="siibaPop" min="0" max="60" step="1" value="14">
+                <div class="pop-slider-row"><span>Fish (marine)</span><strong id="fishPopLabel">24</strong></div>
+                <input type="range" id="fishPop" min="0" max="80" step="1" value="24">
+                <div class="hint">Applied when you press RESET</div>
+            </div>
+
+            <div class="section-title">Inspector</div>
+            <div class="inspector" id="inspector">Set Click Action to 🔍 and click a creature to see its stats and genes.</div>
+
+            <div class="section-title">Population History</div>
+            <div class="graph-panel">
+                <canvas id="graphCanvas" width="260" height="110"></canvas>
+                <div class="graph-legend">
+                    <span><span class="graph-dot" style="background:#63a6ff;"></span>Seepas</span>
+                    <span><span class="graph-dot" style="background:#ff6b6b;"></span>Suubas</span>
+                    <span><span class="graph-dot" style="background:#ff9fb3;"></span>Siibas</span>
+                    <span><span class="graph-dot" style="background:#ff9b33;"></span>Fish</span>
+                </div>
+            </div>
+
+            <div class="section-title">Stats</div>
+            <div class="stats">
+                <div class="stat-line"><span>Total Seepas:</span><strong id="seepasCount">0</strong></div>
+                <div class="stat-line"><span>Total Suubas:</span><strong id="suubasCount">0</strong></div>
+                <div class="stat-line"><span>Total Siibas:</span><strong id="siibasCount">0</strong></div>
+                <div class="stat-line"><span>Total Fish:</span><strong id="fishCount">0</strong></div>
+                <div class="stat-line"><span>Generation:</span><strong id="genLabel">1</strong></div>
+                <div class="stat-line"><span>Sim Time:</span><strong id="simTime">0s</strong></div>
+                <div class="stat-line"><span>Clock:</span><strong id="dayClock">0:00</strong></div>
+                <div class="stat-line"><span>Day Phase:</span><strong id="dayPhase">Day</strong></div>
+                <div class="stat-line"><span>Season:</span><strong id="seasonLabel">Spring</strong></div>
+                <div class="stat-line"><span>FPS:</span><strong id="fps">0</strong></div>
+            </div>
+
+            <div class="section-title">Clocks</div>
+            <div class="clock-panel">
+                <div class="clock-widget">
+                    <canvas id="dayClockCanvas" class="clock-canvas" width="100" height="100"></canvas>
+                    <div class="clock-label">Day/Night Clock</div>
+                </div>
+                <div class="clock-widget">
+                    <canvas id="seasonClockCanvas" class="clock-canvas" width="100" height="100"></canvas>
+                    <div class="clock-label">Season Clock</div>
+                </div>
+            </div>
+
+            <div class="section-title">Legend</div>
+            <div class="legend">
+                <div class="legend-item"><div class="legend-color" style="background: #4488ff;"></div><span>Seepa (adult male blue / female pink)</span></div>
+                <div class="legend-item"><div class="legend-color" style="background: #ffd84d;"></div><span>Juvenile / Baby</span></div>
+                <div class="legend-item"><div class="legend-color" style="background: #93e07b;"></div><span>Elder Seepa</span></div>
+                <div class="legend-item"><div class="legend-color" style="background: #0066ff;"></div><span>Water (Pond)</span></div>
+                <div class="legend-item"><div class="legend-color" style="background: #ff9b44;"></div><span>Fruit (Bush — grassland/wetland)</span></div>
+                <div class="legend-item"><div class="legend-color" style="background: #d24132;"></div><span>Apple (Tree — grassland)</span></div>
+                <div class="legend-item"><div class="legend-color" style="background: #ff7ab0;"></div><span>Cactus flower (Desert)</span></div>
+                <div class="legend-item"><div class="legend-color" style="background: #6b4423;"></div><span>Pine cone (Forest)</span></div>
+                <div class="legend-item"><div class="legend-color" style="width:20px;height:20px;border-radius:6px;background:#8a2f2f;box-shadow:0 0 6px rgba(138,47,47,0.6);"></div><span>Suuba (Predator — hunts Seepas)</span></div>
+                <div class="legend-item"><div class="legend-color" style="width:16px;height:16px;background:#ffd2d9;"></div><span>Siiba (hunts Suubas, eaten by Seepas)</span></div>
+                <div class="legend-item"><div class="legend-color" style="width:18px;height:12px;border-radius:40%;background:#ff9b33;"></div><span>Fish (marine — eats coral, eaten by Seepas &amp; Suubas)</span></div>
+                <div class="legend-item"><div class="legend-color" style="background:#ff7eb0;"></div><span>Coral (Marine — fish food)</span></div>
+                <div class="legend-item"><div class="legend-color" style="background:#b5543a;"></div><span>Mushroom (Swamp) / Lichen berry (Tundra)</span></div>
+            </div>
+
+            <div class="section-title">How it works</div>
+            <div class="info-text">
+                <ul style="margin-left: 15px; margin-top: 4px;">
+                    <li>Seepas drink from ponds and eat fruit, apples, cactus flowers, pine cones and Siibas</li>
+                    <li>The map has nine biomes — grassland, forest (pines), desert (cacti), wetland, tundra (lichen), taiga (spruce), savanna (acacia), swamp (mushrooms) and a marine sea — each with its own food</li>
+                    <li>The sea has Fish that graze on coral; Seepas and Suubas catch fish at the shore (another link in the food chain)</li>
+                    <li>Ponds, bushes and trees never overlap, and the map grows to fit your device</li>
+                    <li>All species inherit speed and size genes that mutate each generation — natural selection in action!</li>
+                    <li>In spring, Seepas flock together — they align, group up and keep their distance like a real shoal (toggleable)</li>
+                    <li>Summer brings a heatwave — everything dehydrates faster, so ponds become precious</li>
+                    <li>Suubas are nocturnal: fierce hunters at night, sluggish and reluctant by day</li>
+                    <li>Siibas hide inside bushes and trees at night where predators can't reach them</li>
+                    <li>In winter creatures slowly freeze — they huddle near bushes and trees to stay warm. Bigger Seepas resist cold better, Suubas have thick hides</li>
+                    <li>Autumn is harvest season — leaves drift down and food grows fast and plentiful, so animals can fatten up</li>
+                    <li>Winter is harsh — snow falls and food becomes scarce (most berries and apples stay barren), so populations are tested</li>
+                    <li>Aging is optional — turn it off and creatures never die of old age (only hunger, thirst, predators and cold)</li>
+                    <li>Migration rescue (optional): a small flock wanders in if a species nearly dies out</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const backgroundCanvas = document.createElement('canvas');
+        backgroundCanvas.width = canvas.width;
+        backgroundCanvas.height = canvas.height;
+        const bgCtx = backgroundCanvas.getContext('2d');
+        const dayClockCanvas = document.getElementById('dayClockCanvas');
+        const dayClockCtx = dayClockCanvas ? dayClockCanvas.getContext('2d') : null;
+        const seasonClockCanvas = document.getElementById('seasonClockCanvas');
+        const seasonClockCtx = seasonClockCanvas ? seasonClockCanvas.getContext('2d') : null;
+        const graphCanvas = document.getElementById('graphCanvas');
+        const graphCtx = graphCanvas ? graphCanvas.getContext('2d') : null;
+
+        // Game state
+        let gameState = {
+            paused: false,
+            speed: 1,
+            time: 0,
+            seepas: [],
+            ponds: [],
+            bushes: [],
+            trees: [],
+            particles: [],
+            weather: { type: null, drops: [] },
+            popHistory: [],
+            lastSample: 0,
+            lastRescue: 0,
+            inspected: null,
+            fruitRegrowTime: 2 * 1000,
+            appleRegrowTime: 8 * 1000,
+            dayDuration: 48000,
+            seasonDuration: 12000,
+            seasonNames: ['Spring', 'Summer', 'Autumn', 'Winter'],
+            flockingActive: false,
+            stars: [],
+            suubas: [],
+            siibas: [],
+            fish: [],
+            corals: [],
+            settings: {
+                seepaSpawn: 100,
+                suubaSpawn: 8,
+                siibaSpawn: 14,
+                fishSpawn: 24,
+                predatorsEnabled: true,
+                flockingEnabled: true,
+                rescueEnabled: true,
+                agingEnabled: true,
+                clickMode: 'inspect',
+                currentView: 'auto'
+            }
+        };
+
+        let fps = 0;
+        let frameCount = 0;
+        let lastFpsTime = Date.now();
+        let noiseSeed = 0;
+
+        // ---------- Particles ----------
+        function spawnParticles(x, y, color, count, spd) {
+            count = count || 8;
+            spd = spd || 1.6;
+            for (let i = 0; i < count; i++) {
+                const a = Math.random() * Math.PI * 2;
+                const v = (0.3 + Math.random()) * spd;
+                gameState.particles.push({
+                    x: x, y: y,
+                    vx: Math.cos(a) * v,
+                    vy: Math.sin(a) * v - 0.4,
+                    life: 500 + Math.random() * 450,
+                    maxLife: 950,
+                    size: 1.5 + Math.random() * 2.2,
+                    color: color
+                });
+            }
+            if (gameState.particles.length > 600) {
+                gameState.particles.splice(0, gameState.particles.length - 600);
+            }
+        }
+
+        function updateParticles(deltaTime) {
+            const dt = deltaTime / 1000;
+            for (let i = gameState.particles.length - 1; i >= 0; i--) {
+                const p = gameState.particles[i];
+                p.life -= deltaTime;
+                p.x += p.vx * dt * 60;
+                p.y += p.vy * dt * 60;
+                p.vy += 0.04;
+                if (p.life <= 0) gameState.particles.splice(i, 1);
+            }
+        }
+
+        function drawParticles() {
+            for (const p of gameState.particles) {
+                ctx.globalAlpha = Math.max(0, p.life / p.maxLife);
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.globalAlpha = 1;
+        }
+
+        // ---------- Genetics helpers (all three species evolve) ----------
+        const GENE_RANGES = {
+            seepa: { spMin: 0.8, spMax: 2.8, szMin: 3.5, szMax: 10 },
+            suuba: { spMin: 0.9, spMax: 2.0, szMin: 20, szMax: 34 },
+            siiba: { spMin: 1.0, spMax: 2.4, szMin: 6, szMax: 12 },
+            fish: { spMin: 1.2, spMax: 3.0, szMin: 4, szMax: 9 }
+        };
+
+        // Survival viability: a creature must be able to physically reach a resource
+        // before it starves/dehydrates. Slow-gened individuals get a smaller "reach"
+        // and so naturally die off — this is the selection pressure made explicit.
+        // Returns the urgency threshold at which the creature should start seeking,
+        // scaled so slower creatures must react earlier (but may still not make it).
+        function seekThreshold(speed, base) {
+            // Faster creatures can afford to wait longer (higher threshold);
+            // slower ones must leave earlier. Clamped to a sane band.
+            const t = base - (1.6 - Math.min(speed, 1.6)) * 28;
+            return Math.max(35, Math.min(base, t));
+        }
+
+        // Soft population caps (scaled to map size) so no species can explode and
+        // tank performance — important in peaceful mode where prey isn't culled.
+        function popCap(kind) {
+            const scale = (canvas.width * canvas.height) / (1600 * 1080);
+            if (kind === 'seepa') return Math.round(260 * scale);
+            if (kind === 'suuba') return Math.round(70 * scale);
+            if (kind === 'fish') return Math.round(110 * scale);
+            return Math.round(95 * scale); // siiba
+        }
+
+        function makeFishGenes() {
+            return { speed: 1.6 + Math.random() * 0.5, size: 5 + Math.random() * 2 };
+        }
+
+        function makeRandomGenes() {
+            return { speed: 1.3 + Math.random() * 0.4, size: 5 + Math.random() * 2 };
+        }
+        function makeSuubaGenes() {
+            return { speed: 1.2 + Math.random() * 0.4, size: 24 + Math.random() * 8 };
+        }
+        function makeSiibaGenes() {
+            return { speed: 1.4 + Math.random() * 0.4, size: 7 + Math.random() * 3 };
+        }
+
+        function inheritGenes(a, b, range) {
+            range = range || GENE_RANGES.seepa;
+            const mut = () => 1 + (Math.random() - 0.5) * 0.24; // up to ±12%
+            return {
+                speed: Math.min(range.spMax, Math.max(range.spMin, ((a.speed + b.speed) / 2) * mut())),
+                size: Math.min(range.szMax, Math.max(range.szMin, ((a.size + b.size) / 2) * mut()))
+            };
+        }
+
+        // ---------- Shelter & winter cold ----------
+        function shelterSpots() {
+            const spots = [];
+            for (const b of gameState.bushes || []) spots.push({ x: b.x, y: b.y, r: b.radius });
+            for (const t of gameState.trees || []) spots.push({ x: t.x, y: t.y - t.foliageRadius * 0.5, r: t.foliageRadius });
+            return spots;
+        }
+
+        function nearestShelter(x, y) {
+            let best = null; let bestD = Infinity;
+            for (const s of shelterSpots()) {
+                const d2 = distanceSq(x, y, s.x, s.y);
+                if (d2 < bestD) { bestD = d2; best = s; }
+            }
+            return best;
+        }
+
+        function isSheltered(x, y, extra) {
+            for (const s of shelterSpots()) {
+                const rr = s.r + (extra || 8);
+                if (distanceSq(x, y, s.x, s.y) < rr * rr) return true;
+            }
+            return false;
+        }
+
+        function updateCold(creature, dtSeconds, ratePerSec) {
+            if (getSeasonName() === 'Winter') {
+                if (creature.hidden || isSheltered(creature.x, creature.y, 10)) {
+                    creature.cold = Math.max(0, creature.cold - 14 * dtSeconds);
+                } else {
+                    creature.cold = Math.min(120, creature.cold + ratePerSec * dtSeconds);
+                }
+            } else {
+                creature.cold = Math.max(0, creature.cold - 25 * dtSeconds);
+            }
+        }
+
+        // ---------- Seepa ----------
+        class Seepa {
+            constructor(x, y, genes, generation) {
+                this.x = x;
+                this.y = y;
+                this.genes = genes || makeRandomGenes();
+                this.generation = generation || 1;
+                this.radius = this.genes.size;
+                this.speed = this.genes.speed;
+                this.vx = (Math.random() - 0.5) * 2;
+                this.vy = (Math.random() - 0.5) * 2;
+                this.groupId = null;
+                this.sex = Math.random() < 0.5 ? 'male' : 'female';
+                this.lastReproduction = -Infinity;
+                this.age = Math.random() * 80;
+                this.post18Color = null;
+                this.fleeing = false;
+                this.cold = 0;
+                this.hunger = Math.random() * 50;
+                this.thirst = Math.random() * 50;
+                this.maxStats = 100;
+            }
+
+            update(deltaTime, gameState) {
+                deltaTime = deltaTime / 1000;
+
+                // Hunger rises faster for fast/large genes (an evolutionary trade-off)
+                this.hunger += (1.6 + this.genes.speed * 0.6 + this.genes.size * 0.07) * deltaTime;
+                this.thirst += 3.2 * deltaTime * seasonThirstMultiplier();
+                if (gameState.settings.agingEnabled) this.age += deltaTime;
+
+                if (this.age >= 18 && this.post18Color === null) {
+                    this.post18Color = Math.random() < 0.5 ? 'blue' : 'red';
+                }
+
+                this.hunger = Math.min(this.hunger, this.maxStats);
+                this.thirst = Math.min(this.thirst, this.maxStats);
+
+                // Flee from nearby Suubas (overrides everything)
+                this.fleeing = false;
+                if (gameState.settings.predatorsEnabled && gameState.suubas && gameState.suubas.length > 0) {
+                    let threat = null; let bestD = Infinity;
+                    for (const s of gameState.suubas) {
+                        const d2 = distanceSq(this.x, this.y, s.x, s.y);
+                        if (d2 < bestD) { bestD = d2; threat = s; }
+                    }
+                    const fleeRange = 110 + (threat ? threat.radius : 0);
+                    if (threat && bestD < fleeRange * fleeRange) {
+                        const d = Math.sqrt(bestD) || 1e-6;
+                        this.vx = lerp(this.vx, (this.x - threat.x) / d, 0.5);
+                        this.vy = lerp(this.vy, (this.y - threat.y) / d, 0.5);
+                        this.fleeing = true;
+                    }
+                }
+
+                // Winter freezing — larger genes resist cold better (selection pressure)
+                updateCold(this, deltaTime, 9 * (6.5 / this.genes.size));
+
+                if (!this.fleeing) {
+                    if (getSeasonName() === 'Winter' && this.cold > 45) {
+                        // Too cold: huddle by the nearest bush or tree
+                        const sh = nearestShelter(this.x, this.y);
+                        if (sh) {
+                            const dx = sh.x - this.x; const dy = sh.y - this.y;
+                            const d = Math.sqrt(dx * dx + dy * dy) || 1e-6;
+                            this.vx = lerp(this.vx, dx / d, 0.4);
+                            this.vy = lerp(this.vy, dy / d, 0.4);
+                        } else {
+                            this.moveTowardTarget(gameState);
+                        }
+                    } else {
+                        this.moveTowardTarget(gameState);
+                    }
+                }
+
+                // Slower at night, faster when fleeing
+                const phaseMul = getDayPhase() === 'Night' ? 0.55 : 1;
+                const fleeMul = this.fleeing ? 1.35 : 1;
+                moveLand(this, deltaTime, phaseMul * fleeMul);
+
+                this.checkWaterInteraction(gameState);
+                this.checkFruitInteraction(gameState);
+            }
+
+            moveTowardTarget(gameState) {
+                let targetX, targetY;
+                // Slow Seepas must commit to seeking earlier — but being slow,
+                // they often still won't reach the resource in time and die.
+                const waterTh = seekThreshold(this.genes.speed, 72);
+                const foodTh = seekThreshold(this.genes.speed, 72);
+                let needWater = this.thirst > waterTh;
+                let needFood = this.hunger > foodTh;
+
+                const nearestWater = () => nearestMarinePoint(this.x, this.y);
+                const nearestBushWithFruit = () => {
+                    if (!gameState.bushes || gameState.bushes.length === 0) return null;
+                    let best = null; let bestD = Infinity;
+                    for (const b of gameState.bushes) {
+                        if (!b.fruits || !b.fruits.some(f => f.available)) continue;
+                        const dSq = distanceSq(b.x, b.y, this.x, this.y);
+                        if (dSq < bestD) { bestD = dSq; best = b; }
+                    }
+                    return best;
+                };
+
+                if (needWater && needFood) {
+                    if (this.thirst >= this.hunger) {
+                        const p = nearestWater(); if (!p) return; targetX = p.x; targetY = p.y;
+                    } else {
+                        const b = nearestBushWithFruit(); if (!b) return; targetX = b.x; targetY = b.y;
+                    }
+                } else if (needWater) {
+                    const p = nearestWater(); if (!p) return; targetX = p.x; targetY = p.y;
+                } else if (needFood) {
+                    const b = nearestBushWithFruit(); if (!b) return; targetX = b.x; targetY = b.y;
+                } else {
+                    const flockDir = gameState.flockingActive ? this.calculateFlock(gameState) : null;
+                    if (flockDir) {
+                        this.vx = lerp(this.vx, flockDir.x, 0.45);
+                        this.vy = lerp(this.vy, flockDir.y, 0.45);
+                    }
+                    return;
+                }
+
+                const dx = targetX - this.x;
+                const dy = targetY - this.y;
+                const distSq = dx * dx + dy * dy;
+
+                if (distSq > 0) {
+                    const invDist = 1 / Math.sqrt(distSq);
+                    this.vx = (dx * invDist) * 0.8 + (Math.random() - 0.5) * 0.2;
+                    this.vy = (dy * invDist) * 0.8 + (Math.random() - 0.5) * 0.2;
+                }
+
+                const flockDir = gameState.flockingActive ? this.calculateFlock(gameState) : null;
+                if (flockDir) {
+                    this.vx = lerp(this.vx, flockDir.x, 0.22);
+                    this.vy = lerp(this.vy, flockDir.y, 0.22);
+                }
+            }
+
+            checkWaterInteraction(gameState) {
+                if (atWaterEdge(this, this.radius + 16)) {
+                    if (this.thirst > 30) spawnParticles(this.x, this.y, '#7fc6ff', 5, 1.1);
+                    this.thirst = Math.max(0, this.thirst - 40);
+                    return true;
+                }
+                return false;
+            }
+
+            checkFruitInteraction(gameState) {
+                if (!gameState.bushes && !gameState.trees) return false;
+                if (this.hunger < 30) return false;
+
+                // Eat Siibas if hungry (only when hunting is enabled)
+                if (gameState.settings.predatorsEnabled && gameState.siibas && gameState.siibas.length > 0) {
+                    for (let i = 0; i < gameState.siibas.length; i++) {
+                        const siiba = gameState.siibas[i];
+                        if (siiba.hidden) continue; // safe inside a bush or tree
+                        const dSq = distanceSq(this.x, this.y, siiba.x, siiba.y);
+                        const minSq = (siiba.radius + this.radius) * (siiba.radius + this.radius);
+                        if (dSq < minSq) {
+                            spawnParticles(siiba.x, siiba.y, '#ff9fb3', 10, 2);
+                            if (gameState.inspected && gameState.inspected.ref === siiba) gameState.inspected = null;
+                            gameState.siibas.splice(i, 1);
+                            this.hunger = Math.max(0, this.hunger - 60);
+                            return true;
+                        }
+                    }
+                }
+
+                for (const bush of gameState.bushes || []) {
+                    if (!bush.fruits || bush.fruits.length === 0) continue;
+                    const dSq = distanceSq(this.x, this.y, bush.x, bush.y);
+                    const minSq = (bush.radius + this.radius) * (bush.radius + this.radius);
+                    if (dSq < minSq) {
+                        for (let i = 0; i < bush.fruits.length; i++) {
+                            if (bush.fruits[i].available) {
+                                this.hunger = Math.max(0, this.hunger - 50);
+                                bush.fruits[i].available = false;
+                                bush.fruits[i].eatTime = gameState.time;
+                                spawnParticles(this.x, this.y, '#ffb066', 6, 1.4);
+                                return true;
+                            }
+                        }
+                    }
+                }
+
+                for (const tree of gameState.trees || []) {
+                    if (!tree.apples || tree.apples.length === 0) continue;
+                    const dSq = distanceSq(this.x, this.y, tree.x, tree.y - tree.foliageRadius * 0.5);
+                    const minSq = (tree.foliageRadius + this.radius) * (tree.foliageRadius + this.radius);
+                    if (dSq < minSq) {
+                        for (let apple of tree.apples) {
+                            if (apple.available) {
+                                const ax = tree.x + apple.offsetX;
+                                const ay = tree.y + apple.offsetY;
+                                const adSq = distanceSq(this.x, this.y, ax, ay);
+                                const minASq = (this.radius + 6) * (this.radius + 6);
+                                if (adSq < minASq) {
+                                    this.hunger = Math.max(0, this.hunger - 40);
+                                    apple.available = false;
+                                    apple.eatTime = gameState.time;
+                                    spawnParticles(ax, ay, '#ff6f5e', 6, 1.4);
+                                    return true;
+                                }
+                            }
+                        }
+                    }
+                }
+                return false;
+            }
+
+            calculateFlock(gameState) {
+                // Classic boids: alignment + cohesion + separation, with ALL nearby
+                // Seepas as neighbours (no group requirement, which is why it failed before).
+                let alignX = 0, alignY = 0, cohX = 0, cohY = 0, sepX = 0, sepY = 0;
+                let count = 0, sepCount = 0;
+                const neighborR = 95, neighborRSq = neighborR * neighborR;
+                const sepR = 24, sepRSq = sepR * sepR;
+
+                for (const other of gameState.seepas) {
+                    if (other === this) continue;
+                    const dSq = distanceSq(this.x, this.y, other.x, other.y);
+                    if (dSq < neighborRSq) {
+                        alignX += other.vx; alignY += other.vy;
+                        cohX += other.x; cohY += other.y;
+                        count++;
+                        if (dSq > 0 && dSq < sepRSq) {
+                            const d = Math.sqrt(dSq);
+                            sepX += (this.x - other.x) / d;
+                            sepY += (this.y - other.y) / d;
+                            sepCount++;
+                        }
+                    }
+                }
+
+                if (count === 0) return null;
+
+                // Alignment — match average heading of neighbours
+                let aMag = Math.hypot(alignX, alignY) || 1;
+                const ax = alignX / aMag, ay = alignY / aMag;
+
+                // Cohesion — steer toward the flock's centre of mass
+                cohX = cohX / count - this.x;
+                cohY = cohY / count - this.y;
+                const cMag = Math.hypot(cohX, cohY) || 1;
+                const cx = cohX / cMag, cy = cohY / cMag;
+
+                // Separation — push away from crowding neighbours
+                if (sepCount > 0) { sepX /= sepCount; sepY /= sepCount; }
+
+                const fx = ax * 0.55 + cx * 0.5 + sepX * 0.85;
+                const fy = ay * 0.55 + cy * 0.5 + sepY * 0.85;
+                const m = Math.hypot(fx, fy);
+                if (m < 1e-4) return null;
+                return { x: fx / m, y: fy / m };
+            }
+
+            isAlive() {
+                return this.hunger < 100 && this.thirst < 100 && this.age <= 100 && this.cold < 100;
+            }
+
+            draw() {
+                const r = this.radius;
+                const mx = this.x, my = this.y;
+
+                // ── Spring flock glow (all Seepas glow softly while flocking) ──
+                const isSpringFlock = getSeasonName() === 'Spring' && gameState.flockingActive;
+                if (isSpringFlock) {
+                    const glow = ctx.createRadialGradient(mx, my, r * 0.5, mx, my, r * 3.0);
+                    glow.addColorStop(0, 'rgba(120,235,120,0.16)');
+                    glow.addColorStop(1, 'rgba(0,0,0,0)');
+                    ctx.fillStyle = glow;
+                    ctx.beginPath(); ctx.arc(mx, my, r * 3.0, 0, Math.PI * 2); ctx.fill();
+                }
+
+                // ── Direction angle for orientation ──
+                const angle = Math.atan2(this.vy, this.vx);
+
+                ctx.save();
+                ctx.translate(mx, my);
+                ctx.rotate(angle);
+
+                // ── Soft drop-shadow ──
+                ctx.save();
+                ctx.shadowColor = 'rgba(0,0,0,0.32)';
+                ctx.shadowBlur = r * 1.4;
+                ctx.shadowOffsetY = r * 0.5;
+                ctx.fillStyle = 'rgba(0,0,0,0.01)'; // need a fill to trigger shadow
+                ctx.beginPath(); ctx.ellipse(0, r * 0.3, r * 1.1, r * 0.5, 0, 0, Math.PI * 2); ctx.fill();
+                ctx.restore();
+
+                // ── Pick colour palette based on life stage ──
+                let bodyA, bodyB, bodyC, outlineCol;
+                if (this.age > 60) {
+                    // Elder — mottled sage green
+                    bodyA = '#e8fce3'; bodyB = '#7dce66'; bodyC = '#3d8a2e'; outlineCol = '#1e4a14';
+                } else if (this.age < 18) {
+                    // Hatchling — soft warm yellow
+                    bodyA = '#fffde0'; bodyB = '#ffe566'; bodyC = '#d4a800'; outlineCol = '#7a5c00';
+                } else if (this.age < 30) {
+                    // Juvenile — post18 colour
+                    if (this.post18Color === 'blue') {
+                        bodyA = '#dff4ff'; bodyB = '#72c8ff'; bodyC = '#2d8ed4'; outlineCol = '#0e3d6b';
+                    } else {
+                        bodyA = '#ffe8f0'; bodyB = '#ff85b3'; bodyC = '#d43070'; outlineCol = '#6b0030';
+                    }
+                } else if (this.sex === 'male') {
+                    // Adult male — deep teal-blue
+                    bodyA = '#c8eeff'; bodyB = '#48aaee'; bodyC = '#1464a8'; outlineCol = '#082840';
+                } else {
+                    // Adult female — warm coral-pink
+                    bodyA = '#ffe4f5'; bodyB = '#ff80c8'; bodyC = '#c83878'; outlineCol = '#580028';
+                }
+
+                // ── Body: teardrop (wider at back, pointed at front) ──
+                // Drawn along X axis — front is +X (direction of travel)
+                ctx.beginPath();
+                ctx.moveTo(r * 1.3, 0);                         // snout tip
+                ctx.bezierCurveTo(r * 1.0, -r * 0.85,  -r * 1.0, -r * 0.9, -r * 1.2,  0);
+                ctx.bezierCurveTo(-r * 1.0,  r * 0.9,   r * 1.0,  r * 0.85,  r * 1.3,  0);
+                ctx.closePath();
+
+                const bodyGrad = ctx.createRadialGradient(-r * 0.2, -r * 0.3, r * 0.1, 0, 0, r * 1.5);
+                bodyGrad.addColorStop(0, bodyA);
+                bodyGrad.addColorStop(0.45, bodyB);
+                bodyGrad.addColorStop(1, bodyC);
+                ctx.fillStyle = bodyGrad;
+                ctx.fill();
+
+                // Outline
+                ctx.strokeStyle = outlineCol;
+                ctx.lineWidth = 1.2;
+                ctx.stroke();
+
+                // ── Belly stripe — lighter band along the underside ──
+                const bellyGrad = ctx.createLinearGradient(0, -r * 0.15, 0, r * 0.55);
+                bellyGrad.addColorStop(0, 'rgba(255,255,255,0)');
+                bellyGrad.addColorStop(1, 'rgba(255,255,255,0.22)');
+                ctx.fillStyle = bellyGrad;
+                ctx.beginPath();
+                ctx.ellipse(0, r * 0.25, r * 0.65, r * 0.38, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // ── Tiny back fin ──
+                ctx.fillStyle = bodyC;
+                ctx.beginPath();
+                ctx.moveTo(-r * 0.1, -r * 0.82);
+                ctx.bezierCurveTo(-r * 0.3, -r * 1.35, r * 0.3, -r * 1.35, r * 0.1, -r * 0.82);
+                ctx.closePath();
+                ctx.fill();
+                ctx.strokeStyle = outlineCol; ctx.lineWidth = 0.9; ctx.stroke();
+
+                // ── Tail — small forked flick at the back ──
+                ctx.strokeStyle = outlineCol; ctx.lineWidth = 1.4;
+                ctx.beginPath();
+                ctx.moveTo(-r * 1.2, 0);
+                ctx.quadraticCurveTo(-r * 1.7, -r * 0.55, -r * 1.85, -r * 0.35);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(-r * 1.2, 0);
+                ctx.quadraticCurveTo(-r * 1.7,  r * 0.55, -r * 1.85,  r * 0.35);
+                ctx.stroke();
+
+                // ── Eye — large expressive eye near snout ──
+                const ex = r * 0.55, ey = -r * 0.22;
+                // Eye white (sclera)
+                const eyeGrad = ctx.createRadialGradient(ex - r * 0.08, ey - r * 0.08, 0, ex, ey, r * 0.38);
+                eyeGrad.addColorStop(0, '#ffffff');
+                eyeGrad.addColorStop(1, '#dce8f0');
+                ctx.fillStyle = eyeGrad;
+                ctx.beginPath(); ctx.arc(ex, ey, r * 0.38, 0, Math.PI * 2); ctx.fill();
+                // Iris
+                const irisCol = this.age > 60 ? '#3a7a1a' : (this.sex === 'male' ? '#1255a0' : '#8a1a50');
+                ctx.fillStyle = irisCol;
+                ctx.beginPath(); ctx.arc(ex + r * 0.08, ey, r * 0.22, 0, Math.PI * 2); ctx.fill();
+                // Pupil
+                ctx.fillStyle = '#060606';
+                ctx.beginPath(); ctx.arc(ex + r * 0.10, ey, r * 0.10, 0, Math.PI * 2); ctx.fill();
+                // Catchlight
+                ctx.fillStyle = 'rgba(255,255,255,0.85)';
+                ctx.beginPath(); ctx.arc(ex + r * 0.04, ey - r * 0.10, r * 0.075, 0, Math.PI * 2); ctx.fill();
+                // Lower eyelid curve
+                ctx.strokeStyle = 'rgba(0,0,0,0.25)'; ctx.lineWidth = 0.8;
+                ctx.beginPath();
+                ctx.arc(ex, ey, r * 0.4, Math.PI * 0.1, Math.PI * 0.9, false);
+                ctx.stroke();
+
+                // ── Specular highlight on body ──
+                ctx.fillStyle = 'rgba(255,255,255,0.38)';
+                ctx.beginPath();
+                ctx.ellipse(r * 0.15, -r * 0.5, r * 0.3, r * 0.1, -0.35, 0, Math.PI * 2);
+                ctx.fill();
+
+                // ── Freeze overlay ──
+                if (this.cold > 25) {
+                    ctx.globalAlpha = Math.min(0.6, (this.cold - 25) / 100);
+                    const iceG = ctx.createRadialGradient(0, 0, 0, 0, 0, r * 1.5);
+                    iceG.addColorStop(0, 'rgba(200,235,255,0.7)');
+                    iceG.addColorStop(1, 'rgba(120,190,255,0.15)');
+                    ctx.fillStyle = iceG;
+                    ctx.beginPath();
+                    ctx.moveTo(r * 1.3, 0);
+                    ctx.bezierCurveTo(r * 1.0, -r * 0.85, -r * 1.0, -r * 0.9, -r * 1.2, 0);
+                    ctx.bezierCurveTo(-r * 1.0, r * 0.9, r * 1.0, r * 0.85, r * 1.3, 0);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.globalAlpha = 1;
+                }
+
+                ctx.restore();
+
+                // ── Status bars — now stacked vertically to the left of creature ──
+                const barH = 4;
+                const barW = 28;
+                const bx = mx - r * 1.8 - barW - 2;
+                const by = my - barH * 1.5;
+
+                // Thirst bar (blue)
+                ctx.fillStyle = 'rgba(0,0,0,0.5)';
+                roundRect(ctx, bx, by, barW, barH, 2, true, false);
+                ctx.fillStyle = '#38b6ff';
+                roundRect(ctx, bx, by, barW * Math.max(0, 1 - this.thirst / this.maxStats), barH, 2, true, false);
+
+                // Hunger bar (amber/green)
+                ctx.fillStyle = 'rgba(0,0,0,0.5)';
+                roundRect(ctx, bx, by + barH + 2, barW, barH, 2, true, false);
+                const hungerFrac = Math.max(0, 1 - this.hunger / this.maxStats);
+                const hungerColor = hungerFrac > 0.5 ? '#4edf4e' : hungerFrac > 0.25 ? '#f0c030' : '#ff4444';
+                ctx.fillStyle = hungerColor;
+                roundRect(ctx, bx, by + barH + 2, barW * hungerFrac, barH, 2, true, false);
+
+                // Age bar (above creature head — thin, subtle)
+                if (gameState.settings.agingEnabled) {
+                    const ageBarY = my - r * 1.6 - 6;
+                    const ageBarW = r * 2.6;
+                    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+                    roundRect(ctx, mx - ageBarW / 2, ageBarY, ageBarW, 3, 1.5, true, false);
+                    const ageFrac = Math.min(1, this.age / 100);
+                    ctx.fillStyle = this.age > 60 ? '#6ab04c' : this.age < 30 ? '#ffd84d' : '#aaaaaa';
+                    roundRect(ctx, mx - ageBarW / 2, ageBarY, ageBarW * ageFrac, 3, 1.5, true, false);
+                }
+            }
+        }
+
+        // ---------- Siiba (small predator, flees Seepas) ----------
+        class Siiba {
+            constructor(x, y, genes, generation) {
+                this.x = x; this.y = y;
+                this.genes = genes || makeSiibaGenes();
+                this.generation = generation || 1;
+                this.radius = this.genes.size;
+                this.vx = (Math.random() - 0.5) * 2;
+                this.vy = (Math.random() - 0.5) * 2;
+                this.speed = this.genes.speed;
+                this.energy = 120;
+                this.hunger = Math.random() * 30 + 10;
+                this.thirst = Math.random() * 30 + 10;
+                this.maxStats = 180;
+                this.age = Math.random() * 20;
+                this.lifeSpan = 200;
+                this.eatCooldown = Math.random() * 1.5;
+                this.sex = Math.random() < 0.5 ? 'male' : 'female';
+                this.lastReproduction = -Infinity;
+                this.hidden = false;
+                this.cold = 0;
+            }
+
+            update(deltaTime, gameState) {
+                deltaTime = deltaTime / 1000;
+                if (gameState.settings.agingEnabled) this.age += deltaTime;
+                this.hunger = Math.min(this.maxStats, this.hunger + 2.4 * deltaTime);
+                if (!gameState.settings.predatorsEnabled) {
+                    // Peaceful mode: grazes instead of hunting Suubas (recovers enough to offset drain)
+                    this.hunger = Math.max(0, this.hunger - 5.5 * deltaTime);
+                    this.energy = Math.min(this.maxStats, this.energy + 6 * deltaTime);
+                }
+                this.thirst = Math.min(this.maxStats, this.thirst + 2.8 * deltaTime * seasonThirstMultiplier());
+                if (this.eatCooldown > 0) this.eatCooldown -= deltaTime;
+
+                // Energy drains faster the hungrier/thirstier they are — starvation spiral
+                const drainFactor = 1 + (this.hunger / this.maxStats) * 1.3 + (this.thirst / this.maxStats) * 1.6;
+                this.energy = Math.max(0, this.energy - 4 * deltaTime * drainFactor);
+
+                // Winter freezing (hiding inside shelter keeps them warm)
+                updateCold(this, deltaTime, 8 * (8.5 / this.genes.size));
+
+                // Survival priorities (gene-scaled — slow ones must react earlier)
+                const thirstTh = seekThreshold(this.genes.speed, this.maxStats * 0.6);
+                const hungerTh = seekThreshold(this.genes.speed, this.maxStats * 0.55);
+                const desperateThirst = this.thirst > thirstTh;
+                const desperateHunger = this.hunger > hungerTh;
+
+                // ── Drink when thirsty (Siibas head to the sea to drink) ──
+                if (desperateThirst && gameState.marinePoints && gameState.marinePoints.length) {
+                    const p = nearestMarinePoint(this.x, this.y);
+                    if (p) {
+                        const dx = p.x - this.x, dy = p.y - this.y;
+                        const d = Math.sqrt(dx * dx + dy * dy) || 1e-6;
+                        this.vx = lerp(this.vx, dx / d, 0.45);
+                        this.vy = lerp(this.vy, dy / d, 0.45);
+                        if (atWaterEdge(this, this.radius + 14)) {
+                            this.thirst = Math.max(0, this.thirst - 70);
+                            this.energy = Math.min(this.maxStats, this.energy + 12);
+                            spawnParticles(this.x, this.y, '#7fc6ff', 4, 1.0);
+                        }
+                        // Still move this frame toward water (can't enter it), then bail out of rest of AI
+                        const vlen0 = Math.sqrt(this.vx * this.vx + this.vy * this.vy) || 1e-6;
+                        if (vlen0 > 2.2) { this.vx *= 2.2 / vlen0; this.vy *= 2.2 / vlen0; }
+                        moveLand(this, deltaTime, 1);
+                        return;
+                    }
+                }
+
+                // At night, retreat into a bush or tree where predators can't reach
+                const night = getDayPhase() === 'Night';
+                if (night && !desperateHunger && !desperateThirst) {
+                    const sh = nearestShelter(this.x, this.y);
+                    if (sh) {
+                        const dx = sh.x - this.x; const dy = sh.y - this.y;
+                        const d = Math.sqrt(dx * dx + dy * dy) || 1e-6;
+                        this.hidden = d < sh.r;
+                        if (!this.hidden) {
+                            this.vx = lerp(this.vx, dx / d, 0.5);
+                            this.vy = lerp(this.vy, dy / d, 0.5);
+                            moveLand(this, deltaTime, 1.1);
+                        } else {
+                            this.vx *= 0.9; this.vy *= 0.9;
+                            moveLand(this, deltaTime, 0.2 / (this.speed || 1));
+                            this.energy = Math.min(this.maxStats, this.energy + 3 * deltaTime);
+                        }
+                        return;
+                    }
+                }
+                this.hidden = false;
+
+                // Flee nearby Seepas first (they eat Siibas!) — but not if starving
+                let fleeing = false;
+                if (gameState.seepas && gameState.seepas.length > 0 && !desperateHunger) {
+                    let danger = null; let dBest = Infinity;
+                    for (const s of gameState.seepas) {
+                        const d2 = distanceSq(this.x, this.y, s.x, s.y);
+                        if (d2 < dBest) { dBest = d2; danger = s; }
+                    }
+                    if (danger && dBest < 60 * 60) {
+                        const d = Math.sqrt(dBest) || 1e-6;
+                        this.vx = lerp(this.vx, (this.x - danger.x) / d, 0.5);
+                        this.vy = lerp(this.vy, (this.y - danger.y) / d, 0.5);
+                        fleeing = true;
+                    }
+                }
+
+                if (!fleeing) {
+                    let target = null; let bestD = Infinity;
+                    if (gameState.settings.predatorsEnabled && gameState.suubas && gameState.suubas.length > 0) {
+                        for (const s of gameState.suubas) {
+                            const dx = s.x - this.x, dy = s.y - this.y;
+                            const d2 = dx * dx + dy * dy;
+                            if (d2 < bestD) { bestD = d2; target = s; }
+                        }
+                    }
+                    // Hungry Siibas hunt much more aggressively (wider sight, lower bar)
+                    const seeRange = desperateHunger ? 260 : 120;
+                    const needFood = this.hunger > hungerTh * 0.7;
+                    if (target && (needFood || bestD < seeRange * seeRange)) {
+                        const d = Math.sqrt(bestD) || 1e-6;
+                        this.vx = lerp(this.vx, (target.x - this.x) / d, 0.45);
+                        this.vy = lerp(this.vy, (target.y - this.y) / d, 0.45);
+                        // Can attack whenever hungry (not just under 25%) so they can actually feed
+                        if (d < this.radius + target.radius + 8 && this.eatCooldown <= 0 && this.hunger > 30) {
+                            const idx = gameState.suubas.indexOf(target);
+                            if (idx !== -1) {
+                                target.energy = Math.max(0, target.energy - 90);
+                                this.energy = Math.min(this.maxStats, this.energy + 40);
+                                this.hunger = Math.max(0, this.hunger - 50);
+                                this.eatCooldown = 1.4;
+                                spawnParticles(target.x, target.y, '#ff6b6b', 6, 1.6);
+                                if (target.energy <= 0) {
+                                    if (gameState.inspected && gameState.inspected.ref === target) gameState.inspected = null;
+                                    gameState.suubas.splice(idx, 1);
+                                    spawnParticles(target.x, target.y, '#8a2f2f', 14, 2.4);
+                                    this.energy = Math.min(this.maxStats, this.energy + 80);
+                                    this.hunger = Math.max(0, this.hunger - 80);
+                                    this.thirst = Math.max(0, this.thirst - 10);
+                                    this.radius = Math.min(14, this.radius + 0.6);
+                                    this.maxStats = Math.min(320, this.maxStats + 8);
+                                }
+                            }
+                        }
+                    } else {
+                        // Healthy and ready to breed? Actively seek the nearest eligible mate.
+                        const ready = this.age > 16 && this.energy > 55 &&
+                            this.hunger < this.maxStats * 0.7 && this.thirst < this.maxStats * 0.7 &&
+                            (gameState.time - (this.lastReproduction || -Infinity)) > 18000;
+                        let mate = null, mBest = Infinity;
+                        if (ready) {
+                            for (const o of gameState.siibas) {
+                                if (o === this || o.sex === this.sex || o.age < 16) continue;
+                                if (o.energy < 45 || o.hunger > o.maxStats * 0.7) continue;
+                                const d2 = distanceSq(this.x, this.y, o.x, o.y);
+                                if (d2 < mBest) { mBest = d2; mate = o; }
+                            }
+                        }
+                        if (mate) {
+                            const d = Math.sqrt(mBest) || 1e-6;
+                            this.vx = lerp(this.vx, (mate.x - this.x) / d, 0.3);
+                            this.vy = lerp(this.vy, (mate.y - this.y) / d, 0.3);
+                        } else {
+                            this.vx += (Math.random() - 0.5) * 0.06;
+                            this.vy += (Math.random() - 0.5) * 0.06;
+                        }
+                    }
+                }
+
+                // ── Reproduction — checked every frame when healthy enough ──
+                // (Previously gated behind energy>110 which was impossible to sustain.)
+                if (this.age > 16 && this.energy > 55 &&
+                    this.hunger < this.maxStats * 0.7 && this.thirst < this.maxStats * 0.7 &&
+                    gameState.siibas.length < popCap('siiba') &&
+                    (gameState.time - (this.lastReproduction || -Infinity)) > 18000) {
+                    for (const other of gameState.siibas || []) {
+                        if (other === this) continue;
+                        if (other.sex === this.sex) continue;
+                        if (other.age < 16) continue;
+                        if ((gameState.time - (other.lastReproduction || -Infinity)) <= 18000) continue;
+                        if (other.energy < 45 || other.hunger > other.maxStats * 0.7) continue;
+                        const d2 = distanceSq(this.x, this.y, other.x, other.y);
+                        if (d2 < 1600) { // within ~40px
+                            const bx = (this.x + other.x) / 2 + (Math.random() - 0.5) * 6;
+                            const by = (this.y + other.y) / 2 + (Math.random() - 0.5) * 6;
+                            const childGenes = inheritGenes(this.genes, other.genes, GENE_RANGES.siiba);
+                            const childGen = Math.max(this.generation, other.generation) + 1;
+                            const baby = new Siiba(bx, by, childGenes, childGen);
+                            baby.age = 0; baby.energy = 90; baby.hunger = 10; baby.thirst = 10;
+                            gameState.siibas.push(baby);
+                            spawnParticles(bx, by, '#ffd2d9', 8, 1.4);
+                            this.energy -= 28; other.energy -= 28;
+                            this.lastReproduction = gameState.time; other.lastReproduction = gameState.time;
+                            break;
+                        }
+                    }
+                }
+
+                const fleeMul = fleeing ? 1.3 : 1;
+                const vlen = Math.sqrt(this.vx * this.vx + this.vy * this.vy) || 1e-6;
+                if (vlen > 2.2) { this.vx *= 2.2 / vlen; this.vy *= 2.2 / vlen; }
+                moveLand(this, deltaTime, fleeMul);
+            }
+
+            // Dies from: starvation, dehydration, energy collapse, old age, or freezing
+            isAlive() {
+                return this.energy > 0 && this.age < this.lifeSpan &&
+                       this.hunger < this.maxStats && this.thirst < this.maxStats && this.cold < 100;
+            }
+
+            draw() {
+                // Hidden Siibas show only as a faint rustle inside their shelter
+                if (this.hidden) {
+                    ctx.save();
+                    ctx.globalAlpha = 0.35;
+                    ctx.fillStyle = '#ffb9c4';
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.radius * 0.5, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.globalAlpha = 1;
+                    ctx.restore();
+                    return;
+                }
+
+                ctx.save(); ctx.translate(this.x, this.y);
+                const r = this.radius;
+                const angle = Math.atan2(this.vy, this.vx);
+                ctx.rotate(angle * 0.1);
+
+                // Soft ground shadow
+                ctx.fillStyle = 'rgba(0,0,0,0.16)';
+                ctx.beginPath();
+                ctx.ellipse(0, r * 0.85, r * 1.05, r * 0.4, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Bushy tail behind the body
+                const tailG = ctx.createLinearGradient(-r * 1.7, 0, -r * 0.6, 0);
+                tailG.addColorStop(0, '#ff8fa6');
+                tailG.addColorStop(1, '#ffc2cd');
+                ctx.fillStyle = tailG;
+                ctx.beginPath();
+                ctx.ellipse(-r * 1.15, r * 0.15, r * 0.62, r * 0.4, -0.5, 0, Math.PI * 2);
+                ctx.fill();
+                // White tail tip
+                ctx.fillStyle = '#fff6f8';
+                ctx.beginPath();
+                ctx.arc(-r * 1.6, r * 0.02, r * 0.26, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Tufted ears (outer + inner)
+                const earOut = '#ff9fb3';
+                const earIn = '#c96b7d';
+                for (const side of [-1, 1]) {
+                    ctx.fillStyle = earOut;
+                    ctx.beginPath();
+                    ctx.moveTo(side * r * 0.5, -r * 0.55);
+                    ctx.lineTo(side * r * 0.95, -r * 1.25);
+                    ctx.lineTo(side * r * 0.15, -r * 0.85);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.fillStyle = earIn;
+                    ctx.beginPath();
+                    ctx.moveTo(side * r * 0.52, -r * 0.62);
+                    ctx.lineTo(side * r * 0.78, -r * 1.05);
+                    ctx.lineTo(side * r * 0.32, -r * 0.82);
+                    ctx.closePath();
+                    ctx.fill();
+                }
+
+                // Body
+                const g = ctx.createRadialGradient(-r * 0.3, -r * 0.4, 1, 0, 0, r * 1.4);
+                g.addColorStop(0, '#fff4f0');
+                g.addColorStop(0.55, '#ffc6d0');
+                g.addColorStop(1, '#f47e96');
+                ctx.fillStyle = g;
+                ctx.beginPath();
+                ctx.ellipse(0, 0, r * 1.05, r, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Pale cheek/snout area
+                ctx.fillStyle = 'rgba(255, 250, 250, 0.85)';
+                ctx.beginPath();
+                ctx.ellipse(r * 0.5, r * 0.12, r * 0.55, r * 0.45, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Pointed snout
+                ctx.fillStyle = '#f9a8b8';
+                ctx.beginPath();
+                ctx.moveTo(r * 0.85, -r * 0.12);
+                ctx.lineTo(r * 1.4, r * 0.1);
+                ctx.lineTo(r * 0.85, r * 0.32);
+                ctx.closePath();
+                ctx.fill();
+                // Nose
+                ctx.fillStyle = '#5a2330';
+                ctx.beginPath();
+                ctx.arc(r * 1.36, r * 0.1, r * 0.12, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Eyes (almond, alert)
+                for (const ey of [-1, 1]) {
+                    const eyY = -r * 0.12 + ey * r * 0.28;
+                    ctx.fillStyle = '#fffaf5';
+                    ctx.beginPath();
+                    ctx.ellipse(r * 0.32, eyY, r * 0.2, r * 0.16, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = '#241015';
+                    ctx.beginPath();
+                    ctx.arc(r * 0.38, eyY, r * 0.1, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // Icy tint when freezing
+                if (this.cold > 25) {
+                    ctx.globalAlpha = Math.min(0.5, (this.cold - 25) / 120);
+                    ctx.fillStyle = '#bfe6ff';
+                    ctx.beginPath();
+                    ctx.ellipse(0, 0, r * 1.05, r, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.globalAlpha = 1;
+                }
+
+                ctx.restore();
+
+                // Status bars
+                const barW = Math.max(20, r * 2.0);
+                const barX = this.x - barW / 2;
+                const ageY = this.y - r - 12;
+                if (gameState.settings.agingEnabled) {
+                    const ageFrac = Math.max(0, Math.min(1, this.age / this.lifeSpan));
+                    ctx.fillStyle = 'rgba(0,0,0,0.22)'; ctx.fillRect(barX, ageY, barW, 5);
+                    const ageGrad = ctx.createLinearGradient(barX, 0, barX + barW, 0);
+                    ageGrad.addColorStop(0, '#7bed9f'); ageGrad.addColorStop(1, '#ff6b6b');
+                    ctx.fillStyle = ageGrad; ctx.fillRect(barX, ageY, barW * ageFrac, 5);
+                }
+
+                const hydY = this.y + r + 6;
+                const hunY = hydY + 7;
+                ctx.fillStyle = 'rgba(0,0,0,0.22)'; ctx.fillRect(barX, hydY, barW, 5);
+                ctx.fillStyle = 'rgba(0,0,0,0.22)'; ctx.fillRect(barX, hunY, barW, 5);
+                const hydFrac = Math.max(0, 1 - (this.thirst / this.maxStats));
+                const hunFrac = Math.max(0, 1 - (this.hunger / this.maxStats));
+                ctx.fillStyle = '#4aa6ff'; ctx.fillRect(barX, hydY, barW * hydFrac, 5);
+                ctx.fillStyle = '#4ad94a'; ctx.fillRect(barX, hunY, barW * hunFrac, 5);
+            }
+        }
+
+        // ---------- Fish (marine prey species — eats coral, lives in the sea) ----------
+        function isMarine(x, y) { return biomeAt(x, y) === 'marine'; }
+
+        // Precompute a scattered set of marine sample points so thirsty land animals
+        // can find the nearest sea to drink from.
+        function buildMarinePoints() {
+            const pts = [];
+            const step = 46;
+            for (let y = step / 2; y < canvas.height; y += step) {
+                for (let x = step / 2; x < canvas.width; x += step) {
+                    if (isMarine(x, y)) pts.push({ x, y });
+                }
+            }
+            gameState.marinePoints = pts;
+        }
+
+        function nearestMarinePoint(x, y) {
+            const pts = gameState.marinePoints;
+            if (!pts || pts.length === 0) return null;
+            let best = null, bestD = Infinity;
+            for (const p of pts) {
+                const d2 = distanceSq(p.x, p.y, x, y);
+                if (d2 < bestD) { bestD = d2; best = p; }
+            }
+            return best;
+        }
+
+        // True if open sea is within reach of this creature (so it can drink at the shore)
+        function atWaterEdge(o, reach) {
+            const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1], [0.7, 0.7], [-0.7, 0.7], [0.7, -0.7], [-0.7, -0.7]];
+            for (const [dx, dy] of dirs) {
+                if (isMarine(o.x + dx * reach, o.y + dy * reach)) return true;
+            }
+            return false;
+        }
+
+        // Commit a movement step for a land creature, bouncing off the sea (can't enter water)
+        function moveLand(o, dt, mult) {
+            mult = (mult === undefined) ? 1 : mult;
+            const stepX = o.vx * o.speed * dt * 60 * mult;
+            const stepY = o.vy * o.speed * dt * 60 * mult;
+            const nx = o.x + stepX, ny = o.y + stepY;
+            if (!isMarine(nx, ny)) { o.x = nx; o.y = ny; }
+            else if (!isMarine(o.x, ny)) { o.vx *= -1; o.y = ny; }      // slide along shore vertically
+            else if (!isMarine(nx, o.y)) { o.vy *= -1; o.x = nx; }      // slide along shore horizontally
+            else { o.vx *= -1; o.vy *= -1; }                            // cornered — turn back
+            o.x = Math.max(o.radius, Math.min(canvas.width - o.radius, o.x));
+            o.y = Math.max(o.radius, Math.min(canvas.height - o.radius, o.y));
+        }
+
+        class Fish {
+            constructor(x, y, genes, generation) {
+                this.x = x; this.y = y;
+                this.genes = genes || makeFishGenes();
+                this.generation = generation || 1;
+                this.radius = this.genes.size;
+                this.speed = this.genes.speed;
+                this.vx = (Math.random() - 0.5) * 2;
+                this.vy = (Math.random() - 0.5) * 2;
+                this.sex = Math.random() < 0.5 ? 'male' : 'female';
+                this.age = Math.random() * 40;
+                this.lifeSpan = 130;
+                this.hunger = Math.random() * 40;
+                this.thirst = 0;            // lives in water
+                this.cold = 0;
+                this.maxStats = 100;
+                this.lastReproduction = -Infinity;
+                this.wiggle = Math.random() * Math.PI * 2;
+            }
+
+            update(deltaTime, gameState) {
+                const dt = deltaTime / 1000;
+                if (gameState.settings.agingEnabled) this.age += dt;
+                this.hunger = Math.min(this.maxStats, this.hunger + 2.2 * dt);
+                this.wiggle += dt * 8;
+
+                // Seek nearest coral with food when hungry
+                const hungry = this.hunger > seekThreshold(this.genes.speed, 55);
+                let target = null, bestD = Infinity;
+                if (hungry && gameState.corals) {
+                    for (const c of gameState.corals) {
+                        if (!c.fruits || !c.fruits.some(f => f.available)) continue;
+                        const d2 = distanceSq(c.x, c.y, this.x, this.y);
+                        if (d2 < bestD) { bestD = d2; target = c; }
+                    }
+                }
+                if (target) {
+                    const d = Math.sqrt(bestD) || 1e-6;
+                    this.vx = lerp(this.vx, (target.x - this.x) / d, 0.4);
+                    this.vy = lerp(this.vy, (target.y - this.y) / d, 0.4);
+                    if (d < target.radius + this.radius + 4) {
+                        for (const f of target.fruits) {
+                            if (f.available) { f.available = false; f.eatTime = gameState.time; this.hunger = Math.max(0, this.hunger - 45); spawnParticles(this.x, this.y, target.color || '#ff9d5c', 5, 1.0); break; }
+                        }
+                    }
+                } else {
+                    // Wander, and seek a mate if ready
+                    const ready = this.age > 14 && this.hunger < this.maxStats * 0.7 &&
+                        (gameState.time - (this.lastReproduction || -Infinity)) > 16000 &&
+                        gameState.fish.length < popCap('fish');
+                    let mate = null, mBest = Infinity;
+                    if (ready) {
+                        for (const o of gameState.fish) {
+                            if (o === this || o.sex === this.sex || o.age < 14) continue;
+                            if (o.hunger > o.maxStats * 0.7) continue;
+                            const d2 = distanceSq(this.x, this.y, o.x, o.y);
+                            if (d2 < mBest) { mBest = d2; mate = o; }
+                        }
+                    }
+                    if (mate) {
+                        const d = Math.sqrt(mBest) || 1e-6;
+                        this.vx = lerp(this.vx, (mate.x - this.x) / d, 0.3);
+                        this.vy = lerp(this.vy, (mate.y - this.y) / d, 0.3);
+                        if (d < this.radius + mate.radius + 6) {
+                            const childGenes = inheritGenes(this.genes, mate.genes, GENE_RANGES.fish);
+                            const baby = new Fish(this.x, this.y, childGenes, Math.max(this.generation, mate.generation) + 1);
+                            baby.age = 0; baby.hunger = 10;
+                            gameState.fish.push(baby);
+                            spawnParticles(this.x, this.y, '#aef0ff', 6, 1.2);
+                            this.lastReproduction = gameState.time; mate.lastReproduction = gameState.time;
+                        }
+                    } else {
+                        this.vx += (Math.random() - 0.5) * 0.08;
+                        this.vy += (Math.random() - 0.5) * 0.08;
+                    }
+                }
+
+                // Move, but stay in the sea — reflect off non-marine cells
+                const vlen = Math.sqrt(this.vx * this.vx + this.vy * this.vy) || 1e-6;
+                if (vlen > 2.4) { this.vx *= 2.4 / vlen; this.vy *= 2.4 / vlen; }
+                let nx = this.x + this.vx * this.speed * dt * 60;
+                let ny = this.y + this.vy * this.speed * dt * 60;
+                if (isMarine(nx, ny)) {
+                    this.x = nx; this.y = ny;
+                } else if (isMarine(this.x - this.vx, ny)) {
+                    this.vx *= -1; this.y = ny; this.x += this.vx * this.speed * dt * 60;
+                } else if (isMarine(nx, this.y - this.vy)) {
+                    this.vy *= -1; this.x = nx; this.y += this.vy * this.speed * dt * 60;
+                } else {
+                    this.vx *= -1; this.vy *= -1; // turn back toward open water
+                }
+                this.x = Math.max(this.radius, Math.min(canvas.width - this.radius, this.x));
+                this.y = Math.max(this.radius, Math.min(canvas.height - this.radius, this.y));
+            }
+
+            isAlive() {
+                if (this.hunger >= this.maxStats) return false;
+                if (gameState.settings.agingEnabled && this.age >= this.lifeSpan) return false;
+                return true;
+            }
+
+            draw() {
+                const r = this.radius;
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(Math.atan2(this.vy, this.vx));
+                const tailFlick = Math.sin(this.wiggle) * 0.4;
+
+                // Tail
+                ctx.fillStyle = '#e8923a';
+                ctx.beginPath();
+                ctx.moveTo(-r * 1.0, 0);
+                ctx.lineTo(-r * 1.8, -r * 0.7 + tailFlick * r);
+                ctx.lineTo(-r * 1.8, r * 0.7 + tailFlick * r);
+                ctx.closePath();
+                ctx.fill();
+
+                // Body
+                const g = ctx.createLinearGradient(0, -r, 0, r);
+                g.addColorStop(0, '#ffd36b');
+                g.addColorStop(0.5, '#ff9b33');
+                g.addColorStop(1, '#e0701a');
+                ctx.fillStyle = g;
+                ctx.beginPath();
+                ctx.ellipse(0, 0, r * 1.25, r * 0.75, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Top fin
+                ctx.fillStyle = '#e8923a';
+                ctx.beginPath();
+                ctx.moveTo(-r * 0.2, -r * 0.7);
+                ctx.quadraticCurveTo(0, -r * 1.3, r * 0.4, -r * 0.6);
+                ctx.closePath();
+                ctx.fill();
+
+                // Stripe
+                ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = 1.4;
+                ctx.beginPath(); ctx.moveTo(0, -r * 0.5); ctx.lineTo(0, r * 0.5); ctx.stroke();
+
+                // Eye
+                ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(r * 0.7, -r * 0.12, r * 0.26, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = '#10243a'; ctx.beginPath(); ctx.arc(r * 0.76, -r * 0.12, r * 0.13, 0, Math.PI * 2); ctx.fill();
+
+                ctx.restore();
+
+                // Hunger + age bars (compact, above)
+                const barW = r * 2.2, bx = this.x - barW / 2;
+                const hf = Math.max(0, 1 - this.hunger / this.maxStats);
+                ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.fillRect(bx, this.y - r - 7, barW, 3);
+                ctx.fillStyle = '#4ad94a'; ctx.fillRect(bx, this.y - r - 7, barW * hf, 3);
+                if (gameState.settings.agingEnabled) {
+                    const af = Math.min(1, this.age / this.lifeSpan);
+                    ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.fillRect(bx, this.y - r - 11, barW, 3);
+                    ctx.fillStyle = '#ffd84d'; ctx.fillRect(bx, this.y - r - 11, barW * af, 3);
+                }
+            }
+        }
+
+        // ---------- Helpers ----------
+        function randomBetween(min, max) { return min + Math.random() * (max - min); }
+
+        function distanceSq(x1, y1, x2, y2) {
+            const dx = x1 - x2; const dy = y1 - y2;
+            return dx * dx + dy * dy;
+        }
+
+        function getDayTime() {
+            const cycle = gameState.time % gameState.dayDuration;
+            return (cycle / gameState.dayDuration) * 24;
+        }
+
+        function getSeasonIndex() {
+            const seasonCycle = gameState.time % (gameState.seasonDuration * gameState.seasonNames.length);
+            return Math.floor(seasonCycle / gameState.seasonDuration);
+        }
+
+        function getSeasonName() { return gameState.seasonNames[getSeasonIndex()]; }
+
+        function getSeasonProgress() {
+            const seasonCycle = gameState.time % (gameState.seasonDuration * gameState.seasonNames.length);
+            return (seasonCycle % gameState.seasonDuration) / gameState.seasonDuration;
+        }
+
+        // Food regrows slower in cold seasons, faster in summer
+        // Summer heatwave: creatures dehydrate faster, so water becomes critical.
+        function seasonThirstMultiplier() {
+            return getSeasonName() === 'Summer' ? 1.7 : 1.0;
+        }
+
+        function seasonRegrowMultiplier() {
+            switch (getSeasonName()) {
+                case 'Summer': return 0.7;
+                case 'Autumn': return 0.45;  // harvest season — food regrows fast and plentiful
+                case 'Winter': return 4.5;   // harsh scarcity — food regrows very slowly
+                default: return 1;
+            }
+        }
+
+        function formatClock(hour) {
+            const h = Math.floor(hour) % 24;
+            const m = Math.floor((hour - Math.floor(hour)) * 60);
+            return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+        }
+
+        function getDayPhase() {
+            const hour = getDayTime();
+            if (hour < 6) return 'Night';
+            if (hour < 10) return 'Dawn';
+            if (hour < 16) return 'Day';
+            if (hour < 20) return 'Dusk';
+            return 'Night';
+        }
+
+        function isFlockingTime() {
+            if (!gameState.settings.flockingEnabled) return false;
+            return getSeasonName() === 'Spring';
+        }
+
+        function lerp(a, b, t) { return a + (b - a) * t; }
+        function fade(t) { return t * t * t * (t * (t * 6 - 15) + 10); }
+
+        function hash2D(x, y) {
+            const sinSeed = Math.sin(x * 127.1 + y * 311.7 + noiseSeed * 13.13) * 43758.5453;
+            return sinSeed - Math.floor(sinSeed);
+        }
+
+        function noise2D(x, y) {
+            const x0 = Math.floor(x); const y0 = Math.floor(y);
+            const xf = x - x0; const yf = y - y0;
+            const v00 = hash2D(x0, y0); const v10 = hash2D(x0 + 1, y0);
+            const v01 = hash2D(x0, y0 + 1); const v11 = hash2D(x0 + 1, y0 + 1);
+            const u = fade(xf); const v = fade(yf);
+            const nx0 = lerp(v00, v10, u); const nx1 = lerp(v01, v11, u);
+            return lerp(nx0, nx1, v);
+        }
+
+        function fractalNoise(x, y, octaves = 4, persistence = 0.55, baseFrequency = 0.006) {
+            let amplitude = 1; let frequency = baseFrequency;
+            let sum = 0; let max = 0;
+            for (let i = 0; i < octaves; i++) {
+                sum += noise2D(x * frequency, y * frequency) * amplitude;
+                max += amplitude;
+                amplitude *= persistence;
+                frequency *= 2;
+            }
+            return sum / max;
+        }
+
+        // ---------- Biomes ----------
+        // Low-frequency noise carves the map into large contiguous regions,
+        // each with its own terrain colour and its own food source.
+        function biomeAt(x, y) {
+            // Elevation carves out oceans; temperature + moisture place the land biomes
+            // (cold→tundra/taiga, temperate→grassland/forest/wetland, hot→desert/savanna/swamp).
+            const e = fractalNoise(x + 9000, y + 1500, 3, 0.5, 0.0019);
+            if (e < 0.35) return 'marine';
+            const t = fractalNoise(x + 3000, y + 7000, 3, 0.5, 0.0024); // temperature
+            const m = fractalNoise(x - 5000, y - 3000, 3, 0.5, 0.0024); // moisture
+            if (t < 0.42) return m < 0.45 ? 'tundra' : 'taiga';
+            if (t < 0.62) return m < 0.34 ? 'grassland' : (m < 0.60 ? 'forest' : 'wetland');
+            return m < 0.34 ? 'desert' : (m < 0.60 ? 'savanna' : 'swamp');
+        }
+
+        // ---------- No-overlap placement ----------
+        // Returns a point at least (spacingR + each placed item's spacingR) away
+        // from everything already placed. Prefers a biome if given, else anywhere.
+        function placeSpot(spacingR, margin, placed, biomePref, tries) {
+            tries = tries || 50;
+            const W = canvas.width, H = canvas.height;
+            let fallback = null;
+            for (let t = 0; t < tries; t++) {
+                const x = randomBetween(margin, W - margin);
+                const y = randomBetween(margin, H - margin);
+                let ok = true;
+                for (const p of placed) {
+                    const minD = spacingR + p.spacingR;
+                    if (distanceSq(x, y, p.x, p.y) < minD * minD) { ok = false; break; }
+                }
+                if (!ok) continue;
+                if (!biomePref) return { x, y };
+                if (biomeAt(x, y) === biomePref) return { x, y };
+                if (!fallback) fallback = { x, y };
+            }
+            return fallback;
+        }
+
+        // ---------- Food makers (kind drives how they're drawn & where they grow) ----------
+        function makeBush(x, y) {
+            const cap = Math.floor(Math.random() * 5) + 3;
+            return { x, y, radius: 36 + Math.random() * 8, kind: 'bush', maxFruits: cap, fruits: createFruits(cap) };
+        }
+        function makeCactus(x, y) {
+            const cap = 2 + Math.floor(Math.random() * 3);
+            return { x, y, radius: 24 + Math.random() * 8, kind: 'cactus', maxFruits: cap, fruits: createFruits(cap) };
+        }
+        function makeAppleTree(x, y) {
+            const fr = 26 + Math.random() * 10;
+            return { x, y, kind: 'apple', trunkHeight: 38 + Math.random() * 16, foliageRadius: fr, apples: createTreeApples(3 + Math.floor(Math.random() * 3), fr) };
+        }
+        function makePine(x, y) {
+            const fr = 26 + Math.random() * 10;
+            return { x, y, kind: 'pine', trunkHeight: 44 + Math.random() * 18, foliageRadius: fr, apples: createTreeApples(2 + Math.floor(Math.random() * 3), fr) };
+        }
+        function makeLichen(x, y) {
+            // Tundra — sparse, low ground lichen with a couple of berries
+            const cap = 1 + Math.floor(Math.random() * 2);
+            return { x, y, radius: 22 + Math.random() * 6, kind: 'lichen', maxFruits: cap, fruits: createFruits(cap) };
+        }
+        function makeMushroom(x, y) {
+            // Swamp — mushroom clusters
+            const cap = 2 + Math.floor(Math.random() * 3);
+            return { x, y, radius: 26 + Math.random() * 8, kind: 'mushroom', maxFruits: cap, fruits: createFruits(cap) };
+        }
+        function makeAcacia(x, y) {
+            // Savanna — flat-topped acacia tree
+            const fr = 30 + Math.random() * 12;
+            return { x, y, kind: 'acacia', trunkHeight: 40 + Math.random() * 14, foliageRadius: fr, apples: createTreeApples(3 + Math.floor(Math.random() * 3), fr) };
+        }
+        function makeSpruce(x, y) {
+            // Taiga — tall blue-green spruce
+            const fr = 24 + Math.random() * 10;
+            return { x, y, kind: 'spruce', trunkHeight: 50 + Math.random() * 20, foliageRadius: fr, apples: createTreeApples(2 + Math.floor(Math.random() * 3), fr) };
+        }
+        function makeCoral(x, y) {
+            // Marine — coral the fish feed on (lives in gameState.corals, not eaten by land animals)
+            const cap = 3 + Math.floor(Math.random() * 4);
+            const hue = ['#ff7eb0', '#ff9d5c', '#c77dff', '#5ad1c8'][Math.floor(Math.random() * 4)];
+            return { x, y, radius: 20 + Math.random() * 12, kind: 'coral', color: hue, maxFruits: cap, fruits: createFruits(cap) };
+        }
+
+        // ---------- World generation (collision-free, biome-aware, scaled to map size) ----------
+        function generateWorld() {
+            const W = canvas.width, H = canvas.height;
+            const scale = (W * H) / (1200 * 800);
+            const placed = [];
+
+            // No ponds any more — creatures drink from the marine biomes (the sea).
+            gameState.ponds = [];
+
+            // Food — type depends on the biome the spot lands in
+            gameState.bushes = [];
+            gameState.trees = [];
+            gameState.corals = [];
+            const foodCount = Math.round(30 * scale);
+            for (let i = 0; i < foodCount; i++) {
+                const spot = placeSpot(42, 50, placed, null, 36);
+                if (!spot) continue;
+                const b = biomeAt(spot.x, spot.y);
+                let obj, spacingR;
+                if (b === 'desert') {
+                    obj = makeCactus(spot.x, spot.y); gameState.bushes.push(obj); spacingR = obj.radius + 18;
+                } else if (b === 'forest') {
+                    obj = makePine(spot.x, spot.y); gameState.trees.push(obj); spacingR = obj.foliageRadius + 20;
+                } else if (b === 'wetland') {
+                    obj = makeBush(spot.x, spot.y); gameState.bushes.push(obj); spacingR = obj.radius + 18;
+                } else if (b === 'tundra') {
+                    obj = makeLichen(spot.x, spot.y); gameState.bushes.push(obj); spacingR = obj.radius + 16;
+                } else if (b === 'swamp') {
+                    obj = makeMushroom(spot.x, spot.y); gameState.bushes.push(obj); spacingR = obj.radius + 18;
+                } else if (b === 'savanna') {
+                    obj = makeAcacia(spot.x, spot.y); gameState.trees.push(obj); spacingR = obj.foliageRadius + 22;
+                } else if (b === 'taiga') {
+                    if (Math.random() < 0.7) { obj = makeSpruce(spot.x, spot.y); gameState.trees.push(obj); spacingR = obj.foliageRadius + 20; }
+                    else { obj = makeBush(spot.x, spot.y); gameState.bushes.push(obj); spacingR = obj.radius + 18; }
+                } else if (b === 'marine') {
+                    obj = makeCoral(spot.x, spot.y); gameState.corals.push(obj); spacingR = obj.radius + 14;
+                } else { // grassland
+                    if (Math.random() < 0.5) { obj = makeAppleTree(spot.x, spot.y); gameState.trees.push(obj); spacingR = obj.foliageRadius + 20; }
+                    else { obj = makeBush(spot.x, spot.y); gameState.bushes.push(obj); spacingR = obj.radius + 18; }
+                }
+                placed.push({ x: spot.x, y: spot.y, spacingR });
+            }
+
+            // Guarantee a minimum amount of land food even on tiny maps
+            while (gameState.bushes.length + gameState.trees.length < 8) {
+                const spot = placeSpot(40, 56, placed, null, 40);
+                if (!spot) break;
+                const obj = makeBush(spot.x, spot.y);
+                gameState.bushes.push(obj);
+                placed.push({ x: spot.x, y: spot.y, spacingR: obj.radius + 18 });
+            }
+
+            // Dedicated coral pass — make sure the sea actually has food for fish
+            const coralTarget = Math.max(5, Math.round(14 * scale));
+            let coralTries = 0;
+            while (gameState.corals.length < coralTarget && coralTries < coralTarget * 30) {
+                coralTries++;
+                const spot = placeSpot(34, 30, placed, 'marine', 8);
+                if (!spot || !biomeAt(spot.x, spot.y)) continue;
+                if (biomeAt(spot.x, spot.y) !== 'marine') continue;
+                const obj = makeCoral(spot.x, spot.y);
+                gameState.corals.push(obj);
+                placed.push({ x: spot.x, y: spot.y, spacingR: obj.radius + 12 });
+            }
+        }
+
+        // ---------- View / device sizing ----------
+        function detectDevice() {
+            const w = window.innerWidth;
+            if (w < 700) return 'mobilePortrait';
+            if (w < 1100) return 'tablet';
+            return 'desktop';
+        }
+
+        function viewDimensions(mode) {
+            switch (mode) {
+                case 'desktop': return { w: 1600, h: 1080 };
+                case 'tablet': return { w: 1024, h: 768 };   // 4:3
+                case 'mobilePortrait': return { w: 720, h: 960 }; // 3:4
+                case 'mobile43': return { w: 800, h: 600 };   // 4:3
+                default: return { w: 1600, h: 1080 };
+            }
+        }
+
+        function applyView(mode) {
+            const resolved = (mode === 'auto') ? detectDevice() : mode;
+            const dim = viewDimensions(resolved);
+            canvas.width = dim.w;
+            canvas.height = dim.h;
+            backgroundCanvas.width = dim.w;
+            backgroundCanvas.height = dim.h;
+            gameState.settings.currentView = mode;
+        }
+
+        // ---------- Init ----------
+        function init() {
+            noiseSeed = Math.random() * 1000;
+            gameState.seepas = [];
+            gameState.particles = [];
+            gameState.popHistory = [];
+            gameState.lastSample = 0;
+            gameState.lastRescue = 0;
+            gameState.lastSeason = null;
+            gameState.inspected = null;
+            gameState.weather = { type: null, drops: [] };
+            gameState.time = gameState.dayDuration * (8 / 24); // start 8:00 AM
+
+            generateWorld();
+            buildMarinePoints();
+
+            for (let i = 0; i < gameState.settings.seepaSpawn; i++) {
+                gameState.seepas.push(new Seepa(Math.random() * canvas.width, Math.random() * canvas.height));
+            }
+            createSpringFlocks();
+
+            gameState.suubas = [];
+            for (let i = 0; i < gameState.settings.suubaSpawn; i++) {
+                gameState.suubas.push(new Suuba(randomBetween(60, canvas.width - 60), randomBetween(60, canvas.height - 60)));
+            }
+            gameState.siibas = [];
+            for (let i = 0; i < gameState.settings.siibaSpawn; i++) {
+                gameState.siibas.push(new Siiba(randomBetween(40, canvas.width - 40), randomBetween(40, canvas.height - 40)));
+            }
+
+            // Fish spawn inside marine zones (find wet spots)
+            gameState.fish = [];
+            let attempts = 0;
+            while (gameState.fish.length < gameState.settings.fishSpawn && attempts < gameState.settings.fishSpawn * 40) {
+                attempts++;
+                const fx = randomBetween(20, canvas.width - 20);
+                const fy = randomBetween(20, canvas.height - 20);
+                if (isMarine(fx, fy)) gameState.fish.push(new Fish(fx, fy));
+            }
+
+            gameState.stars = createStars(80);
+            buildEnvironmentBackground();
+        }
+
+        // ---------- Background ----------
+        function buildEnvironmentBackground() {
+            const W = canvas.width, H = canvas.height;
+            bgCtx.fillStyle = '#1a3a1a';
+            bgCtx.fillRect(0, 0, W, H);
+
+            const step = 8;
+            for (let y = 0; y < H; y += step) {
+                for (let x = 0; x < W; x += step) {
+                    const b = biomeAt(x, y);
+                    const n = fractalNoise(x, y) * 1.4 - 0.2;
+                    let color;
+                    if (b === 'marine') {
+                        color = n < 0.3 ? '#10518a' : n < 0.55 ? '#0c4576' : n < 0.78 ? '#093a64' : '#072e50';
+                    } else if (b === 'desert') {
+                        color = n < 0.3 ? '#dcc086' : n < 0.55 ? '#cdaa6c' : n < 0.75 ? '#bf9a58' : '#aa863f';
+                    } else if (b === 'forest') {
+                        color = n < 0.2 ? '#1d3c1c' : n < 0.45 ? '#16311b' : n < 0.7 ? '#112814' : '#0c2110';
+                    } else if (b === 'wetland') {
+                        color = n < 0.3 ? '#254f3b' : n < 0.55 ? '#1d4231' : n < 0.75 ? '#173726' : '#123a31';
+                    } else if (b === 'tundra') {
+                        color = n < 0.3 ? '#d7e0e6' : n < 0.55 ? '#c2ccd2' : n < 0.78 ? '#aab6bd' : '#94a3ab';
+                    } else if (b === 'taiga') {
+                        color = n < 0.25 ? '#2b4636' : n < 0.5 ? '#24402f' : n < 0.75 ? '#1c3527' : '#162b20';
+                    } else if (b === 'savanna') {
+                        color = n < 0.3 ? '#cdb360' : n < 0.55 ? '#bda24f' : n < 0.78 ? '#a98e3f' : '#8f7733';
+                    } else if (b === 'swamp') {
+                        color = n < 0.3 ? '#3a4a2a' : n < 0.55 ? '#2f3f22' : n < 0.78 ? '#27331c' : '#1e2916';
+                    } else { // grassland
+                        color = n < 0.1 ? '#3d5b2d' : n < 0.35 ? '#2c4e20' : n < 0.65 ? '#1a3516' : '#143012';
+                    }
+
+                    // Sandy beach: land cells that sit next to the sea
+                    if (b !== 'marine') {
+                        const near = isMarine(x + 16, y) || isMarine(x - 16, y) || isMarine(x, y + 16) || isMarine(x, y - 16) ||
+                                     isMarine(x + 12, y + 12) || isMarine(x - 12, y - 12);
+                        if (near) {
+                            const closest = isMarine(x + 8, y) || isMarine(x - 8, y) || isMarine(x, y + 8) || isMarine(x, y - 8);
+                            color = closest ? '#d9c388' : '#cdb074'; // wet sand nearer the water
+                        }
+                    }
+
+                    bgCtx.fillStyle = color;
+                    bgCtx.fillRect(x, y, step, step);
+                }
+            }
+
+            // Biome ground detail — sand grit, fallen needles, marsh dots
+            const detailCount = Math.round(W * H / 7000);
+            for (let i = 0; i < detailCount; i++) {
+                const x = randomBetween(6, W - 6);
+                const y = randomBetween(6, H - 6);
+                const b = biomeAt(x, y);
+                if (b === 'desert') { bgCtx.fillStyle = 'rgba(120,95,50,0.5)'; bgCtx.fillRect(x, y, 2, 2); }
+                else if (b === 'forest') { bgCtx.fillStyle = 'rgba(60,40,20,0.45)'; bgCtx.fillRect(x, y, 2, 3); }
+                else if (b === 'wetland') {
+                    bgCtx.fillStyle = 'rgba(70,130,95,0.4)';
+                    bgCtx.beginPath(); bgCtx.arc(x, y, 1.5, 0, Math.PI * 2); bgCtx.fill();
+                }
+            }
+
+            // Rocks — mostly on dry ground, never in the marsh
+            const rockCount = Math.round(W * H / 70000) + 6;
+            for (let i = 0; i < rockCount; i++) {
+                const rx = randomBetween(30, W - 30);
+                const ry = randomBetween(30, H - 30);
+                if (biomeAt(rx, ry) === 'wetland' || biomeAt(rx, ry) === 'marine' || biomeAt(rx, ry) === 'swamp') continue;
+                const rr = 4 + Math.random() * 9;
+                const rg = bgCtx.createRadialGradient(rx - rr * 0.3, ry - rr * 0.3, 1, rx, ry, rr);
+                rg.addColorStop(0, '#9a9a92');
+                rg.addColorStop(0.6, '#6f6f68');
+                rg.addColorStop(1, '#4b4b45');
+                bgCtx.fillStyle = 'rgba(0,0,0,0.2)';
+                bgCtx.beginPath();
+                bgCtx.ellipse(rx + 1.5, ry + rr * 0.6, rr * 1.1, rr * 0.5, 0, 0, Math.PI * 2);
+                bgCtx.fill();
+                bgCtx.fillStyle = rg;
+                bgCtx.beginPath();
+                bgCtx.ellipse(rx, ry, rr, rr * 0.8, Math.random() * 0.6, 0, Math.PI * 2);
+                bgCtx.fill();
+            }
+
+        }
+
+        function drawAnimatedPondRipples() {
+            // Subtle moving shimmer over the sea, drawn at marine sample points
+            const pts = gameState.marinePoints;
+            if (!pts || pts.length === 0) return;
+            const t = gameState.time || 0;
+            ctx.save();
+            for (let i = 0; i < pts.length; i++) {
+                const p = pts[i];
+                const a = 0.06 + Math.abs(Math.sin(t / 600 + i * 1.3)) * 0.10;
+                ctx.strokeStyle = `rgba(200,235,255,${a.toFixed(3)})`;
+                ctx.lineWidth = 1.4;
+                const w = 18 + Math.sin(t / 500 + i) * 6;
+                const yy = p.y + Math.sin(t / 700 + i) * 3;
+                ctx.beginPath();
+                ctx.moveTo(p.x - w / 2, yy);
+                ctx.quadraticCurveTo(p.x, yy - 3, p.x + w / 2, yy);
+                ctx.stroke();
+            }
+            ctx.restore();
+        }
+
+        function drawSeasonTint() {
+            const season = getSeasonName();
+            let tint = 'rgba(0,0,0,0)';
+            if (season === 'Spring') tint = 'rgba(56, 213, 128, 0.08)';
+            if (season === 'Summer') tint = 'rgba(255, 184, 78, 0.08)';
+            if (season === 'Autumn') tint = 'rgba(255, 143, 92, 0.12)';
+            if (season === 'Winter') tint = 'rgba(116, 189, 255, 0.12)';
+            ctx.fillStyle = tint;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+
+        function drawDayNightOverlay() {
+            drawSeasonTint();
+            const phase = getDayPhase();
+            let alpha = 0;
+            if (phase === 'Night') alpha = 0.42;
+            else if (phase === 'Dusk' || phase === 'Dawn') alpha = 0.18;
+            if (alpha > 0) {
+                ctx.fillStyle = `rgba(4, 10, 35, ${alpha})`;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+            if (phase === 'Night') {
+                ctx.fillStyle = '#eef9ff';
+                for (const star of gameState.stars) {
+                    ctx.globalAlpha = star.alpha;
+                    ctx.beginPath();
+                    ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                ctx.globalAlpha = 1;
+            }
+        }
+
+        // ---------- Weather (snow in winter, rain in autumn) ----------
+        function updateWeather(deltaTime) {
+            const season = getSeasonName();
+            let type = null;
+            if (season === 'Winter') type = 'snow';
+            else if (season === 'Autumn') type = 'leaves';
+
+            const w = gameState.weather;
+            if (type !== w.type) {
+                w.type = type;
+                w.drops = [];
+                if (type) {
+                    const leafColors = ['#d9772f', '#c0431f', '#e0a52e', '#a8521a', '#b86b2a'];
+                    const n = type === 'snow' ? 130 : 90;
+                    for (let i = 0; i < n; i++) {
+                        w.drops.push({
+                            x: Math.random() * canvas.width,
+                            y: Math.random() * canvas.height,
+                            spd: type === 'snow' ? 18 + Math.random() * 35 : 30 + Math.random() * 45,
+                            phase: Math.random() * Math.PI * 2,
+                            size: type === 'snow' ? 1.2 + Math.random() * 2 : 4 + Math.random() * 4,
+                            rot: Math.random() * Math.PI * 2,
+                            rotSpd: (Math.random() - 0.5) * 3,
+                            sway: 18 + Math.random() * 28,
+                            color: leafColors[i % leafColors.length]
+                        });
+                    }
+                }
+            }
+            if (!w.type) return;
+            const dt = deltaTime / 1000;
+            for (const d of w.drops) {
+                d.y += d.spd * dt;
+                if (w.type === 'snow') {
+                    d.x += Math.sin(gameState.time / 700 + d.phase) * 18 * dt;
+                } else {
+                    // Leaves sway side to side and tumble as they fall
+                    d.x += Math.sin(gameState.time / 600 + d.phase) * d.sway * dt + 14 * dt;
+                    d.rot += d.rotSpd * dt;
+                }
+                if (d.y > canvas.height + 10) { d.y = -10; d.x = Math.random() * canvas.width; }
+                if (d.x > canvas.width + 10) d.x = -10;
+                if (d.x < -10) d.x = canvas.width + 10;
+            }
+        }
+
+        function drawWeather() {
+            const w = gameState.weather;
+            if (!w.type) return;
+            if (w.type === 'snow') {
+                ctx.fillStyle = 'rgba(240, 248, 255, 0.85)';
+                for (const d of w.drops) {
+                    ctx.globalAlpha = 0.5 + Math.sin(gameState.time / 500 + d.phase) * 0.25;
+                    ctx.beginPath();
+                    ctx.arc(d.x, d.y, d.size, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                ctx.globalAlpha = 1;
+            } else if (w.type === 'leaves') {
+                for (const d of w.drops) {
+                    ctx.save();
+                    ctx.translate(d.x, d.y);
+                    ctx.rotate(d.rot);
+                    ctx.globalAlpha = 0.85;
+                    ctx.fillStyle = d.color;
+                    // Simple leaf: two mirrored arcs meeting at a point
+                    const s = d.size;
+                    ctx.beginPath();
+                    ctx.moveTo(0, -s);
+                    ctx.quadraticCurveTo(s, 0, 0, s);
+                    ctx.quadraticCurveTo(-s, 0, 0, -s);
+                    ctx.fill();
+                    // Midrib
+                    ctx.globalAlpha = 0.5;
+                    ctx.strokeStyle = 'rgba(80,40,15,0.6)';
+                    ctx.lineWidth = 0.8;
+                    ctx.beginPath();
+                    ctx.moveTo(0, -s); ctx.lineTo(0, s);
+                    ctx.stroke();
+                    ctx.restore();
+                }
+                ctx.globalAlpha = 1;
+            }
+        }
+
+        // ---------- Population graph ----------
+        function samplePopulation() {
+            if (gameState.time - gameState.lastSample < 500) return;
+            gameState.lastSample = gameState.time;
+            gameState.popHistory.push({
+                se: gameState.seepas.length,
+                su: gameState.suubas.length,
+                si: gameState.siibas.length,
+                fi: (gameState.fish || []).length
+            });
+            if (gameState.popHistory.length > 240) gameState.popHistory.shift();
+        }
+
+        function drawGraph() {
+            if (!graphCtx) return;
+            const W = graphCanvas.width, H = graphCanvas.height;
+            graphCtx.clearRect(0, 0, W, H);
+            graphCtx.fillStyle = '#1c1c1c';
+            graphCtx.fillRect(0, 0, W, H);
+
+            const hist = gameState.popHistory;
+            if (hist.length < 2) {
+                graphCtx.fillStyle = '#666';
+                graphCtx.font = '11px Arial';
+                graphCtx.fillText('Gathering data...', 8, H / 2);
+                return;
+            }
+
+            let max = 10;
+            for (const h of hist) max = Math.max(max, h.se, h.su, h.si, h.fi || 0);
+
+            // grid lines
+            graphCtx.strokeStyle = 'rgba(255,255,255,0.07)';
+            graphCtx.lineWidth = 1;
+            for (let i = 1; i <= 3; i++) {
+                const y = (H / 4) * i;
+                graphCtx.beginPath();
+                graphCtx.moveTo(0, y); graphCtx.lineTo(W, y);
+                graphCtx.stroke();
+            }
+
+            const series = [
+                { key: 'se', color: '#63a6ff' },
+                { key: 'su', color: '#ff6b6b' },
+                { key: 'si', color: '#ff9fb3' },
+                { key: 'fi', color: '#ff9b33' }
+            ];
+            for (const s of series) {
+                graphCtx.strokeStyle = s.color;
+                graphCtx.lineWidth = 1.6;
+                graphCtx.beginPath();
+                for (let i = 0; i < hist.length; i++) {
+                    const x = (i / (hist.length - 1)) * (W - 4) + 2;
+                    const y = H - 4 - (hist[i][s.key] / max) * (H - 10);
+                    if (i === 0) graphCtx.moveTo(x, y);
+                    else graphCtx.lineTo(x, y);
+                }
+                graphCtx.stroke();
+            }
+
+            graphCtx.fillStyle = '#888';
+            graphCtx.font = '9px Arial';
+            graphCtx.fillText('max ' + max, 4, 10);
+        }
+
+        function drawAnalogClock(ctx, hours, minutes) {
+            const radius = 45;
+            ctx.clearRect(0, 0, 100, 100);
+            ctx.save();
+            ctx.translate(50, 50);
+            ctx.fillStyle = '#121212';
+            ctx.beginPath();
+            ctx.arc(0, 0, radius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#5a7d9a';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+            ctx.fillStyle = '#fff';
+            for (let i = 0; i < 12; i++) {
+                const angle = (i / 12) * Math.PI * 2 - Math.PI / 2;
+                const x1 = Math.cos(angle) * (radius - 9);
+                const y1 = Math.sin(angle) * (radius - 9);
+                const x2 = Math.cos(angle) * (radius - 4);
+                const y2 = Math.sin(angle) * (radius - 4);
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.stroke();
+            }
+            const minuteAngle = (minutes / 60) * Math.PI * 2 - Math.PI / 2;
+            ctx.strokeStyle = '#f5d16d';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(Math.cos(minuteAngle) * (radius - 16), Math.sin(minuteAngle) * (radius - 16));
+            ctx.stroke();
+            const hourAngle = ((hours % 12) / 12) * Math.PI * 2 - Math.PI / 2 + (minutes / 60) * (Math.PI / 6);
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(Math.cos(hourAngle) * (radius - 26), Math.sin(hourAngle) * (radius - 26));
+            ctx.stroke();
+            ctx.fillStyle = '#f5d16d';
+            ctx.beginPath();
+            ctx.arc(0, 0, 4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+
+        function drawSeasonClock(ctx, seasonIndex, progress) {
+            const radius = 45;
+            const labels = ['Sp', 'Su', 'Au', 'Wi'];
+            ctx.clearRect(0, 0, 100, 100);
+            ctx.save();
+            ctx.translate(50, 50);
+            ctx.fillStyle = '#121212';
+            ctx.beginPath();
+            ctx.arc(0, 0, radius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#7b7b7b';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+            for (let i = 0; i < 4; i++) {
+                const angle = (i / 4) * Math.PI * 2 - Math.PI / 2;
+                const x = Math.cos(angle) * (radius - 12);
+                const y = Math.sin(angle) * (radius - 12);
+                ctx.fillStyle = '#f5f5f5';
+                ctx.font = '10px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(labels[i], x, y);
+            }
+            const angle = ((seasonIndex + progress) / 4) * Math.PI * 2 - Math.PI / 2;
+            ctx.strokeStyle = '#ffb74d';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(Math.cos(angle) * (radius - 18), Math.sin(angle) * (radius - 18));
+            ctx.stroke();
+            ctx.fillStyle = '#ffb74d';
+            ctx.beginPath();
+            ctx.arc(0, 0, 4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+
+        function createStars(count) {
+            const stars = [];
+            for (let i = 0; i < count; i++) {
+                stars.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height * 0.6,
+                    radius: Math.random() * 1.4 + 0.6,
+                    alpha: Math.random() * 0.6 + 0.25
+                });
+            }
+            return stars;
+        }
+
+        function drawCorals() {
+            if (!gameState.corals) return;
+            for (const c of gameState.corals) {
+                ctx.save();
+                ctx.translate(c.x, c.y);
+                // Base shadow on the seabed
+                ctx.fillStyle = 'rgba(0,20,40,0.3)';
+                ctx.beginPath();
+                ctx.ellipse(0, c.radius * 0.5, c.radius * 1.0, c.radius * 0.4, 0, 0, Math.PI * 2);
+                ctx.fill();
+                // Coral branches — several rounded fingers
+                const branches = 5;
+                for (let i = 0; i < branches; i++) {
+                    const a = (i / branches) * Math.PI - Math.PI / 2;
+                    const bx = Math.cos(a) * c.radius * 0.5;
+                    const len = c.radius * (0.7 + (i % 2) * 0.4);
+                    ctx.strokeStyle = c.color;
+                    ctx.lineWidth = c.radius * 0.3;
+                    ctx.lineCap = 'round';
+                    ctx.beginPath();
+                    ctx.moveTo(bx * 0.4, c.radius * 0.3);
+                    ctx.quadraticCurveTo(bx, -len * 0.4, bx * 1.1, -len);
+                    ctx.stroke();
+                }
+                // Polyps = food dots (glow when available)
+                if (c.fruits) {
+                    c.fruits.forEach((f, idx) => {
+                        const a = (idx / c.fruits.length) * Math.PI - Math.PI / 2;
+                        const px = Math.cos(a) * c.radius * 0.55;
+                        const py = -c.radius * (0.7 + (idx % 2) * 0.4) * 0.9;
+                        ctx.fillStyle = f.available ? '#fdfd9d' : 'rgba(255,255,255,0.12)';
+                        ctx.beginPath(); ctx.arc(px * 1.1, py, 2.6, 0, Math.PI * 2); ctx.fill();
+                    });
+                }
+                ctx.restore();
+            }
+        }
+
+        function drawBushes() {
+            const bushes = gameState.bushes || [];
+            const winter = getSeasonName() === 'Winter';
+            const cloudOffsets = [
+                { x: -22, y: 0, r: 22 },
+                { x: -6, y: -8, r: 26 },
+                { x: 12, y: -2, r: 24 },
+                { x: 30, y: 6, r: 18 },
+                { x: 0, y: 10, r: 20 }
+            ];
+
+            for (const bush of bushes) {
+                ctx.save();
+                ctx.translate(bush.x, bush.y);
+
+                // Shadow
+                ctx.fillStyle = 'rgba(0,0,0,0.15)';
+                ctx.beginPath();
+                ctx.ellipse(0, bush.radius * 0.55, bush.radius * 1.2, bush.radius * 0.55, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                if (bush.kind === 'lichen') {
+                    // Tundra lichen — low grey-green crusty patch with berries
+                    const s = bush.radius / 22;
+                    for (let k = 0; k < 6; k++) {
+                        const a = (k / 6) * Math.PI * 2;
+                        const lx = Math.cos(a) * bush.radius * 0.5, ly = Math.sin(a) * bush.radius * 0.3;
+                        ctx.fillStyle = ['#9bb09a', '#86a08a', '#aebfb0'][k % 3];
+                        ctx.beginPath();
+                        ctx.ellipse(lx, ly, bush.radius * 0.42, bush.radius * 0.26, a, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                    const berryPos = [{ x: -6 * s, y: -2 * s }, { x: 6 * s, y: 2 * s }, { x: 0, y: -4 * s }];
+                    if (bush.fruits) bush.fruits.forEach((f, idx) => {
+                        if (!f.available) return;
+                        const p = berryPos[idx % berryPos.length];
+                        ctx.fillStyle = '#d6455f';
+                        ctx.beginPath(); ctx.arc(p.x, p.y, 3.5, 0, Math.PI * 2); ctx.fill();
+                        ctx.fillStyle = 'rgba(255,255,255,0.6)';
+                        ctx.beginPath(); ctx.arc(p.x - 1, p.y - 1, 1.1, 0, Math.PI * 2); ctx.fill();
+                    });
+                    ctx.restore();
+                    continue;
+                }
+
+                if (bush.kind === 'mushroom') {
+                    // Swamp mushroom cluster — several capped stalks
+                    const s = bush.radius / 26;
+                    const caps = [{ x: 0, y: 0, h: 22 }, { x: -13 * s, y: 6 * s, h: 16 }, { x: 13 * s, y: 5 * s, h: 18 }];
+                    for (const c of caps) {
+                        // stalk
+                        ctx.fillStyle = '#e8e0cf';
+                        ctx.fillRect(c.x - 2.5 * s, c.y - c.h * s, 5 * s, c.h * s);
+                        // cap
+                        const capGrad = ctx.createLinearGradient(c.x - 12 * s, 0, c.x + 12 * s, 0);
+                        capGrad.addColorStop(0, '#7a3b2a'); capGrad.addColorStop(0.5, '#b5543a'); capGrad.addColorStop(1, '#7a3b2a');
+                        ctx.fillStyle = capGrad;
+                        ctx.beginPath();
+                        ctx.ellipse(c.x, c.y - c.h * s, 12 * s, 8 * s, 0, Math.PI, 0);
+                        ctx.fill();
+                        // spots (these are the "fruit"/spores)
+                        ctx.fillStyle = 'rgba(255,245,230,0.85)';
+                        ctx.beginPath(); ctx.arc(c.x - 4 * s, c.y - c.h * s - 2 * s, 1.6 * s, 0, Math.PI * 2); ctx.fill();
+                        ctx.beginPath(); ctx.arc(c.x + 4 * s, c.y - c.h * s - 1 * s, 1.4 * s, 0, Math.PI * 2); ctx.fill();
+                    }
+                    // available-food glow on caps
+                    if (bush.fruits && bush.fruits.some(f => f.available)) {
+                        ctx.fillStyle = 'rgba(120,255,150,0.18)';
+                        ctx.beginPath(); ctx.arc(0, -10 * s, bush.radius * 0.9, 0, Math.PI * 2); ctx.fill();
+                    }
+                    ctx.restore();
+                    continue;
+                }
+
+                if (bush.kind === 'cactus') {
+                    // Cactus: a central column plus two arms
+                    const s = bush.radius / 30;
+                    const col1 = '#3f8f4a', col2 = '#246b32';
+                    const drawLimb = (cx, cy, w, h) => {
+                        const gg = ctx.createLinearGradient(cx - w, 0, cx + w, 0);
+                        gg.addColorStop(0, col2); gg.addColorStop(0.5, col1); gg.addColorStop(1, col2);
+                        ctx.fillStyle = gg;
+                        roundRect(ctx, cx - w, cy - h, w * 2, h * 2, w, true, false);
+                    };
+                    drawLimb(0, 2 * s, 9 * s, 26 * s);          // trunk
+                    drawLimb(-13 * s, -2 * s, 6 * s, 12 * s);   // left arm base
+                    drawLimb(-13 * s, -10 * s, 6 * s, 8 * s);   // left arm up
+                    drawLimb(13 * s, 0, 6 * s, 12 * s);         // right arm base
+                    drawLimb(13 * s, -8 * s, 6 * s, 8 * s);     // right arm up
+                    // spines
+                    ctx.strokeStyle = 'rgba(230,240,200,0.5)';
+                    ctx.lineWidth = 1;
+                    for (let yy = -22 * s; yy < 24 * s; yy += 6 * s) {
+                        ctx.beginPath(); ctx.moveTo(-3 * s, yy); ctx.lineTo(-7 * s, yy - 2); ctx.stroke();
+                        ctx.beginPath(); ctx.moveTo(3 * s, yy); ctx.lineTo(7 * s, yy - 2); ctx.stroke();
+                    }
+                    if (winter) { ctx.fillStyle = 'rgba(240,248,255,0.35)'; roundRect(ctx, -9 * s, -24 * s, 18 * s, 6 * s, 3 * s, true, false); }
+
+                    // Cactus flowers/fruit on top
+                    const flowerPositions = [{ x: 0, y: -26 * s }, { x: -13 * s, y: -18 * s }, { x: 13 * s, y: -16 * s }, { x: -6 * s, y: -22 * s }];
+                    if (bush.fruits) {
+                        bush.fruits.forEach((fruit, idx) => {
+                            if (!fruit.available) return;
+                            const p = flowerPositions[idx % flowerPositions.length];
+                            const fg = ctx.createRadialGradient(p.x, p.y, 1, p.x, p.y, 6);
+                            fg.addColorStop(0, '#ffe6f2'); fg.addColorStop(0.5, '#ff7ab0'); fg.addColorStop(1, '#d63b7e');
+                            ctx.fillStyle = fg;
+                            ctx.beginPath(); ctx.arc(p.x, p.y, 5, 0, Math.PI * 2); ctx.fill();
+                        });
+                    }
+                    ctx.restore();
+                    continue;
+                }
+
+                // Leafy bush (grassland / wetland) — layered canopy with twisted stems
+                const s = bush.radius / 38;
+                const isWinter = winter;
+
+                // Stem cluster from base
+                const stemCol = isWinter ? '#4a3520' : '#3a2810';
+                ctx.strokeStyle = stemCol;
+                const stemPts = [
+                    { ex: -14*s, ey: -18*s }, { ex: 0, ey: -26*s },
+                    { ex: 14*s, ey: -20*s }, { ex: -8*s, ey: -14*s },
+                    { ex: 10*s, ey: -12*s }
+                ];
+                for (const sp of stemPts) {
+                    ctx.lineWidth = 1.2 + Math.random() * 0.6;
+                    ctx.beginPath();
+                    ctx.moveTo(0, 6*s);
+                    ctx.quadraticCurveTo(sp.ex * 0.4, sp.ey * 0.5, sp.ex, sp.ey);
+                    ctx.stroke();
+                }
+
+                // Three canopy layers (back to front, slightly offset for depth)
+                const leafLayers = isWinter
+                    ? [
+                        { cx: -8*s, cy: -14*s, r: 18*s, c1:'#55706a', c2:'#3d5550', c3:'#2a3d38' },
+                        { cx:  6*s, cy: -22*s, r: 20*s, c1:'#607a74', c2:'#445c56', c3:'#2c4040' },
+                        { cx: -2*s, cy: -10*s, r: 16*s, c1:'#4d6b65', c2:'#374e49', c3:'#253832' }
+                      ]
+                    : [
+                        { cx: -10*s, cy: -16*s, r: 20*s, c1:'#c8f5a0', c2:'#5ebc40', c3:'#27751a' },
+                        { cx:  8*s,  cy: -24*s, r: 22*s, c1:'#d4faa8', c2:'#70cc55', c3:'#2f8820' },
+                        { cx: -1*s,  cy: -12*s, r: 18*s, c1:'#b8f090', c2:'#52aa38', c3:'#1e6614' }
+                      ];
+
+                for (const l of leafLayers) {
+                    const lg = ctx.createRadialGradient(
+                        l.cx - l.r * 0.3, l.cy - l.r * 0.3, l.r * 0.08,
+                        l.cx, l.cy, l.r
+                    );
+                    lg.addColorStop(0, l.c1);
+                    lg.addColorStop(0.5, l.c2);
+                    lg.addColorStop(1, l.c3);
+                    ctx.fillStyle = lg;
+
+                    // Irregular blob shape via bezier offsets
+                    const jit = (n) => l.r * (0.85 + Math.abs(Math.sin(n * 2.7 + l.cx)) * 0.28);
+                    ctx.beginPath();
+                    ctx.moveTo(l.cx + jit(0), l.cy);
+                    ctx.bezierCurveTo(l.cx + jit(1), l.cy - jit(2) * 0.7, l.cx - jit(3) * 0.5, l.cy - jit(4) * 0.9, l.cx - jit(5), l.cy);
+                    ctx.bezierCurveTo(l.cx - jit(6) * 0.8, l.cy + jit(7) * 0.65, l.cx + jit(8) * 0.5, l.cy + jit(9) * 0.6, l.cx + jit(0), l.cy);
+                    ctx.fill();
+
+                    // Leaf vein texture
+                    if (!isWinter) {
+                        ctx.strokeStyle = 'rgba(20,80,10,0.12)';
+                        ctx.lineWidth = 0.7;
+                        for (let v = 0; v < 4; v++) {
+                            const va = (v / 4) * Math.PI * 2 + l.cx * 0.1;
+                            ctx.beginPath();
+                            ctx.moveTo(l.cx, l.cy);
+                            ctx.lineTo(l.cx + Math.cos(va) * l.r * 0.72, l.cy + Math.sin(va) * l.r * 0.72);
+                            ctx.stroke();
+                        }
+                    }
+                }
+
+                // Specular sheen on top layer
+                ctx.fillStyle = isWinter ? 'rgba(220,240,235,0.18)' : 'rgba(255,255,255,0.14)';
+                const tl = leafLayers[1];
+                ctx.beginPath();
+                ctx.ellipse(tl.cx - tl.r * 0.18, tl.cy - tl.r * 0.38, tl.r * 0.28, tl.r * 0.11, -0.4, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Berries — nestled in the foliage
+                const berryPositions = [
+                    { x: -14*s, y: -20*s }, { x: 4*s, y: -28*s }, { x: 14*s, y: -22*s },
+                    { x: -5*s, y: -16*s }, { x: 8*s, y: -14*s }, { x: -12*s, y: -10*s }, { x: 2*s, y: -10*s }
+                ];
+                if (bush.fruits) {
+                    bush.fruits.forEach((fruit, idx) => {
+                        if (!fruit.available) return;
+                        const bp = berryPositions[idx % berryPositions.length];
+                        const bx2 = bp.x, by2 = bp.y, br = 5 * s;
+
+                        // Berry shadow
+                        ctx.fillStyle = 'rgba(0,0,0,0.2)';
+                        ctx.beginPath();
+                        ctx.ellipse(bx2 + 1.5, by2 + 2, br * 1.1, br * 0.55, 0, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        // Berry body
+                        const bg2 = ctx.createRadialGradient(bx2 - br*0.3, by2 - br*0.3, br*0.05, bx2, by2, br);
+                        bg2.addColorStop(0, '#ffeecc');
+                        bg2.addColorStop(0.35, '#ff7733');
+                        bg2.addColorStop(0.75, '#cc2200');
+                        bg2.addColorStop(1, '#881100');
+                        ctx.fillStyle = bg2;
+                        ctx.beginPath();
+                        ctx.arc(bx2, by2, br, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        // Stem nub
+                        ctx.strokeStyle = '#3a2810';
+                        ctx.lineWidth = 0.9;
+                        ctx.beginPath();
+                        ctx.moveTo(bx2, by2 - br);
+                        ctx.lineTo(bx2 + 1.5*s, by2 - br - 3*s);
+                        ctx.stroke();
+
+                        // Shine dot
+                        ctx.fillStyle = 'rgba(255,255,255,0.7)';
+                        ctx.beginPath();
+                        ctx.arc(bx2 - br*0.28, by2 - br*0.3, br * 0.26, 0, Math.PI * 2);
+                        ctx.fill();
+                    });
+                }
+
+                ctx.restore();
+            }
+        }
+
+        function drawTrees() {
+            if (!gameState.trees) return;
+            const winter = getSeasonName() === 'Winter';
+            for (const tr of gameState.trees) {
+                const trunkWidth = (tr.kind === 'pine' || tr.kind === 'spruce') ? 11 : 14;
+                const trunkHeight = tr.trunkHeight;
+
+                if (tr.kind === 'acacia') {
+                    // Savanna acacia — slim trunk, wide flat umbrella canopy
+                    const fr = tr.foliageRadius;
+                    ctx.fillStyle = '#6b4a2a';
+                    ctx.fillRect(tr.x - trunkWidth / 2, tr.y, trunkWidth, trunkHeight);
+                    // a couple of angled branches
+                    ctx.strokeStyle = '#6b4a2a'; ctx.lineWidth = 4;
+                    ctx.beginPath(); ctx.moveTo(tr.x, tr.y); ctx.lineTo(tr.x - fr * 0.4, tr.y - fr * 0.5); ctx.stroke();
+                    ctx.beginPath(); ctx.moveTo(tr.x, tr.y); ctx.lineTo(tr.x + fr * 0.4, tr.y - fr * 0.5); ctx.stroke();
+                    // flat canopy
+                    const cg = ctx.createLinearGradient(tr.x, tr.y - fr * 0.9, tr.x, tr.y - fr * 0.3);
+                    if (winter) { cg.addColorStop(0, '#9aa873'); cg.addColorStop(1, '#6f7d4e'); }
+                    else { cg.addColorStop(0, '#7fae54'); cg.addColorStop(1, '#4d7a30'); }
+                    ctx.fillStyle = cg;
+                    ctx.beginPath();
+                    ctx.ellipse(tr.x, tr.y - fr * 0.55, fr * 1.15, fr * 0.42, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                    // seed pods (the "fruit")
+                    if (tr.apples) for (const a of tr.apples) {
+                        if (!a.available) continue;
+                        const ax = tr.x + a.offsetX, ay = tr.y - fr * 0.55 + a.offsetY * 0.3;
+                        ctx.fillStyle = '#caa24a';
+                        ctx.beginPath(); ctx.ellipse(ax, ay, 4, 2, 0.4, 0, Math.PI * 2); ctx.fill();
+                    }
+                    continue;
+                }
+
+                if (tr.kind === 'pine' || tr.kind === 'spruce') {
+                    const isSpruce = tr.kind === 'spruce';
+                    const fr = tr.foliageRadius;
+
+                    // Tiers — baseY is the wide base of each triangle, apex points upward.
+                    // Anchored relative to tr.y so they sit right on top of the trunk.
+                    const tiers = [
+                        { baseY: tr.y + fr * 0.15,  halfW: fr * 1.1,  tierH: fr * 1.05 },  // lowest, widest
+                        { baseY: tr.y - fr * 0.55,  halfW: fr * 0.82, tierH: fr * 0.95 },  // middle
+                        { baseY: tr.y - fr * 1.22,  halfW: fr * 0.54, tierH: fr * 0.85 }   // top, narrowest
+                    ];
+
+                    // Draw trunk (same direction as apple tree)
+                    ctx.fillStyle = '#5a3a22';
+                    ctx.fillRect(tr.x - trunkWidth / 2, tr.y, trunkWidth, trunkHeight);
+
+                    for (const t of tiers) {
+                        const grad = ctx.createLinearGradient(tr.x - t.halfW, 0, tr.x + t.halfW, 0);
+                        if (winter) {
+                            grad.addColorStop(0, '#4a6b62');
+                            grad.addColorStop(0.4, '#cfe6ee');
+                            grad.addColorStop(1, '#4a6b62');
+                        } else if (isSpruce) {
+                            grad.addColorStop(0, '#143a32');
+                            grad.addColorStop(0.45, '#2f6e63');
+                            grad.addColorStop(1, '#10302a');
+                        } else {
+                            grad.addColorStop(0, '#0f3618');
+                            grad.addColorStop(0.45, '#2a7033');
+                            grad.addColorStop(1, '#0d2e15');
+                        }
+                        ctx.fillStyle = grad;
+                        ctx.beginPath();
+                        ctx.moveTo(tr.x, t.baseY - t.tierH);   // apex (up)
+                        ctx.lineTo(tr.x - t.halfW, t.baseY);   // bottom-left
+                        ctx.lineTo(tr.x + t.halfW, t.baseY);   // bottom-right
+                        ctx.closePath();
+                        ctx.fill();
+
+                        ctx.strokeStyle = winter ? 'rgba(200,230,240,0.25)' : 'rgba(10,40,15,0.4)';
+                        ctx.lineWidth = 0.8;
+                        ctx.stroke();
+                    }
+
+                    // Snow cap on top tier in winter
+                    if (winter) {
+                        const t = tiers[2];
+                        ctx.fillStyle = 'rgba(240,250,255,0.75)';
+                        ctx.beginPath();
+                        ctx.moveTo(tr.x, t.baseY - t.tierH);
+                        ctx.lineTo(tr.x - t.halfW * 0.42, t.baseY - t.tierH * 0.52);
+                        ctx.lineTo(tr.x + t.halfW * 0.42, t.baseY - t.tierH * 0.52);
+                        ctx.closePath();
+                        ctx.fill();
+                    }
+
+                    // Pine cones tucked into the lowest tier
+                    if (tr.apples) {
+                        for (const cone of tr.apples) {
+                            if (!cone.available) continue;
+                            const ax = tr.x + cone.offsetX * 0.5;
+                            const ay = tiers[0].baseY - tiers[0].tierH * 0.32 + cone.offsetY * 0.25;
+                            ctx.fillStyle = '#7a4f28';
+                            ctx.beginPath();
+                            ctx.ellipse(ax, ay, 3.5, 5, 0, 0, Math.PI * 2);
+                            ctx.fill();
+                            ctx.strokeStyle = 'rgba(40,24,10,0.5)';
+                            ctx.lineWidth = 0.7;
+                            for (let sc = -3; sc <= 3; sc += 2) {
+                                ctx.beginPath();
+                                ctx.moveTo(ax - 2.5, ay + sc);
+                                ctx.lineTo(ax + 2.5, ay + sc);
+                                ctx.stroke();
+                            }
+                        }
+                    }
+                    continue;
+                }
+
+                // Apple / other trees — draw trunk normally
+                ctx.fillStyle = '#4d311d';
+                ctx.fillRect(tr.x - trunkWidth / 2, tr.y, trunkWidth, trunkHeight);
+
+                const fr = tr.foliageRadius;
+                const fg = ctx.createRadialGradient(tr.x - fr * 0.2, tr.y - fr * 0.6, 2, tr.x, tr.y - fr * 0.2, fr);
+                if (winter) {
+                    fg.addColorStop(0, '#f4fbff'); fg.addColorStop(0.45, '#cfe6ee'); fg.addColorStop(1, '#7fa3ae');
+                } else {
+                    fg.addColorStop(0, '#eafde2'); fg.addColorStop(0.45, '#85d17a'); fg.addColorStop(1, '#2f7e33');
+                }
+                ctx.fillStyle = fg;
+
+                ctx.beginPath();
+                ctx.arc(tr.x, tr.y - fr * 0.8, fr * 0.95, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(tr.x - fr * 0.55, tr.y - fr * 0.2, fr * 0.76, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(tr.x + fr * 0.55, tr.y - fr * 0.25, fr * 0.76, 0, Math.PI * 2);
+                ctx.fill();
+
+                if (tr.apples) {
+                    for (const apple of tr.apples) {
+                        const ax = tr.x + apple.offsetX;
+                        const ay = tr.y + apple.offsetY;
+                        if (!apple.available) continue;
+
+                        ctx.fillStyle = 'rgba(210, 65, 50, 0.9)';
+                        ctx.beginPath();
+                        ctx.arc(ax, ay, 6, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        ctx.strokeStyle = '#5b1b08';
+                        ctx.lineWidth = 1;
+                        ctx.beginPath();
+                        ctx.moveTo(ax + 1, ay - 6);
+                        ctx.lineTo(ax + 1, ay - 10);
+                        ctx.stroke();
+
+                        ctx.fillStyle = 'rgba(255,255,255,0.65)';
+                        ctx.beginPath();
+                        ctx.arc(ax - 2, ay - 2, 1.6, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
+            }
+        }
+
+        function roundRect(ctx, x, y, width, height, radius, fill, stroke) {
+            if (typeof stroke === 'undefined') stroke = true;
+            if (typeof radius === 'undefined') radius = 5;
+            ctx.beginPath();
+            ctx.moveTo(x + radius, y);
+            ctx.arcTo(x + width, y, x + width, y + height, radius);
+            ctx.arcTo(x + width, y + height, x, y + height, radius);
+            ctx.arcTo(x, y + height, x, y, radius);
+            ctx.arcTo(x, y, x + width, y, radius);
+            ctx.closePath();
+            if (fill) ctx.fill();
+            if (stroke) ctx.stroke();
+        }
+
+        function createFruits(count) {
+            const arr = [];
+            for (let i = 0; i < count; i++) arr.push({ available: true, eatTime: -Infinity });
+            return arr;
+        }
+
+        function createTreeApples(count, foliageRadius) {
+            const apples = [];
+            for (let i = 0; i < count; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const radius = Math.random() * (foliageRadius * 0.45) + foliageRadius * 0.2;
+                apples.push({
+                    offsetX: Math.cos(angle) * radius,
+                    offsetY: Math.sin(angle) * radius - foliageRadius * 0.2,
+                    available: true,
+                    eatTime: -Infinity
+                });
+            }
+            return apples;
+        }
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        function createSpringFlocks() {
+            const ids = gameState.seepas.map((_, index) => index);
+            shuffleArray(ids);
+            let nextGroupId = 1;
+            while (ids.length >= 5 && nextGroupId <= 6) {
+                const groupSize = Math.min(5 + Math.floor(Math.random() * 21), ids.length);
+                const groupIds = ids.splice(0, groupSize);
+                for (const seepaIndex of groupIds) {
+                    gameState.seepas[seepaIndex].groupId = nextGroupId;
+                }
+                nextGroupId++;
+            }
+        }
+
+        function handleReproduction() {
+            const season = getSeasonName();
+            if (!(season === 'Spring' || season === 'Summer')) return;
+            const now = gameState.time;
+            const reproRadiusSq = 42 * 42;
+            const reproCooldown = 9000; // 9 seconds between reproductions per parent
+            const newbornLimit = 18;
+            let births = 0;
+            const cap = popCap('seepa');
+            if (gameState.seepas.length >= cap) return;
+
+            for (let i = 0; i < gameState.seepas.length && births < newbornLimit; i++) {
+                const a = gameState.seepas[i];
+                if (now - a.lastReproduction < reproCooldown) continue;
+                if (a.age < 13) continue;
+                // Only healthy, well-fed adults breed — keeps population focused on survivors
+                const aFullness = 1 - (a.hunger / a.maxStats);
+                const aHydration = 1 - (a.thirst / a.maxStats);
+                if (aFullness <= 0.6 || aHydration <= 0.6) continue;
+                if (a.cold > 30) continue;
+
+                for (let j = i + 1; j < gameState.seepas.length && births < newbornLimit; j++) {
+                    const b = gameState.seepas[j];
+                    if (a.sex === b.sex) continue;
+                    if (now - b.lastReproduction < reproCooldown) continue;
+                    if (b.age < 13) continue;
+                    const dx = a.x - b.x; const dy = a.y - b.y;
+                    const dSq = dx * dx + dy * dy;
+                    if (dSq > reproRadiusSq) continue;
+                    const bFullness = 1 - (b.hunger / b.maxStats);
+                    const bHydration = 1 - (b.thirst / b.maxStats);
+                    if (bFullness <= 0.6 || bHydration <= 0.6) continue;
+                    if (b.cold > 30) continue;
+
+                    const nx = (a.x + b.x) / 2 + (Math.random() - 0.5) * 6;
+                    const ny = (a.y + b.y) / 2 + (Math.random() - 0.5) * 6;
+                    // Baby inherits a mix of both parents' genes with mutation
+                    const childGenes = inheritGenes(a.genes, b.genes);
+                    const childGen = Math.max(a.generation, b.generation) + 1;
+                    const baby = new Seepa(nx, ny, childGenes, childGen);
+                    baby.age = 0;
+                    baby.lastReproduction = -Infinity;
+                    baby.hunger = Math.random() * 20;
+                    baby.thirst = Math.random() * 20;
+                    gameState.seepas.push(baby);
+                    spawnParticles(nx, ny, '#ffd84d', 8, 1.4);
+                    births++;
+
+                    a.hunger = Math.min(a.maxStats, a.hunger + 20);
+                    b.hunger = Math.min(b.maxStats, b.hunger + 20);
+                    a.thirst = Math.min(a.maxStats, a.thirst + 20);
+                    b.thirst = Math.min(b.maxStats, b.thirst + 20);
+
+                    a.lastReproduction = now;
+                    b.lastReproduction = now;
+                }
+            }
+        }
+
+        // ---------- Suuba (predator) ----------
+        class Suuba {
+            constructor(x, y, genes, generation) {
+                this.x = x;
+                this.y = y;
+                this.genes = genes || makeSuubaGenes();
+                this.generation = generation || 1;
+                this.adultRadius = this.genes.size;
+                this.radius = this.adultRadius;
+                this.vx = (Math.random() - 0.5) * 2;
+                this.vy = (Math.random() - 0.5) * 2;
+                this.speed = this.genes.speed;
+                this.energy = 220;
+                this.eatCooldown = 0;
+                this.hunger = Math.random() * 40 + 10;
+                this.thirst = Math.random() * 40 + 10;
+                this.maxStats = 300;
+                this.age = Math.random() * 60;
+                this.sex = Math.random() < 0.5 ? 'male' : 'female';
+                this.lastReproduction = -Infinity;
+                this.lifeSpan = 360;
+                this.birthRadius = this.radius;
+                this.cold = 0;
+            }
+
+            update(deltaTime, gameState) {
+                deltaTime = deltaTime / 1000;
+                if (gameState.settings.agingEnabled) this.age += deltaTime;
+                const careFactor = this.age < 18 ? 0.35 : 1.0;
+                this.energy -= 2 * deltaTime * careFactor;
+                if (gameState.settings.predatorsEnabled) {
+                    this.hunger = Math.min(this.maxStats, this.hunger + 2 * deltaTime * careFactor);
+                } else {
+                    // Peaceful mode: grazes on plants instead of hunting, so it stays alive
+                    this.hunger = Math.max(0, this.hunger - 5 * deltaTime);
+                    this.energy = Math.min(this.maxStats, this.energy + 2 * deltaTime);
+                }
+                this.thirst = Math.min(this.maxStats, this.thirst + 3 * deltaTime * careFactor * seasonThirstMultiplier());
+                if (this.eatCooldown > 0) this.eatCooldown -= deltaTime;
+
+                // Nocturnal: hunt eagerly at night, reluctantly by day.
+                // Slow Suubas must start hunting earlier (lower threshold) or starve.
+                const phase = getDayPhase();
+                const isNight = phase === 'Night';
+                const isDay = phase === 'Day';
+                const baseThreshold = isNight ? 25 : (isDay ? 70 : 45);
+                const huntThreshold = seekThreshold(this.genes.speed, baseThreshold);
+                const nightSpeedMul = isNight ? 1.25 : (isDay ? 0.7 : 1.0);
+                // When truly starving, hunt regardless of time of day
+                const starving = this.hunger > this.maxStats * 0.7;
+
+                // Winter freezing — thick-hided, so they resist cold well
+                updateCold(this, deltaTime, 5 * (28 / this.genes.size));
+
+                const needWater = this.thirst > seekThreshold(this.genes.speed, this.maxStats * 0.6);
+                const needFood = gameState.settings.predatorsEnabled && (this.hunger > huntThreshold || starving);
+
+                if (needWater) {
+                    const p = nearestMarinePoint(this.x, this.y);
+                    if (p) {
+                        const dx = p.x - this.x; const dy = p.y - this.y;
+                        const d = Math.sqrt(dx * dx + dy * dy) || 0.0001;
+                        this.vx = lerp(this.vx, dx / d, 0.3);
+                        this.vy = lerp(this.vy, dy / d, 0.3);
+                        if (atWaterEdge(this, this.radius + 14)) {
+                            this.thirst = Math.max(0, this.thirst - 90);
+                            this.energy = Math.min(this.maxStats, this.energy + 30);
+                        }
+                    }
+                } else if (needFood && gameState.seepas.length > 0) {
+                    let target = null; let bestD = Infinity;
+                    for (const s of gameState.seepas) {
+                        const dx = s.x - this.x; const dy = s.y - this.y;
+                        const d2 = dx * dx + dy * dy;
+                        if (d2 < bestD) { bestD = d2; target = s; }
+                    }
+                    if (target) {
+                        const d = Math.sqrt(bestD) || 0.0001;
+                        const tx = (target.x - this.x) / d;
+                        const ty = (target.y - this.y) / d;
+                        this.vx = lerp(this.vx, tx, 0.35);
+                        this.vy = lerp(this.vy, ty, 0.35);
+
+                        if (d < this.radius + target.radius + 6 && this.eatCooldown <= 0) {
+                            const idx = gameState.seepas.indexOf(target);
+                            if (idx !== -1) {
+                                spawnParticles(target.x, target.y, '#ff5a5a', 12, 2.2);
+                                if (gameState.inspected && gameState.inspected.ref === target) gameState.inspected = null;
+                                gameState.seepas.splice(idx, 1);
+                                this.energy = Math.min(this.maxStats, this.energy + 120);
+                                this.hunger = Math.max(0, this.hunger - 80);
+                                this.eatCooldown = 2.4;
+                            }
+                        }
+                    }
+                } else {
+                    this.vx += (Math.random() - 0.5) * 0.06;
+                    this.vy += (Math.random() - 0.5) * 0.06;
+
+                    if (this.age > 30 && this.energy > 170 && this.hunger < this.maxStats * 0.5 &&
+                        this.thirst < this.maxStats * 0.5 && gameState.suubas.length < popCap('suuba') &&
+                        (gameState.time - (this.lastReproduction || -Infinity)) > 45000) {
+                        for (const other of gameState.suubas || []) {
+                            if (other === this) continue;
+                            if (other.sex === this.sex) continue;
+                            if (other.age < 30) continue;
+                            if ((gameState.time - (other.lastReproduction || -Infinity)) <= 45000) continue;
+                            if (other.energy < 150 || other.hunger > other.maxStats * 0.5) continue;
+                            const d2 = distanceSq(this.x, this.y, other.x, other.y);
+                            if (d2 < 1200) {
+                                const bx = (this.x + other.x) / 2 + (Math.random() - 0.5) * 8;
+                                const by = (this.y + other.y) / 2 + (Math.random() - 0.5) * 8;
+                                const childGenes = inheritGenes(this.genes, other.genes, GENE_RANGES.suuba);
+                                const childGen = Math.max(this.generation, other.generation) + 1;
+                                const baby = new Suuba(bx, by, childGenes, childGen);
+                                baby.radius = 12 + Math.random() * 4;
+                                baby.birthRadius = baby.radius;
+                                baby.age = 0;
+                                baby.energy = 220;
+                                baby.hunger = 8;
+                                baby.thirst = 8;
+                                gameState.suubas.push(baby);
+                                spawnParticles(bx, by, '#ffb3b3', 8, 1.4);
+                                this.energy -= 70; other.energy -= 70;
+                                this.lastReproduction = gameState.time; other.lastReproduction = gameState.time;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                const vlen = Math.sqrt(this.vx * this.vx + this.vy * this.vy) || 1e-6;
+                if (vlen > 1.8) { this.vx *= 1.8 / vlen; this.vy *= 1.8 / vlen; }
+                moveLand(this, deltaTime, nightSpeedMul);
+
+                if (this.age > this.lifeSpan * 0.8) this.energy -= 0.5 * deltaTime;
+
+                const growT = Math.min(1, this.age / 30);
+                this.radius = lerp(this.birthRadius, this.adultRadius, growT);
+            }
+
+            // Dies from: starvation, dehydration, energy collapse, old age, or freezing
+            isAlive() {
+                return this.energy > 0 && this.age < this.lifeSpan && this.cold < 100 &&
+                       this.hunger < this.maxStats && this.thirst < this.maxStats;
+            }
+
+            draw() {
+                // Suuba: rounded beast with ears, eyes and fangs
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                const size = this.radius * 2;
+                const wobble = Math.sin(this.age * 2.2) * 0.06;
+                ctx.rotate(wobble);
+
+                // Shadow
+                ctx.fillStyle = 'rgba(0,0,0,0.22)';
+                ctx.beginPath();
+                ctx.ellipse(0, size * 0.52, size * 0.55, size * 0.18, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Ears (triangles)
+                const earCol = this.sex === 'male' ? '#6e1d1d' : '#5a1a1a';
+                ctx.fillStyle = earCol;
+                ctx.beginPath();
+                ctx.moveTo(-size * 0.34, -size * 0.42);
+                ctx.lineTo(-size * 0.16, -size * 0.62);
+                ctx.lineTo(-size * 0.05, -size * 0.4);
+                ctx.closePath();
+                ctx.fill();
+                ctx.beginPath();
+                ctx.moveTo(size * 0.34, -size * 0.42);
+                ctx.lineTo(size * 0.16, -size * 0.62);
+                ctx.lineTo(size * 0.05, -size * 0.4);
+                ctx.closePath();
+                ctx.fill();
+
+                // Body: rounded square with gradient
+                const g = ctx.createLinearGradient(-size / 2, -size / 2, size / 2, size / 2);
+                const base1 = this.sex === 'male' ? '#c75d5d' : '#d98a8a';
+                const base2 = this.sex === 'male' ? '#5e1414' : '#421010';
+                g.addColorStop(0, base1);
+                g.addColorStop(1, base2);
+                ctx.fillStyle = g;
+                roundRect(ctx, -size / 2, -size / 2, size, size, size * 0.22, true, false);
+
+                // Belly patch
+                ctx.fillStyle = 'rgba(255, 220, 210, 0.18)';
+                ctx.beginPath();
+                ctx.ellipse(0, size * 0.16, size * 0.28, size * 0.2, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Eyes — glow amber at night when they're most active
+                const nightHunter = getDayPhase() === 'Night';
+                const eyeR = Math.max(2.6, this.radius * 0.2);
+                for (const ex of [-size * 0.18, size * 0.18]) {
+                    if (nightHunter) {
+                        ctx.fillStyle = '#ffcf4d';
+                        ctx.shadowColor = '#ffb000';
+                        ctx.shadowBlur = 8;
+                    } else {
+                        ctx.fillStyle = '#fff8e6';
+                    }
+                    ctx.beginPath();
+                    ctx.arc(ex, -size * 0.12, eyeR, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+                    ctx.fillStyle = '#1a0a0a';
+                    ctx.beginPath();
+                    ctx.arc(ex + eyeR * 0.25, -size * 0.12, eyeR * 0.5, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // Fangs
+                ctx.fillStyle = '#fdf6e3';
+                for (const fx of [-size * 0.12, size * 0.12]) {
+                    ctx.beginPath();
+                    ctx.moveTo(fx - size * 0.04, size * 0.22);
+                    ctx.lineTo(fx + size * 0.04, size * 0.22);
+                    ctx.lineTo(fx, size * 0.34);
+                    ctx.closePath();
+                    ctx.fill();
+                }
+
+                // Status bars
+                const barW = size;
+                const barX = -barW / 2;
+                const ageY = -size / 2 - 12;
+                if (gameState.settings.agingEnabled) {
+                    const ageFrac = Math.max(0, Math.min(1, this.age / this.lifeSpan));
+                    ctx.fillStyle = 'rgba(0,0,0,0.28)'; ctx.fillRect(barX, ageY, barW, 6);
+                    const ag = ctx.createLinearGradient(barX, 0, barX + barW, 0);
+                    ag.addColorStop(0, '#7bed9f');
+                    ag.addColorStop(1, '#ff6b6b');
+                    ctx.fillStyle = ag;
+                    ctx.fillRect(barX, ageY, barW * ageFrac, 6);
+                }
+
+                const hy = size / 2 + 6;
+                const hh = hy + 8;
+                ctx.fillStyle = 'rgba(0,0,0,0.28)'; ctx.fillRect(barX, hy, barW, 6);
+                ctx.fillStyle = 'rgba(0,0,0,0.28)'; ctx.fillRect(barX, hh, barW, 6);
+                const hydFrac = Math.max(0, 1 - (this.thirst / this.maxStats));
+                ctx.fillStyle = '#4aa6ff'; ctx.fillRect(barX, hy, barW * hydFrac, 6);
+                const hunFrac = Math.max(0, 1 - (this.hunger / this.maxStats));
+                ctx.fillStyle = '#4ad94a'; ctx.fillRect(barX, hh, barW * hunFrac, 6);
+
+                // Icy tint when freezing
+                if (this.cold > 25) {
+                    ctx.globalAlpha = Math.min(0.5, (this.cold - 25) / 120);
+                    ctx.fillStyle = '#bfe6ff';
+                    roundRect(ctx, -size / 2, -size / 2, size, size, size * 0.22, true, false);
+                    ctx.globalAlpha = 1;
+                }
+                ctx.restore();
+            }
+        }
+
+        // ---------- Rescue: stop total extinction ----------
+        function handleRescue() {
+            if (!gameState.settings.rescueEnabled) return;
+            if (gameState.time - gameState.lastRescue < 6000) return;
+            gameState.lastRescue = gameState.time;
+
+            if (gameState.seepas.length < 5 && gameState.settings.seepaSpawn > 0) {
+                const surv = gameState.seepas[0];
+                for (let i = 0; i < 6; i++) {
+                    const x = randomBetween(40, canvas.width - 40);
+                    const y = randomBetween(40, canvas.height - 40);
+                    const genes = surv ? inheritGenes(surv.genes, surv.genes, GENE_RANGES.seepa) : null;
+                    const s = new Seepa(x, y, genes, surv ? surv.generation : 1);
+                    s.age = 20 + Math.random() * 20;
+                    gameState.seepas.push(s);
+                    spawnParticles(x, y, '#9fd3ff', 6, 1.4);
+                }
+            }
+            if (gameState.suubas.length < 2 && gameState.settings.suubaSpawn > 0) {
+                for (let i = 0; i < 2; i++) {
+                    const x = randomBetween(60, canvas.width - 60);
+                    const y = randomBetween(60, canvas.height - 60);
+                    gameState.suubas.push(new Suuba(x, y));
+                    spawnParticles(x, y, '#c75d5d', 6, 1.4);
+                }
+            }
+            if (gameState.siibas.length < 2 && gameState.settings.siibaSpawn > 0) {
+                for (let i = 0; i < 3; i++) {
+                    const x = randomBetween(40, canvas.width - 40);
+                    const y = randomBetween(40, canvas.height - 40);
+                    gameState.siibas.push(new Siiba(x, y));
+                    spawnParticles(x, y, '#ffd2d9', 6, 1.4);
+                }
+            }
+            if (gameState.fish.length < 3 && gameState.settings.fishSpawn > 0) {
+                let tries = 0;
+                let added = 0;
+                while (added < 5 && tries < 200) {
+                    tries++;
+                    const x = randomBetween(20, canvas.width - 20);
+                    const y = randomBetween(20, canvas.height - 20);
+                    if (isMarine(x, y)) { gameState.fish.push(new Fish(x, y)); spawnParticles(x, y, '#ff9b33', 5, 1.2); added++; }
+                }
+            }
+        }
+
+        // ---------- Main update ----------
+        function update(deltaTime) {
+            if (gameState.paused) return;
+
+            gameState.time += deltaTime;
+            gameState.flockingActive = isFlockingTime();
+
+            const regrowMult = seasonRegrowMultiplier();
+            const season = getSeasonName();
+            const winterScarcity = season === 'Winter';
+
+            // Season transitions: winter culls most fruit into dormancy; spring revives it
+            if (season !== gameState.lastSeason) {
+                if (season === 'Winter') {
+                    for (const b of gameState.bushes || []) for (const f of b.fruits)
+                        if (Math.random() < 0.6) { f.available = false; f.winterDormant = true; }
+                    for (const t of gameState.trees || []) for (const a of t.apples)
+                        if (Math.random() < 0.6) { a.available = false; a.winterDormant = true; }
+                } else if (gameState.lastSeason === 'Winter') {
+                    for (const b of gameState.bushes || []) for (const f of b.fruits) { f.winterDormant = false; f.eatTime = gameState.time; }
+                    for (const t of gameState.trees || []) for (const a of t.apples) { a.winterDormant = false; a.eatTime = gameState.time; }
+                }
+                gameState.lastSeason = season;
+            }
+
+            if (gameState.bushes) {
+                for (const bush of gameState.bushes) {
+                    if (!bush.fruits) continue;
+                    for (let fruit of bush.fruits) {
+                        if (fruit.winterDormant) continue; // stays barren all winter
+                        if (!fruit.available && gameState.time - fruit.eatTime >= gameState.fruitRegrowTime * regrowMult) {
+                            // In winter, even the remaining berries are slow and unreliable
+                            if (winterScarcity && Math.random() < 0.5) {
+                                fruit.eatTime = gameState.time;
+                            } else {
+                                fruit.available = true;
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (gameState.trees) {
+                for (const tree of gameState.trees) {
+                    if (!tree.apples) continue;
+                    for (let apple of tree.apples) {
+                        if (apple.winterDormant) continue;
+                        if (!apple.available && gameState.time - apple.eatTime >= gameState.appleRegrowTime * regrowMult) {
+                            if (winterScarcity && Math.random() < 0.5) {
+                                apple.eatTime = gameState.time;
+                            } else {
+                                apple.available = true;
+                            }
+                        }
+                    }
+                }
+            }
+
+            for (let i = gameState.seepas.length - 1; i >= 0; i--) {
+                const seepa = gameState.seepas[i];
+                seepa.update(deltaTime, gameState);
+                if (!seepa.isAlive()) {
+                    spawnParticles(seepa.x, seepa.y, '#aab4bd', 9, 1.6);
+                    if (gameState.inspected && gameState.inspected.ref === seepa) gameState.inspected = null;
+                    gameState.seepas.splice(i, 1);
+                }
+            }
+
+            if (gameState.siibas) {
+                for (let i = gameState.siibas.length - 1; i >= 0; i--) {
+                    const siiba = gameState.siibas[i];
+                    siiba.update(deltaTime, gameState);
+                    if (!siiba.isAlive()) {
+                        spawnParticles(siiba.x, siiba.y, '#aab4bd', 8, 1.4);
+                        if (gameState.inspected && gameState.inspected.ref === siiba) gameState.inspected = null;
+                        gameState.siibas.splice(i, 1);
+                    }
+                }
+            }
+
+            if (gameState.suubas) {
+                for (let i = gameState.suubas.length - 1; i >= 0; i--) {
+                    const suuba = gameState.suubas[i];
+                    suuba.update(deltaTime, gameState);
+                    if (!suuba.isAlive()) {
+                        spawnParticles(suuba.x, suuba.y, '#aab4bd', 12, 1.8);
+                        if (gameState.inspected && gameState.inspected.ref === suuba) gameState.inspected = null;
+                        gameState.suubas.splice(i, 1);
+                    }
+                }
+            }
+
+            // Coral regrowth (food for fish)
+            if (gameState.corals) {
+                for (const coral of gameState.corals) {
+                    if (!coral.fruits) continue;
+                    for (let f of coral.fruits) {
+                        if (!f.available && gameState.time - f.eatTime >= gameState.fruitRegrowTime * 3) f.available = true;
+                    }
+                }
+            }
+
+            // Fish
+            if (gameState.fish) {
+                for (let i = gameState.fish.length - 1; i >= 0; i--) {
+                    const fish = gameState.fish[i];
+                    fish.update(deltaTime, gameState);
+                    if (!fish.isAlive()) {
+                        spawnParticles(fish.x, fish.y, '#aab4bd', 6, 1.2);
+                        if (gameState.inspected && gameState.inspected.ref === fish) gameState.inspected = null;
+                        gameState.fish.splice(i, 1);
+                    }
+                }
+            }
+
+            handleReproduction();
+            handleFishPredation();
+            handleRescue();
+            updateParticles(deltaTime);
+            updateWeather(deltaTime);
+            samplePopulation();
+        }
+
+        // Fish get eaten by land creatures that reach the shoreline (when hunting is on)
+        function handleFishPredation() {
+            if (!gameState.settings.predatorsEnabled) return;
+            if (!gameState.fish || gameState.fish.length === 0) return;
+            for (let i = gameState.fish.length - 1; i >= 0; i--) {
+                const f = gameState.fish[i];
+                let eaten = false;
+                // Seepas forage fish
+                for (const s of gameState.seepas) {
+                    if (s.hunger < 30) continue;
+                    const reach = f.radius + s.radius + 6;
+                    if (distanceSq(f.x, f.y, s.x, s.y) < reach * reach) {
+                        s.hunger = Math.max(0, s.hunger - 45); eaten = true; break;
+                    }
+                }
+                // Suubas hunt fish
+                if (!eaten) for (const s of gameState.suubas) {
+                    const reach = f.radius + s.radius + 6;
+                    if (distanceSq(f.x, f.y, s.x, s.y) < reach * reach) {
+                        s.hunger = Math.max(0, s.hunger - 60);
+                        s.energy = Math.min(s.maxStats, s.energy + 50);
+                        eaten = true; break;
+                    }
+                }
+                if (eaten) {
+                    spawnParticles(f.x, f.y, '#ff9b33', 8, 1.6);
+                    if (gameState.inspected && gameState.inspected.ref === f) gameState.inspected = null;
+                    gameState.fish.splice(i, 1);
+                }
+            }
+        }
+
+        // ---------- Render ----------
+        function render() {
+            ctx.drawImage(backgroundCanvas, 0, 0);
+            drawAnimatedPondRipples();
+            drawCorals();
+            if (gameState.fish) for (const fish of gameState.fish) fish.draw();
+            drawDayNightOverlay();
+
+            for (const seepa of gameState.seepas) seepa.draw();
+            if (gameState.siibas) for (const siiba of gameState.siibas) siiba.draw();
+
+            drawBushes();
+            drawTrees();
+            if (gameState.suubas) for (const suuba of gameState.suubas) suuba.draw();
+
+            drawParticles();
+            drawWeather();
+
+            // Highlight inspected creature
+            if (gameState.inspected && gameState.inspected.ref) {
+                const c = gameState.inspected.ref;
+                const pulse = 3 + Math.sin(Date.now() / 200) * 2;
+                ctx.strokeStyle = '#ffd84d';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(c.x, c.y, c.radius + 6 + pulse, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+
+            ctx.fillStyle = '#fff';
+            ctx.font = '12px Arial';
+            ctx.fillText(`Time: ${(gameState.time / 1000).toFixed(1)}s`, 10, 20);
+            ctx.fillText(`Seepas: ${gameState.seepas.length}`, 10, 35);
+            ctx.fillText(`Suubas: ${gameState.suubas ? gameState.suubas.length : 0}`, 10, 50);
+            ctx.fillText(`Siibas: ${gameState.siibas ? gameState.siibas.length : 0}`, 10, 65);
+
+            if (gameState.paused) {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 24px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('PAUSED', canvas.width / 2, canvas.height / 2);
+                ctx.textAlign = 'left';
+            }
+        }
+
+        // ---------- Game loop ----------
+        let lastTime = Date.now();
+        function gameLoop() {
+            const now = Date.now();
+            let deltaTime = (now - lastTime) * gameState.speed;
+            lastTime = now;
+            deltaTime = Math.min(deltaTime, 120);
+
+            update(deltaTime);
+            render();
+            drawClockWidgets();
+            drawGraph();
+
+            frameCount++;
+            if (now - lastFpsTime >= 1000) {
+                fps = frameCount;
+                frameCount = 0;
+                lastFpsTime = now;
+                updateStats();
+            }
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // ---------- UI ----------
+        function updateStats() {
+            document.getElementById('seepasCount').textContent = gameState.seepas.length;
+            document.getElementById('suubasCount').textContent = (gameState.suubas || []).length;
+            document.getElementById('siibasCount').textContent = (gameState.siibas || []).length;
+            document.getElementById('fishCount').textContent = (gameState.fish || []).length;
+            document.getElementById('simTime').textContent = (gameState.time / 1000).toFixed(1) + 's';
+            document.getElementById('dayClock').textContent = formatClock(getDayTime());
+            document.getElementById('dayPhase').textContent = getDayPhase();
+            document.getElementById('seasonLabel').textContent = getSeasonName();
+            document.getElementById('fps').textContent = fps;
+            let maxGen = 1;
+            for (const s of gameState.seepas) if (s.generation > maxGen) maxGen = s.generation;
+            for (const s of gameState.suubas) if (s.generation > maxGen) maxGen = s.generation;
+            for (const s of gameState.siibas) if (s.generation > maxGen) maxGen = s.generation;
+            for (const s of (gameState.fish || [])) if (s.generation > maxGen) maxGen = s.generation;
+            document.getElementById('genLabel').textContent = maxGen;
+            updateInspector();
+        }
+
+        function updateInspector() {
+            const panel = document.getElementById('inspector');
+            const insp = gameState.inspected;
+            if (!insp || !insp.ref || !insp.ref.isAlive()) {
+                if (insp) gameState.inspected = null;
+                panel.innerHTML = 'Set Click Action to 🔍 and click a creature to see its stats and genes.';
+                return;
+            }
+            const c = insp.ref;
+            const hungerPct = Math.round((1 - c.hunger / c.maxStats) * 100);
+            const thirstPct = Math.round((1 - c.thirst / c.maxStats) * 100);
+            let html = '<div class="insp-title">' + insp.type + '</div>';
+            html += 'Sex: ' + c.sex + '<br>';
+            html += 'Age: ' + c.age.toFixed(1) + 's';
+            if (c.lifeSpan) html += ' / ' + c.lifeSpan + 's';
+            else html += ' / 100s';
+            html += '<br>Food: ' + hungerPct + '% &nbsp; Water: ' + thirstPct + '%';
+            if (typeof c.energy === 'number') html += '<br>Energy: ' + Math.round(c.energy);
+            if (typeof c.cold === 'number' && c.cold > 1) html += '<br>Cold: ' + Math.round(c.cold) + '%';
+            if (c.hidden) html += '<br><em>🌙 Hiding in shelter</em>';
+            if (c.genes) {
+                html += '<br>Genes — speed: ' + c.genes.speed.toFixed(2) + ', size: ' + c.genes.size.toFixed(2);
+                html += '<br>Generation: ' + c.generation;
+            }
+            panel.innerHTML = html;
+        }
+
+        function drawClockWidgets() {
+            if (dayClockCtx) {
+                const dayTime = getDayTime();
+                drawAnalogClock(dayClockCtx, Math.floor(dayTime), Math.floor((dayTime % 1) * 60));
+            }
+            if (seasonClockCtx) {
+                drawSeasonClock(seasonClockCtx, getSeasonIndex(), getSeasonProgress());
+            }
+        }
+
+        // ---------- Events ----------
+        document.getElementById('pausePlayBtn').addEventListener('click', () => {
+            gameState.paused = !gameState.paused;
+            const btn = document.getElementById('pausePlayBtn');
+            btn.textContent = gameState.paused ? '▶ PLAY' : '⏸ PAUSE';
+            if (!gameState.paused) lastTime = Date.now();
+            updateStats();
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'SELECT') {
+                e.preventDefault();
+                document.getElementById('pausePlayBtn').click();
+            }
+        });
+
+        document.getElementById('speedSlider').addEventListener('input', (e) => {
+            gameState.speed = parseFloat(e.target.value);
+            document.getElementById('speedLabel').textContent = gameState.speed.toFixed(1) + 'x';
+        });
+
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            init();
+            gameState.paused = false;
+            document.getElementById('pausePlayBtn').textContent = '⏸ PAUSE';
+            lastTime = Date.now();
+            updateStats();
+        });
+
+        document.getElementById('clickModeSelect').addEventListener('change', (e) => {
+            gameState.settings.clickMode = e.target.value;
+            canvas.style.cursor = e.target.value === 'inspect' ? 'pointer' : 'crosshair';
+        });
+
+        document.getElementById('predToggle').addEventListener('change', (e) => {
+            gameState.settings.predatorsEnabled = e.target.checked;
+        });
+
+        document.getElementById('flockToggle').addEventListener('change', (e) => {
+            gameState.settings.flockingEnabled = e.target.checked;
+        });
+
+        document.getElementById('rescueToggle').addEventListener('change', (e) => {
+            gameState.settings.rescueEnabled = e.target.checked;
+        });
+
+        document.getElementById('agingToggle').addEventListener('change', (e) => {
+            gameState.settings.agingEnabled = e.target.checked;
+        });
+
+        function bindPopSlider(sliderId, labelId, key) {
+            const slider = document.getElementById(sliderId);
+            const label = document.getElementById(labelId);
+            slider.addEventListener('input', () => {
+                label.textContent = slider.value;
+                gameState.settings[key] = parseInt(slider.value, 10);
+            });
+        }
+        bindPopSlider('seepaPop', 'seepaPopLabel', 'seepaSpawn');
+        bindPopSlider('suubaPop', 'suubaPopLabel', 'suubaSpawn');
+        bindPopSlider('fishPop', 'fishPopLabel', 'fishSpawn');
+        bindPopSlider('siibaPop', 'siibaPopLabel', 'siibaSpawn');
+
+        // Canvas clicks: inspect or spawn (with scaling for responsive canvas)
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+            const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+            const mode = gameState.settings.clickMode;
+
+            if (mode === 'inspect') {
+                let best = null; let bestD = Infinity; let bestType = '';
+                const consider = (list, type, slack) => {
+                    for (const c of list) {
+                        const d2 = distanceSq(x, y, c.x, c.y);
+                        const hit = (c.radius + slack) * (c.radius + slack);
+                        if (d2 < hit && d2 < bestD) { bestD = d2; best = c; bestType = type; }
+                    }
+                };
+                consider(gameState.seepas, 'Seepa', 10);
+                consider(gameState.siibas, 'Siiba', 10);
+                consider(gameState.suubas, 'Suuba', 8);
+                consider(gameState.fish, 'Fish', 10);
+                gameState.inspected = best ? { type: bestType, ref: best } : null;
+                updateInspector();
+            } else if (mode === 'seepa') {
+                const s = new Seepa(x, y);
+                s.age = 30;
+                gameState.seepas.push(s);
+                spawnParticles(x, y, '#9fd3ff', 8, 1.6);
+            } else if (mode === 'suuba') {
+                gameState.suubas.push(new Suuba(x, y));
+                spawnParticles(x, y, '#c75d5d', 8, 1.6);
+            } else if (mode === 'siiba') {
+                gameState.siibas.push(new Siiba(x, y));
+                spawnParticles(x, y, '#ffd2d9', 8, 1.6);
+            } else if (mode === 'fish') {
+                if (isMarine(x, y)) {
+                    gameState.fish.push(new Fish(x, y));
+                    spawnParticles(x, y, '#ff9b33', 8, 1.6);
+                } else {
+                    spawnParticles(x, y, '#888', 5, 1.0); // fizzle — fish need the sea
+                }
+            }
+        });
+
+        document.getElementById('viewSelect').addEventListener('change', (e) => {
+            applyView(e.target.value);
+            init();
+            gameState.paused = false;
+            document.getElementById('pausePlayBtn').textContent = '⏸ PAUSE';
+            lastTime = Date.now();
+            updateStats();
+        });
+
+        // Re-detect on resize/rotate while in Auto mode
+        let resizeTimer = null;
+        window.addEventListener('resize', () => {
+            if (gameState.settings.currentView !== 'auto') return;
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(() => {
+                const want = detectDevice();
+                const dim = viewDimensions(want);
+                if (canvas.width !== dim.w || canvas.height !== dim.h) {
+                    applyView('auto');
+                    init();
+                    lastTime = Date.now();
+                    updateStats();
+                }
+            }, 300);
+        });
+
+        // Start the game
+        applyView('auto');
+        init();
+        updateStats();
+        gameLoop();
+    </script>
+</body>
+</html>
