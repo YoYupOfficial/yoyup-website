@@ -5,419 +5,199 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Evolution Simulator - Seepas</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=DM+Mono:wght@400;500&family=Nunito:wght@400;600;700&display=swap');
-
-        :root {
-            --ink:        #e8e4da;
-            --ink-dim:    #b8b0a2;
-            --ink-faint:  #7a7268;
-            --paper:      #1e1f1a;
-            --paper-mid:  #26271f;
-            --paper-card: #2c2d24;
-            --paper-deep: #1a1b14;
-            --border:     #3c3d2e;
-            --border-hi:  #56573e;
-            --green:      #7ec87a;
-            --green-dim:  #4a7a46;
-            --green-glow: rgba(126,200,122,0.18);
-            --amber:      #e8c46a;
-            --amber-dim:  #a88a3a;
-            --red:        #d4736a;
-            --blue:       #7aaccf;
-            --purple:     #b07acc;
-        }
-
+        /* ── Shared base (layout, positioning, structure) ── */
         * { margin: 0; padding: 0; box-sizing: border-box; }
-
         body {
-            font-family: 'Nunito', Arial, sans-serif;
-            background: var(--paper);
-            background-image:
-                radial-gradient(ellipse at 20% 50%, rgba(40,50,25,0.35) 0%, transparent 60%),
-                radial-gradient(ellipse at 80% 20%, rgba(20,30,10,0.25) 0%, transparent 50%);
-            color: var(--ink);
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
-            min-height: 100vh;
-            padding: 20px;
+            display: flex; justify-content: center; align-items: flex-start;
+            min-height: 100vh; padding: 20px;
         }
-
         .container {
-            display: flex;
-            gap: 20px;
-            align-items: flex-start;
-            flex-wrap: wrap;
-            justify-content: center;
-            width: 100%;
-            max-width: 1700px;
+            display: flex; gap: 20px; align-items: flex-start;
+            flex-wrap: wrap; justify-content: center; width: 100%; max-width: 1700px;
         }
-
-        /* ── Canvas ── */
-        .canvas-wrapper {
-            position: relative;
-            z-index: 1;
-            flex: 1 1 600px;
-            max-width: 1200px;
-        }
-
-        canvas#canvas {
-            display: block;
-            width: 100%;
-            height: auto;
-            cursor: crosshair;
-            border-radius: 6px;
-            border: 2px solid var(--border-hi);
-            box-shadow: 0 0 0 1px var(--border), 0 8px 32px rgba(0,0,0,0.55);
-        }
-
-        /* ── Sidebar ── */
-        .controls {
-            background: var(--paper-card);
-            background-image:
-                repeating-linear-gradient(0deg, transparent, transparent 23px, rgba(255,255,255,0.015) 24px);
-            padding: 18px;
-            border-radius: 10px;
-            border: 1px solid var(--border);
-            border-top: 3px solid var(--green-dim);
-            width: 300px;
-            flex: 0 0 300px;
-            position: relative;
-            z-index: 10;
-            max-height: 92vh;
-            overflow-y: auto;
-            box-shadow: 0 4px 24px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04);
-            scrollbar-width: thin;
-            scrollbar-color: var(--border-hi) transparent;
-        }
-        .controls::-webkit-scrollbar { width: 5px; }
-        .controls::-webkit-scrollbar-track { background: transparent; }
-        .controls::-webkit-scrollbar-thumb { background: var(--border-hi); border-radius: 3px; }
-
-        /* ── Section titles — naturalist label style ── */
-        .section-title {
-            font-family: 'Crimson Text', Georgia, serif;
-            font-size: 13px;
-            font-style: italic;
-            font-weight: 600;
-            letter-spacing: 0.5px;
-            color: var(--green);
-            border-bottom: 1px solid var(--border);
-            padding-bottom: 4px;
-            margin: 20px 0 10px 0;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .section-title::before {
-            content: '';
-            display: inline-block;
-            width: 5px; height: 5px;
-            border-radius: 50%;
-            background: var(--green);
-            flex-shrink: 0;
-            box-shadow: 0 0 5px var(--green);
-        }
-        .section-title:first-child { margin-top: 0; }
-
-        /* ── Control groups ── */
-        .control-group { margin-bottom: 14px; }
-
-        .control-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: 700;
-            font-size: 12px;
-            color: var(--ink-dim);
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
-        }
-
-        /* ── Buttons ── */
-        button {
-            background: linear-gradient(135deg, #2e4a2e 0%, #1e3220 100%);
-            color: var(--green);
-            border: 1px solid var(--green-dim);
-            padding: 10px 20px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 13px;
-            font-family: 'Nunito', sans-serif;
-            font-weight: 700;
-            letter-spacing: 0.5px;
-            transition: all 0.18s;
-            width: 100%;
-            text-shadow: 0 0 8px rgba(126,200,122,0.3);
-        }
-        button:hover {
-            background: linear-gradient(135deg, #3a5e3a 0%, #263e26 100%);
-            border-color: var(--green);
-            box-shadow: 0 0 12px rgba(126,200,122,0.2);
-        }
-        button:active { transform: translateY(1px); }
-
-        /* Special button variants */
-        #nsModeBtn {
-            background: linear-gradient(135deg, #2a3a20 0%, #1a2a14 100%);
-            color: #a0d07a;
-            border-color: #4a6a30;
-            font-size: 12px;
-        }
-        #nsModeBtn:hover { border-color: #6a9a44; box-shadow: 0 0 10px rgba(100,180,60,0.2); }
-        #pausePlayBtn {
-            background: linear-gradient(135deg, #1a2e3a 0%, #0e2030 100%);
-            color: var(--blue);
-            border-color: #3a6080;
-        }
-        #pausePlayBtn:hover { border-color: var(--blue); box-shadow: 0 0 12px rgba(122,172,207,0.2); }
-        #resetBtn {
-            background: linear-gradient(135deg, #3a2020 0%, #2a1414 100%);
-            color: var(--red);
-            border-color: #6a3030;
-        }
-        #resetBtn:hover { border-color: var(--red); box-shadow: 0 0 12px rgba(212,115,106,0.2); }
-
-        /* ── Select dropdowns ── */
-        select {
-            width: 100%;
-            background: var(--paper-deep);
-            color: var(--ink);
-            border: 1px solid var(--border-hi);
-            border-radius: 5px;
-            padding: 8px 10px;
-            font-size: 12px;
-            font-family: 'Nunito', sans-serif;
-            appearance: none;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%237ec87a'/%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: right 10px center;
-            cursor: pointer;
-        }
-        select:focus { outline: none; border-color: var(--green); }
-
-        /* ── Range sliders ── */
+        .canvas-wrapper { position: relative; z-index: 1; flex: 1 1 600px; max-width: 1200px; }
+        canvas#canvas { display: block; width: 100%; height: auto; cursor: crosshair; }
+        .controls { width: 300px; flex: 0 0 300px; position: relative; z-index: 10; max-height: 92vh; overflow-y: auto; padding: 20px; }
         .speed-control { display: flex; gap: 10px; align-items: center; }
-        input[type="range"] {
-            flex: 1;
-            -webkit-appearance: none;
-            height: 4px;
-            border-radius: 2px;
-            background: var(--border-hi);
-            outline: none;
-        }
-        input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            width: 14px; height: 14px;
-            border-radius: 50%;
-            background: var(--green);
-            cursor: pointer;
-            box-shadow: 0 0 6px rgba(126,200,122,0.5);
-        }
-
-        /* ── Toggle rows ── */
-        .toggle-row {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 13px;
-            margin-bottom: 8px;
-            cursor: pointer;
-            color: var(--ink-dim);
-            transition: color 0.15s;
-        }
-        .toggle-row:hover { color: var(--ink); }
-        .toggle-row input[type="checkbox"] {
-            -webkit-appearance: none;
-            width: 16px; height: 16px;
-            border-radius: 3px;
-            border: 1px solid var(--border-hi);
-            background: var(--paper-deep);
-            cursor: pointer;
-            position: relative;
-            flex-shrink: 0;
-        }
-        .toggle-row input[type="checkbox"]:checked {
-            background: var(--green-dim);
-            border-color: var(--green);
-        }
-        .toggle-row input[type="checkbox"]:checked::after {
-            content: '✓';
-            position: absolute;
-            top: -1px; left: 2px;
-            font-size: 12px;
-            color: var(--green);
-        }
-
-        /* ── Population sliders ── */
-        .pop-slider-row {
-            display: flex;
-            justify-content: space-between;
-            font-size: 11px;
-            margin-bottom: 2px;
-            color: var(--ink-dim);
-        }
-        .pop-slider-row strong { color: var(--amber); font-family: 'DM Mono', monospace; }
-
-        .hint {
-            font-size: 11px;
-            color: var(--ink-faint);
-            margin-top: 5px;
-            font-style: italic;
-            line-height: 1.5;
-        }
-
-        /* ── Stats card ── */
-        .stats {
-            background: var(--paper-deep);
-            padding: 12px;
-            border-radius: 6px;
-            font-size: 12px;
-            line-height: 2;
-            border: 1px solid var(--border);
-        }
-        .stat-line {
-            display: flex;
-            justify-content: space-between;
-            border-bottom: 1px solid rgba(255,255,255,0.03);
-        }
-        .stat-line:last-child { border-bottom: none; }
-        .stat-line span { color: var(--ink-dim); }
-        .stat-line strong {
-            font-family: 'DM Mono', monospace;
-            font-size: 11px;
-            color: var(--amber);
-        }
-
-        /* ── Legend card ── */
-        .legend {
-            background: var(--paper-deep);
-            padding: 12px;
-            border-radius: 6px;
-            font-size: 12px;
-            border: 1px solid var(--border);
-        }
-        .legend-item {
-            display: flex;
-            align-items: center;
-            gap: 9px;
-            margin-bottom: 8px;
-            color: var(--ink-dim);
-            line-height: 1.4;
-        }
-        .legend-item:last-child { margin-bottom: 0; }
+        input[type="range"] { flex: 1; }
+        .toggle-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; cursor: pointer; }
+        .pop-slider-row { display: flex; justify-content: space-between; margin-bottom: 2px; }
+        .stat-line { display: flex; justify-content: space-between; }
+        .legend-item { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
         .legend-color { width: 18px; height: 18px; border-radius: 50%; flex-shrink: 0; }
-
-        /* ── Clock widgets ── */
-        .clock-panel { display: flex; gap: 10px; justify-content: space-between; }
-        .clock-widget {
-            display: flex; flex-direction: column; align-items: center; gap: 5px;
-            flex: 1;
-            background: var(--paper-deep);
-            padding: 10px 8px;
-            border-radius: 8px;
-            border: 1px solid var(--border);
-        }
-        .clock-canvas {
-            width: 90px; height: 90px; border-radius: 50%;
-            background: #0e0f0a;
-            border: 1px solid var(--border-hi);
-            box-shadow: inset 0 0 12px rgba(0,0,0,0.6), 0 0 8px rgba(126,200,122,0.06);
-        }
-        .clock-label {
-            font-size: 11px;
-            color: var(--green);
-            text-align: center;
-            font-family: 'Crimson Text', serif;
-            font-style: italic;
-        }
-
-        /* ── Graph panels ── */
-        .graph-panel {
-            background: var(--paper-deep);
-            padding: 10px;
-            border-radius: 6px;
-            border: 1px solid var(--border);
-        }
-        #graphCanvas {
-            width: 100%;
-            background: #12130e;
-            border-radius: 4px;
-            border: 1px solid var(--border);
-        }
-        .graph-legend {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            font-size: 10px;
-            margin-top: 7px;
-            color: var(--ink-dim);
-        }
+        .clock-panel { display: flex; gap: 12px; justify-content: space-between; }
+        .clock-widget { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+        .graph-legend { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
         .graph-legend span { display: flex; align-items: center; gap: 4px; }
-        .graph-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
-
-        /* ── Inspector ── */
-        .inspector {
-            background: var(--paper-deep);
-            padding: 12px;
-            border-radius: 6px;
-            font-size: 12px;
-            line-height: 1.8;
-            min-height: 60px;
-            border: 1px solid var(--border);
-            border-left: 3px solid var(--amber-dim);
-        }
-        .inspector .insp-title {
-            font-weight: 700;
-            font-size: 13px;
-            color: var(--amber);
-            font-family: 'Crimson Text', serif;
-        }
-
-        /* ── Event log ── */
-        #eventLog {
-            font-size: 11px;
-            line-height: 1.8;
-            color: var(--ink-dim);
-            max-height: 120px;
-            overflow-y: auto;
-            background: var(--paper-deep);
-            border-radius: 5px;
-            padding: 7px 9px;
-            border: 1px solid var(--border);
-            font-family: 'DM Mono', monospace;
-        }
-
-        .info-text { font-size: 12px; color: var(--ink-faint); line-height: 1.6; }
-
-        /* ── NS panel ── */
-        #nsPanel .section-title { color: #a0d07a; }
-
-        /* ── How it works accordion ── */
-        details summary {
-            cursor: pointer;
-            font-size: 12px;
-            color: var(--ink-dim);
-            padding: 4px 0;
-            user-select: none;
-        }
-        details summary:hover { color: var(--ink); }
-        details[open] summary { color: var(--green); }
-        details p, details li { font-size: 11px; color: var(--ink-faint); line-height: 1.6; }
-        details ul { padding-left: 14px; }
-
+        .graph-dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+        .control-group { margin-bottom: 12px; }
         @media (max-width: 760px) {
             .controls { flex: 1 1 100%; width: auto; max-height: none; }
             body { padding: 10px; }
         }
+
+        /* ═══════════════════════════════════
+           CLASSIC THEME (default)
+           ═══════════════════════════════════ */
+        body { font-family: Arial, sans-serif; background: #1a1a1a; color: #fff; }
+        body canvas#canvas { border: 3px solid #444; background: #2a2a2a; }
+        body .controls { background: #333; border-radius: 8px; border: 2px solid #444; }
+        body .section-title {
+            font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase;
+            color: #8fb3d9; border-bottom: 1px solid #4a4a4a;
+            padding-bottom: 4px; margin: 18px 0 10px 0;
+        }
+        body .section-title:first-child { margin-top: 0; }
+        body .control-group label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 13px; }
+        body button {
+            background: #0066cc; color: white; border: none;
+            padding: 10px 20px; border-radius: 4px; cursor: pointer;
+            font-size: 14px; transition: background 0.2s; width: 100%;
+        }
+        body button:hover { background: #0052a3; }
+        body button:active { background: #003d7a; }
+        body #nsModeBtn { background: #2d4a3a; }
+        body select {
+            width: 100%; background: #222; color: #fff;
+            border: 1px solid #555; border-radius: 4px; padding: 8px; font-size: 13px;
+        }
+        body .toggle-row { font-size: 13px; }
+        body .toggle-row input { cursor: pointer; }
+        body .pop-slider-row { font-size: 12px; }
+        body .hint { font-size: 11px; color: #888; margin-top: 4px; }
+        body .stats { background: #2a2a2a; padding: 12px; border-radius: 4px; font-size: 13px; line-height: 1.8; }
+        body .legend { background: #2a2a2a; padding: 12px; border-radius: 4px; font-size: 12px; }
+        body .clock-widget { width: 110px; background: #232323; padding: 10px; border-radius: 10px; border: 1px solid #3d3d3d; }
+        body .clock-canvas { width: 100px; height: 100px; border-radius: 50%; background: #111; border: 1px solid #4d4d4d; }
+        body .clock-label { font-size: 12px; color: #ddd; text-align: center; }
+        body .graph-panel { background: #2a2a2a; padding: 10px; border-radius: 4px; }
+        body #graphCanvas { width: 100%; background: #1c1c1c; border-radius: 4px; border: 1px solid #3a3a3a; }
+        body .graph-legend { font-size: 11px; gap: 12px; }
+        body .inspector {
+            background: #2a2a2a; padding: 12px; border-radius: 4px;
+            font-size: 12px; line-height: 1.7; min-height: 60px; border: 1px solid #3a3a3a;
+        }
+        body .inspector .insp-title { font-weight: bold; font-size: 13px; color: #ffd84d; }
+        body .info-text { font-size: 12px; color: #aaa; line-height: 1.6; }
+        body #eventLog {
+            font-size: 11px; line-height: 1.7; color: #ccc; max-height: 120px; overflow-y: auto;
+            background: #1a1a1a; border-radius: 4px; padding: 6px 8px;
+        }
+
+        /* ═══════════════════════════════════
+           NATURE THEME (body.nature-theme)
+           ═══════════════════════════════════ */
+        body.nature-theme {
+            font-family: 'Nunito', Arial, sans-serif;
+            background: #1e1f1a;
+            background-image:
+                radial-gradient(ellipse at 20% 50%, rgba(40,50,25,0.35) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 20%, rgba(20,30,10,0.25) 0%, transparent 50%);
+            color: #e8e4da;
+        }
+        body.nature-theme canvas#canvas {
+            border: 2px solid #56573e; border-radius: 6px;
+            box-shadow: 0 0 0 1px #3c3d2e, 0 8px 32px rgba(0,0,0,0.55);
+        }
+        body.nature-theme .controls {
+            background: #2c2d24;
+            background-image: repeating-linear-gradient(0deg, transparent, transparent 23px, rgba(255,255,255,0.015) 24px);
+            border-radius: 10px; border: 1px solid #3c3d2e; border-top: 3px solid #4a7a46;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04);
+            scrollbar-width: thin; scrollbar-color: #56573e transparent;
+        }
+        body.nature-theme .controls::-webkit-scrollbar { width: 5px; }
+        body.nature-theme .controls::-webkit-scrollbar-thumb { background: #56573e; border-radius: 3px; }
+        body.nature-theme .section-title {
+            font-family: 'Crimson Text', Georgia, serif;
+            font-size: 13px; font-style: italic; font-weight: 600; letter-spacing: 0.5px;
+            color: #7ec87a; border-bottom: 1px solid #3c3d2e; padding-bottom: 4px;
+            margin: 20px 0 10px 0; display: flex; align-items: center; gap: 6px; text-transform: none;
+        }
+        body.nature-theme .section-title::before {
+            content: ''; display: inline-block; width: 5px; height: 5px;
+            border-radius: 50%; background: #7ec87a; flex-shrink: 0; box-shadow: 0 0 5px #7ec87a;
+        }
+        body.nature-theme .section-title:first-child { margin-top: 0; }
+        body.nature-theme .control-group label {
+            display: block; margin-bottom: 5px; font-weight: 700; font-size: 12px;
+            color: #b8b0a2; text-transform: uppercase; letter-spacing: 0.8px;
+        }
+        body.nature-theme button {
+            background: linear-gradient(135deg, #2e4a2e 0%, #1e3220 100%);
+            color: #7ec87a; border: 1px solid #4a7a46; padding: 10px 20px;
+            border-radius: 6px; cursor: pointer; font-size: 13px; font-family: 'Nunito', sans-serif;
+            font-weight: 700; letter-spacing: 0.5px; transition: all 0.18s; width: 100%;
+        }
+        body.nature-theme button:hover {
+            background: linear-gradient(135deg, #3a5e3a 0%, #263e26 100%);
+            border-color: #7ec87a; box-shadow: 0 0 12px rgba(126,200,122,0.2);
+        }
+        body.nature-theme button:active { transform: translateY(1px); }
+        body.nature-theme #nsModeBtn { background: linear-gradient(135deg,#2a3a20,#1a2a14); color:#a0d07a; border-color:#4a6a30; font-size:12px; }
+        body.nature-theme #pausePlayBtn { background: linear-gradient(135deg,#1a2e3a,#0e2030); color:#7aaccf; border-color:#3a6080; }
+        body.nature-theme #resetBtn { background: linear-gradient(135deg,#3a2020,#2a1414); color:#d4736a; border-color:#6a3030; }
+        body.nature-theme select {
+            background: #1a1b14; color: #e8e4da; border: 1px solid #56573e;
+            border-radius: 5px; padding: 8px 10px; font-size: 12px; font-family: 'Nunito', sans-serif;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%237ec87a'/%3E%3C/svg%3E");
+            background-repeat: no-repeat; background-position: right 10px center; cursor: pointer;
+        }
+        body.nature-theme input[type="range"] { -webkit-appearance:none; height:4px; border-radius:2px; background:#56573e; outline:none; }
+        body.nature-theme input[type="range"]::-webkit-slider-thumb { -webkit-appearance:none; width:14px; height:14px; border-radius:50%; background:#7ec87a; cursor:pointer; box-shadow:0 0 6px rgba(126,200,122,0.5); }
+        body.nature-theme .toggle-row { font-size: 13px; color: #b8b0a2; transition: color 0.15s; }
+        body.nature-theme .toggle-row:hover { color: #e8e4da; }
+        body.nature-theme .toggle-row input[type="checkbox"] { -webkit-appearance:none; width:16px; height:16px; border-radius:3px; border:1px solid #56573e; background:#1a1b14; cursor:pointer; position:relative; flex-shrink:0; }
+        body.nature-theme .toggle-row input[type="checkbox"]:checked { background:#4a7a46; border-color:#7ec87a; }
+        body.nature-theme .toggle-row input[type="checkbox"]:checked::after { content:'✓'; position:absolute; top:-1px; left:2px; font-size:12px; color:#7ec87a; }
+        body.nature-theme .pop-slider-row { font-size:11px; color:#b8b0a2; }
+        body.nature-theme .pop-slider-row strong { color:#e8c46a; font-family:'DM Mono',monospace; }
+        body.nature-theme .hint { font-size:11px; color:#7a7268; margin-top:5px; font-style:italic; line-height:1.5; }
+        body.nature-theme .stats { background:#1a1b14; padding:12px; border-radius:6px; font-size:12px; line-height:2; border:1px solid #3c3d2e; }
+        body.nature-theme .stat-line { border-bottom:1px solid rgba(255,255,255,0.03); }
+        body.nature-theme .stat-line:last-child { border-bottom:none; }
+        body.nature-theme .stat-line span { color:#b8b0a2; }
+        body.nature-theme .stat-line strong { font-family:'DM Mono',monospace; font-size:11px; color:#e8c46a; }
+        body.nature-theme .legend { background:#1a1b14; padding:12px; border-radius:6px; font-size:12px; border:1px solid #3c3d2e; }
+        body.nature-theme .legend-item { color:#b8b0a2; line-height:1.4; }
+        body.nature-theme .clock-widget { flex:1; background:#1a1b14; padding:10px 8px; border-radius:8px; border:1px solid #3c3d2e; }
+        body.nature-theme .clock-canvas { width:90px; height:90px; border-radius:50%; background:#0e0f0a; border:1px solid #56573e; box-shadow:inset 0 0 12px rgba(0,0,0,0.6); }
+        body.nature-theme .clock-label { font-size:11px; color:#7ec87a; text-align:center; font-family:'Crimson Text',serif; font-style:italic; }
+        body.nature-theme .graph-panel { background:#1a1b14; padding:10px; border-radius:6px; border:1px solid #3c3d2e; }
+        body.nature-theme #graphCanvas { width:100%; background:#12130e; border-radius:4px; border:1px solid #3c3d2e; }
+        body.nature-theme .graph-legend { font-size:10px; color:#b8b0a2; gap:8px; }
+        body.nature-theme .graph-dot { width:8px; height:8px; }
+        body.nature-theme .inspector { background:#1a1b14; padding:12px; border-radius:6px; font-size:12px; line-height:1.8; min-height:60px; border:1px solid #3c3d2e; border-left:3px solid #a88a3a; }
+        body.nature-theme .inspector .insp-title { font-weight:700; font-size:13px; color:#e8c46a; font-family:'Crimson Text',serif; }
+        body.nature-theme .info-text { font-size:12px; color:#7a7268; line-height:1.6; }
+        body.nature-theme #eventLog { font-size:11px; line-height:1.8; color:#b8b0a2; max-height:120px; overflow-y:auto; background:#1a1b14; border-radius:5px; padding:7px 9px; border:1px solid #3c3d2e; font-family:'DM Mono',monospace; }
+        body.nature-theme #nsPanel .section-title { color:#a0d07a; }
+
+        /* Theme toggle button */
+        #themeToggleBtn {
+            background: transparent !important; border: 1px solid #555 !important;
+            color: #aaa !important; font-size: 11px !important;
+            padding: 5px 10px !important; border-radius: 4px !important;
+            margin-bottom: 14px; width: 100%; cursor: pointer; transition: all 0.2s;
+        }
+        #themeToggleBtn:hover { border-color: #aaa !important; color: #fff !important; }
+        body.nature-theme #themeToggleBtn { border-color: #4a7a46 !important; color: #7ec87a !important; }
+        body.nature-theme #themeToggleBtn:hover { border-color: #7ec87a !important; }
     </style>
-</head>
-<body>
+</head><body>
     <div class="container">
         <div class="canvas-wrapper">
             <canvas id="canvas" width="1200" height="800"></canvas>
         </div>
 
         <div class="controls">
+            <button id="themeToggleBtn">🎨 Nature Theme</button>
+            <div class="control-group" style="display:flex;align-items:center;gap:6px;">
+                <button id="muteBtn" title="Mute all audio" style="width:auto;flex:0 0 auto;padding:6px 10px;font-size:13px;">🔊</button>
+                <button id="sfxBtn" title="Toggle sound effects" style="width:auto;flex:0 0 auto;padding:6px 10px;font-size:13px;">🐾</button>
+                <input type="range" id="volumeSlider" min="0" max="100" step="1" value="50" style="flex:1;">
+            </div>
             <div class="section-title">Controls</div>
             <div class="control-group">
                 <button id="pausePlayBtn">⏸ PAUSE</button>
@@ -454,6 +234,10 @@
                     <option value="siiba">➕ Spawn Siiba</option>
                     <option value="fish">➕ Spawn Sooba (in sea)</option>
                     <option value="saaba">➕ Spawn Saaba (sea predator)</option>
+                    <option value="food">🍎 Drop food</option>
+                    <option value="smite">⚡ Smite creature</option>
+                    <option value="bless">✨ Bless (heal & feed)</option>
+                    <option value="meteor">☄️ Meteor strike</option>
                 </select>
             </div>
             <div class="control-group">
@@ -478,7 +262,7 @@
                 <div class="hint">Applied when you press RESET</div>
             </div>
 
-            <div class="section-title">Field Inspector</div>
+            <div class="section-title">Inspector</div>
             <div class="inspector" id="inspector">Set Click Action to 🔍 and click a creature to see its stats and genes.</div>
 
             <div class="section-title">Population History</div>
@@ -491,6 +275,7 @@
                     <span><span class="graph-dot" style="background:#ff9b33;"></span>Sooba</span>
                     <span><span class="graph-dot" style="background:#3a8fc4;"></span>Saaba</span>
                 </div>
+                <button id="exportCsvBtn" style="margin-top:8px;font-size:12px;padding:7px;">📊 Export data (CSV)</button>
             </div>
 
             <div id="nsPanel" style="display:none;">
@@ -528,10 +313,10 @@
                 <div class="hint">Lines show each gene's average, scaled to its possible range (top = max). Watch traits drift as selection acts.</div>
             </div>
 
-            <div class="section-title">Field Journal</div>
+            <div class="section-title">Event Log</div>
             <div id="eventLog" style="font-size:11px;line-height:1.7;color:#ccc;max-height:120px;overflow-y:auto;background:#1a1a1a;border-radius:4px;padding:6px 8px;"></div>
 
-            <div class="section-title">Observations</div>
+            <div class="section-title">Stats</div>
             <div class="stats">
                 <div class="stat-line"><span>Total Seepas:</span><strong id="seepasCount">0</strong></div>
                 <div class="stat-line"><span>Total Suubas:</span><strong id="suubasCount">0</strong></div>
@@ -551,7 +336,7 @@
                 <div class="stat-line"><span>FPS:</span><strong id="fps">0</strong></div>
             </div>
 
-            <div class="section-title">Time &amp; Season</div>
+            <div class="section-title">Clocks</div>
             <div class="clock-panel">
                 <div class="clock-widget">
                     <canvas id="dayClockCanvas" class="clock-canvas" width="100" height="100"></canvas>
@@ -563,7 +348,7 @@
                 </div>
             </div>
 
-            <div class="section-title">Species Guide</div>
+            <div class="section-title">Legend</div>
             <div class="legend">
                 <div class="legend-item"><div class="legend-color" style="background: #4488ff;"></div><span>Seepa (adult male blue / female pink)</span></div>
                 <div class="legend-item"><div class="legend-color" style="background: #ffd84d;"></div><span>Juvenile / Baby</span></div>
@@ -581,7 +366,7 @@
                 <div class="legend-item"><div class="legend-color" style="background:#b5543a;"></div><span>Mushroom (Swamp) / Lichen berry (Tundra)</span></div>
             </div>
 
-            <div class="section-title">How it Works</div>
+            <div class="section-title">How it works</div>
             <div class="info-text">
                 <ul style="margin-left: 15px; margin-top: 4px;">
                     <li>Seepas drink at the sea shore and eat fruit, apples, cactus flowers, pine cones and Siibas</li>
@@ -616,6 +401,196 @@
         const seasonClockCtx = seasonClockCanvas ? seasonClockCanvas.getContext('2d') : null;
         const graphCanvas = document.getElementById('graphCanvas');
         const graphCtx = graphCanvas ? graphCanvas.getContext('2d') : null;
+
+        // ═══════════════════════════════════════════════════════════
+        //  AUDIO ENGINE — procedural (Web Audio API, no external files)
+        //  - Sound FX: short synthesized blips for births, deaths, eating, etc.
+        //  - Ambient music: a slow generative pad + arpeggio that shifts with
+        //    day/night and season. All built from oscillators, no audio assets.
+        // ═══════════════════════════════════════════════════════════
+        const Audio2 = {
+            ctx: null,
+            master: null,        // master gain (volume slider)
+            musicGain: null,     // music sub-bus
+            fxGain: null,        // fx sub-bus
+            muted: false,
+            fxMuted: false,
+            volume: 0.5,
+            started: false,
+            lastFx: 0,           // throttle simultaneous fx
+            musicTimer: null,
+            // Pentatonic-ish scales for pleasant generative music
+            scales: {
+                day:   [0, 2, 4, 7, 9, 12, 14, 16],   // bright major pentatonic
+                night: [0, 3, 5, 7, 10, 12, 15],       // minor, mellow
+                winter:[0, 2, 3, 7, 8, 12, 14]         // cold, sparse
+            },
+            rootHz: 220, // A3
+
+            ensure() {
+                if (this.ctx) return true;
+                try {
+                    const AC = window.AudioContext || window.webkitAudioContext;
+                    if (!AC) return false;
+                    this.ctx = new AC();
+                    this.master = this.ctx.createGain();
+                    this.master.gain.value = this.muted ? 0 : this.volume;
+                    this.master.connect(this.ctx.destination);
+                    this.musicGain = this.ctx.createGain();
+                    this.musicGain.gain.value = 0.5;
+                    this.musicGain.connect(this.master);
+                    this.fxGain = this.ctx.createGain();
+                    this.fxGain.gain.value = 0.9;
+                    this.fxGain.connect(this.master);
+                    // gentle reverb-ish via a short feedback delay on music
+                    this.delay = this.ctx.createDelay();
+                    this.delay.delayTime.value = 0.33;
+                    this.delayFb = this.ctx.createGain();
+                    this.delayFb.gain.value = 0.28;
+                    this.delay.connect(this.delayFb);
+                    this.delayFb.connect(this.delay);
+                    this.delay.connect(this.master);
+                    this.musicGain.connect(this.delay);
+                    return true;
+                } catch (e) { return false; }
+            },
+
+            start() {
+                if (this.started) return;
+                if (!this.ensure()) return;
+                if (this.ctx.state === 'suspended') this.ctx.resume();
+                this.started = true;
+                this.scheduleMusic();
+            },
+
+            setVolume(v) {
+                this.volume = v;
+                if (this.master && !this.muted) {
+                    this.master.gain.setTargetAtTime(v, this.ctx.currentTime, 0.05);
+                }
+            },
+            setMuted(m) {
+                this.muted = m;
+                if (this.master) {
+                    this.master.gain.setTargetAtTime(m ? 0 : this.volume, this.ctx.currentTime, 0.05);
+                }
+            },
+            setFxMuted(m) {
+                this.fxMuted = m;
+                // fxGain is its own sub-bus, so we can silence FX without touching music
+                if (this.fxGain) {
+                    this.fxGain.gain.setTargetAtTime(m ? 0 : 0.9, this.ctx.currentTime, 0.05);
+                }
+            },
+
+            // ── One synthesized note ──
+            note(freq, dur, type, gain, when, glideTo) {
+                if (!this.ctx || this.muted) return;
+                const t = when ?? this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const g = this.ctx.createGain();
+                osc.type = type || 'sine';
+                osc.frequency.setValueAtTime(freq, t);
+                if (glideTo) osc.frequency.exponentialRampToValueAtTime(glideTo, t + dur);
+                g.gain.setValueAtTime(0, t);
+                g.gain.linearRampToValueAtTime(gain ?? 0.2, t + 0.012);
+                g.gain.exponentialRampToValueAtTime(0.0008, t + dur);
+                osc.connect(g);
+                g.connect(this.target || this.fxGain);
+                osc.start(t);
+                osc.stop(t + dur + 0.05);
+            },
+
+            // ── Sound effects ──
+            fx(name) {
+                if (!this.started || !this.ctx || this.muted || this.fxMuted) return;
+                const now = this.ctx.currentTime;
+                if (now - this.lastFx < 0.012) return; // throttle bursts
+                this.lastFx = now;
+                this.target = this.fxGain;
+                switch (name) {
+                    case 'birth': // bright rising chime
+                        this.note(523, 0.18, 'triangle', 0.16, now);
+                        this.note(784, 0.22, 'triangle', 0.13, now + 0.06);
+                        this.note(1047, 0.3, 'sine', 0.10, now + 0.12);
+                        break;
+                    case 'death': // soft descending tone
+                        this.note(330, 0.5, 'sine', 0.14, now, 120);
+                        break;
+                    case 'eat': // tiny soft blip — throttled hard so mass-grazing isn't spammy
+                        if (now - (this._lastEatSound || 0) < 0.16) break;
+                        this._lastEatSound = now;
+                        this.note(440 + Math.random() * 120, 0.07, 'square', 0.045, now);
+                        break;
+                    case 'mate': // gentle two-note coo
+                        this.note(660, 0.14, 'sine', 0.10, now);
+                        this.note(880, 0.16, 'sine', 0.09, now + 0.09);
+                        break;
+                    case 'hunt': // predator strike — low thud
+                        this.note(140, 0.18, 'sawtooth', 0.16, now, 70);
+                        break;
+                    case 'season': // soft swell marking a season change
+                        this.note(294, 0.9, 'sine', 0.12, now);
+                        this.note(440, 1.0, 'triangle', 0.08, now + 0.05);
+                        break;
+                    case 'click':
+                        this.note(880, 0.05, 'square', 0.06, now);
+                        break;
+                }
+                this.target = null;
+            },
+
+            // ── Generative ambient music ──
+            scheduleMusic() {
+                if (!this.started || !this.ctx) return;
+                this.target = this.musicGain;
+                const now = this.ctx.currentTime;
+                // Pick scale + tempo from time of day / season
+                let scaleName = 'day', noteGain = 0.06, stepDur = 0.9;
+                try {
+                    const season = getSeasonName();
+                    const phase = getDayPhase();
+                    if (season === 'Winter') { scaleName = 'winter'; noteGain = 0.05; stepDur = 1.25; }
+                    else if (phase === 'Night') { scaleName = 'night'; noteGain = 0.045; stepDur = 1.1; }
+                    else if (phase === 'Dusk' || phase === 'Dawn') { scaleName = 'night'; noteGain = 0.055; }
+                } catch (e) {}
+                const scale = this.scales[scaleName];
+
+                // A sustained low pad
+                const root = this.rootHz * (scaleName === 'night' ? 0.5 : 0.5);
+                this.pad(root, stepDur * 4);
+
+                // A short arpeggio of 3–4 notes
+                const steps = 3 + (Math.random() < 0.5 ? 1 : 0);
+                for (let i = 0; i < steps; i++) {
+                    const deg = scale[Math.floor(Math.random() * scale.length)];
+                    const freq = this.rootHz * Math.pow(2, deg / 12);
+                    this.note(freq, stepDur * 1.4, i % 2 ? 'sine' : 'triangle', noteGain, now + i * stepDur, null);
+                }
+                this.target = null;
+
+                // schedule next phrase
+                const nextIn = stepDur * steps * 1000 + 400;
+                this.musicTimer = setTimeout(() => this.scheduleMusic(), nextIn);
+            },
+            pad(freq, dur) {
+                if (!this.ctx || this.muted) return;
+                const t = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const osc2 = this.ctx.createOscillator();
+                const g = this.ctx.createGain();
+                osc.type = 'sine'; osc2.type = 'sine';
+                osc.frequency.value = freq;
+                osc2.frequency.value = freq * 1.005; // slight detune for warmth
+                g.gain.setValueAtTime(0, t);
+                g.gain.linearRampToValueAtTime(0.05, t + dur * 0.3);
+                g.gain.linearRampToValueAtTime(0.0008, t + dur);
+                osc.connect(g); osc2.connect(g);
+                g.connect(this.musicGain);
+                osc.start(t); osc2.start(t);
+                osc.stop(t + dur + 0.1); osc2.stop(t + dur + 0.1);
+            }
+        };
 
         // Game state
         let gameState = {
@@ -1027,6 +1002,9 @@
                 this.thirst = Math.random() * 50;
                 this.maxStats = 100;
                 this.idlePhase = Math.random() * Math.PI * 2; // breathing animation offset
+                this.blinkT = Math.random() * 4;   // seconds until next blink
+                this.legPhase = Math.random() * Math.PI * 2; // leg scuttle cycle
+                this.tailPhase = Math.random() * Math.PI * 2; // tail flick
             }
 
             update(deltaTime, gameState) {
@@ -1080,6 +1058,13 @@
                         this.moveTowardTarget(gameState);
                     }
                 }
+
+                // Advance animation timers
+                const _spd = Math.sqrt(this.vx * this.vx + this.vy * this.vy) + 0.1;
+                this.legPhase = (this.legPhase || 0) + deltaTime / 1000 * _spd * 14;
+                this.tailPhase = (this.tailPhase || 0) + deltaTime / 1000 * (_spd * 6 + 1.5);
+                this.blinkT = (this.blinkT ?? 2) - deltaTime / 1000;
+                if (this.blinkT < 0) this.blinkT = 2.5 + Math.random() * 4;
 
                 // Slower at night, faster when fleeing
                 const phaseMul = getDayPhase() === 'Night' ? 0.55 : 1;
@@ -1205,7 +1190,7 @@
                         for (let i = 0; i < bush.fruits.length; i++) {
                             if (bush.fruits[i].available) {
                                 this.hunger = Math.max(0, this.hunger - 50);
-                                this.lastEat = gameState.time;
+                                this.lastEat = gameState.time; Audio2.fx('eat');
                                 bush.fruits[i].available = false;
                                 bush.fruits[i].eatTime = gameState.time;
                                 spawnParticles(this.x, this.y, '#ffb066', 6, 1.4);
@@ -1228,7 +1213,7 @@
                                 const minASq = (this.radius + 6) * (this.radius + 6);
                                 if (adSq < minASq) {
                                     this.hunger = Math.max(0, this.hunger - 40);
-                                this.lastEat = gameState.time;
+                                this.lastEat = gameState.time; Audio2.fx('eat');
                                     apple.available = false;
                                     apple.eatTime = gameState.time;
                                     spawnParticles(ax, ay, '#ff6f5e', 6, 1.4);
@@ -1378,11 +1363,16 @@
                     const t = camo * 0.72; // max 72% blend so even max-camo creatures stay distinct
                     bodyA = blend(bodyA, t); bodyB = blend(bodyB, t); bodyC = blend(bodyC, t);
                 }
-                // Drawn along X axis — front is +X (direction of travel)
+                // ── Body: a plump rounded critter (front is +X) — rounder & less fish-like ──
+                // A rounded oval body with a small raised head bump at the front, rather than
+                // a pointed fish snout.
                 ctx.beginPath();
-                ctx.moveTo(r * 1.3, 0);                         // snout tip
-                ctx.bezierCurveTo(r * 1.0, -r * 0.85,  -r * 1.0, -r * 0.9, -r * 1.2,  0);
-                ctx.bezierCurveTo(-r * 1.0,  r * 0.9,   r * 1.0,  r * 0.85,  r * 1.3,  0);
+                ctx.moveTo(r * 1.05, -r * 0.15);                                   // front upper (head)
+                ctx.bezierCurveTo(r * 1.25, -r * 0.7, r * 0.5, -r * 1.02, 0, -r * 0.98);   // top over head to back
+                ctx.bezierCurveTo(-r * 0.7, -r * 0.95, -r * 1.12, -r * 0.5, -r * 1.12, 0);  // back curve
+                ctx.bezierCurveTo(-r * 1.12, r * 0.5, -r * 0.7, r * 0.95, 0, r * 0.98);     // bottom back
+                ctx.bezierCurveTo(r * 0.5, r * 1.02, r * 1.25, r * 0.7, r * 1.05, r * 0.15); // bottom to head
+                ctx.bezierCurveTo(r * 1.18, 0, r * 1.18, 0, r * 1.05, -r * 0.15);            // round the snout off
                 ctx.closePath();
 
                 const bodyGrad = ctx.createRadialGradient(-r * 0.2, -r * 0.3, r * 0.1, 0, 0, r * 1.5);
@@ -1406,25 +1396,34 @@
                 ctx.ellipse(0, r * 0.25, r * 0.65, r * 0.38, 0, 0, Math.PI * 2);
                 ctx.fill();
 
-                // ── Tiny back fin ──
-                ctx.fillStyle = bodyC;
-                ctx.beginPath();
-                ctx.moveTo(-r * 0.1, -r * 0.82);
-                ctx.bezierCurveTo(-r * 0.3, -r * 1.35, r * 0.3, -r * 1.35, r * 0.1, -r * 0.82);
-                ctx.closePath();
-                ctx.fill();
-                ctx.strokeStyle = outlineCol; ctx.lineWidth = 0.9; ctx.stroke();
+                // ── Two small rounded ear bumps on top of the head (replaces dorsal fin) ──
+                ctx.fillStyle = bodyB;
+                ctx.strokeStyle = outlineCol; ctx.lineWidth = 0.9;
+                for (const side of [-1, 1]) {
+                    ctx.beginPath();
+                    ctx.ellipse(r * 0.3, side * r * 0.7, r * 0.2, r * 0.28, side * 0.4, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.stroke();
+                    // inner ear
+                    ctx.fillStyle = 'rgba(255,255,255,0.3)';
+                    ctx.beginPath();
+                    ctx.ellipse(r * 0.3, side * r * 0.7, r * 0.09, r * 0.15, side * 0.4, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = bodyB;
+                }
 
-                // ── Tail — small forked flick at the back ──
-                ctx.strokeStyle = outlineCol; ctx.lineWidth = 1.4;
+                // ── Tail — short stubby nub that wiggles (replaces the forked fish tail) ──
+                const tailFlick = Math.sin(this.tailPhase || 0) * (this.fleeing ? 0.5 : 0.3);
+                ctx.save();
+                ctx.translate(-r * 1.05, 0);
+                ctx.rotate(tailFlick);
+                ctx.fillStyle = bodyC;
+                ctx.strokeStyle = outlineCol; ctx.lineWidth = 1.0;
                 ctx.beginPath();
-                ctx.moveTo(-r * 1.2, 0);
-                ctx.quadraticCurveTo(-r * 1.7, -r * 0.55, -r * 1.85, -r * 0.35);
+                ctx.ellipse(-r * 0.28, 0, r * 0.32, r * 0.2, 0, 0, Math.PI * 2);
+                ctx.fill();
                 ctx.stroke();
-                ctx.beginPath();
-                ctx.moveTo(-r * 1.2, 0);
-                ctx.quadraticCurveTo(-r * 1.7,  r * 0.55, -r * 1.85,  r * 0.35);
-                ctx.stroke();
+                ctx.restore();
 
                 // ── Eye — large expressive eye near snout; size grows with the vision gene ──
                 const visScale = 0.78 + Math.max(0, Math.min(1, ((this.genes.vision ?? 1) - 0.5) / 1.3)) * 0.5; // ~0.78..1.28
@@ -1451,6 +1450,26 @@
                 ctx.beginPath();
                 ctx.arc(ex, ey, eR * 1.05, Math.PI * 0.1, Math.PI * 0.9, false);
                 ctx.stroke();
+                // Blink — eyelid sweeps down when blinkT is very small
+                if ((this.blinkT ?? 2) < 0.12) {
+                    const blinkFrac = Math.min(1, (0.12 - this.blinkT) / 0.06); // 0→1→0
+                    ctx.fillStyle = bodyB;
+                    ctx.beginPath();
+                    ctx.ellipse(ex, ey - eR * (1 - blinkFrac), eR * 1.05, eR * blinkFrac, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // ── Walking legs — 4 oval pads scuttling under the body ──
+                const lp = this.legPhase || 0;
+                ctx.fillStyle = bodyC;
+                for (let i = 0; i < 4; i++) {
+                    const side = i < 2 ? 1 : -1;
+                    const xOff = (i % 2 === 0) ? r * 0.45 : -r * 0.35;
+                    const bounce = Math.sin(lp + i * Math.PI * 0.5) * r * 0.22;
+                    ctx.beginPath();
+                    ctx.ellipse(xOff, side * (r * 0.72 + bounce), r * 0.17, r * 0.11, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                }
 
                 // ── Specular highlight on body ──
                 ctx.fillStyle = 'rgba(255,255,255,0.38)';
@@ -1530,6 +1549,8 @@
                 this.lastReproduction = -Infinity;
                 this.hidden = false;
                 this.cold = 0;
+                this.walkPhase = Math.random() * Math.PI * 2;
+                this.alertT = 0; // head-perk intensity when hunting
             }
 
             update(deltaTime, gameState) {
@@ -1648,7 +1669,7 @@
                                 target.energy = Math.max(0, target.energy - 90);
                                 this.energy = Math.min(this.maxStats, this.energy + 40);
                                 this.hunger = Math.max(0, this.hunger - 50);
-                                this.lastEat = gameState.time;
+                                this.lastEat = gameState.time; Audio2.fx('eat');
                                 this.eatCooldown = 1.4;
                                 spawnParticles(target.x, target.y, '#ff6b6b', 6, 1.6);
                                 if (target.energy <= 0) {
@@ -1657,7 +1678,7 @@
                                     spawnParticles(target.x, target.y, '#8a2f2f', 14, 2.4);
                                     this.energy = Math.min(this.maxStats, this.energy + 80);
                                     this.hunger = Math.max(0, this.hunger - 80);
-                                this.lastEat = gameState.time;
+                                this.lastEat = gameState.time; Audio2.fx('eat');
                                     this.thirst = Math.max(0, this.thirst - 10);
                                     this.radius = Math.min(14, this.radius + 0.6);
                                     this.maxStats = Math.min(320, this.maxStats + 8);
@@ -1689,7 +1710,7 @@
                                     if (it.available) {
                                         it.available = false; it.eatTime = gameState.time;
                                         this.hunger = Math.max(0, this.hunger - 42);
-                                this.lastEat = gameState.time;
+                                this.lastEat = gameState.time; Audio2.fx('eat');
                                         this.energy = Math.min(this.maxStats, this.energy + 32);
                                         spawnParticles(this.x, this.y, '#ffb066', 5, 1.2);
                                         break;
@@ -1725,6 +1746,12 @@
                     }
                 }
 
+                const _siibaMov = Math.sqrt(this.vx * this.vx + this.vy * this.vy) + 0.1;
+                this.walkPhase = (this.walkPhase || 0) + deltaTime * _siibaMov * 12;
+                // alertT rises when hunting, falls when idle
+                const _hunting = desperateHunger && gameState.suubas && gameState.suubas.length > 0;
+                this.alertT = Math.max(0, Math.min(1, (this.alertT || 0) + (_hunting ? deltaTime * 4 : -deltaTime * 2)));
+
                 // ── Reproduction — checked every frame when healthy enough ──
                 // (Previously gated behind energy>110 which was impossible to sustain.)
                 if (this.age > 16 && this.energy > 55 &&
@@ -1747,7 +1774,7 @@
                             const baby = new Siiba(bx, by, childGenes, childGen);
                             baby.age = 0; baby.energy = 90; baby.hunger = 10; baby.thirst = 10;
                             gameState.siibas.push(baby);
-                            spawnBirthEffect(bx, by, '#ffd2d9'); spawnMatingHearts((this.x + other.x)/2, (this.y + other.y)/2 - 8);
+                            spawnBirthEffect(bx, by, '#ffd2d9'); spawnMatingHearts((this.x + other.x)/2, (this.y + other.y)/2 - 8); Audio2.fx('birth');
                             this.energy -= 28; other.energy -= 28;
                             this.lastReproduction = gameState.time; other.lastReproduction = gameState.time;
                             break;
@@ -1795,35 +1822,43 @@
                 ctx.ellipse(0, r * 0.85, r * 1.05, r * 0.4, 0, 0, Math.PI * 2);
                 ctx.fill();
 
-                // Bushy tail behind the body
+                // Bushy tail behind the body — wags gently when walking
+                const siibaTailWag = Math.sin(this.walkPhase || 0) * 0.18;
                 const tailG = ctx.createLinearGradient(-r * 1.7, 0, -r * 0.6, 0);
                 tailG.addColorStop(0, '#ff8fa6');
                 tailG.addColorStop(1, '#ffc2cd');
                 ctx.fillStyle = tailG;
+                ctx.save();
+                ctx.translate(-r * 1.15, r * 0.15);
+                ctx.rotate(siibaTailWag);
                 ctx.beginPath();
-                ctx.ellipse(-r * 1.15, r * 0.15, r * 0.62, r * 0.4, -0.5, 0, Math.PI * 2);
+                ctx.ellipse(0, 0, r * 0.62, r * 0.4, -0.5, 0, Math.PI * 2);
                 ctx.fill();
+                ctx.restore();
                 // White tail tip
                 ctx.fillStyle = '#fff6f8';
+                const tailTipX = -r * 1.15 + Math.cos(-0.5 + siibaTailWag) * r * 0.62;
+                const tailTipY = r * 0.15 + Math.sin(-0.5 + siibaTailWag) * r * 0.4;
                 ctx.beginPath();
-                ctx.arc(-r * 1.6, r * 0.02, r * 0.26, 0, Math.PI * 2);
+                ctx.arc(tailTipX - r * 0.3, tailTipY, r * 0.26, 0, Math.PI * 2);
                 ctx.fill();
 
-                // Tufted ears (outer + inner)
+                // Tufted ears — perk upward when alert (hunting)
+                const alertPerk = (this.alertT || 0) * 0.3;
                 const earOut = '#ff9fb3';
                 const earIn = '#c96b7d';
                 for (const side of [-1, 1]) {
                     ctx.fillStyle = earOut;
                     ctx.beginPath();
                     ctx.moveTo(side * r * 0.5, -r * 0.55);
-                    ctx.lineTo(side * r * 0.95, -r * 1.25);
+                    ctx.lineTo(side * r * 0.95, -r * (1.25 + alertPerk));
                     ctx.lineTo(side * r * 0.15, -r * 0.85);
                     ctx.closePath();
                     ctx.fill();
                     ctx.fillStyle = earIn;
                     ctx.beginPath();
                     ctx.moveTo(side * r * 0.52, -r * 0.62);
-                    ctx.lineTo(side * r * 0.78, -r * 1.05);
+                    ctx.lineTo(side * r * 0.78, -r * (1.05 + alertPerk));
                     ctx.lineTo(side * r * 0.32, -r * 0.82);
                     ctx.closePath();
                     ctx.fill();
@@ -2046,7 +2081,7 @@
                     if (d < target.radius + this.radius + 4) {
                         for (const f of target.fruits) {
                             if (f.available) { f.available = false; f.eatTime = gameState.time; this.hunger = Math.max(0, this.hunger - 45); spawnParticles(this.x, this.y, target.color || '#ff9d5c', 5, 1.0); break; }
-                                this.lastEat = gameState.time;
+                                this.lastEat = gameState.time; Audio2.fx('eat');
                         }
                     }
                 } else {
@@ -2072,7 +2107,7 @@
                             const baby = new Fish(this.x, this.y, childGenes, Math.max(this.generation, mate.generation) + 1);
                             baby.age = 0; baby.hunger = 10;
                             gameState.fish.push(baby);
-                            spawnBirthEffect(this.x, this.y, '#ffd36b'); spawnMatingHearts((this.x + mate.x)/2, (this.y + mate.y)/2 - 8);
+                            spawnBirthEffect(this.x, this.y, '#ffd36b'); spawnMatingHearts((this.x + mate.x)/2, (this.y + mate.y)/2 - 8); Audio2.fx('birth');
                             this.lastReproduction = gameState.time; mate.lastReproduction = gameState.time;
                         }
                     } else {
@@ -2132,17 +2167,33 @@
                 ctx.ellipse(0, 0, r * 1.25, r * 0.75, 0, 0, Math.PI * 2);
                 ctx.fill();
 
-                // Top fin
+                // Top fin — sways with the wiggle
+                const finSway = Math.sin(this.wiggle * 1.3) * 0.12;
                 ctx.fillStyle = '#e8923a';
                 ctx.beginPath();
                 ctx.moveTo(-r * 0.2, -r * 0.7);
-                ctx.quadraticCurveTo(0, -r * 1.3, r * 0.4, -r * 0.6);
+                ctx.quadraticCurveTo(finSway * r, -r * 1.3, r * 0.4, -r * 0.6);
                 ctx.closePath();
                 ctx.fill();
 
-                // Stripe
+                // Pectoral fin — flaps alternately
+                const pectFin = Math.sin(this.wiggle * 0.8 + 0.5) * 0.3;
+                ctx.fillStyle = 'rgba(240,140,50,0.7)';
+                ctx.beginPath();
+                ctx.moveTo(r * 0.2, r * 0.3);
+                ctx.quadraticCurveTo(r * 0.5, r * (0.8 + pectFin * 0.5), r * (0.7 + pectFin * 0.3), r * 0.5);
+                ctx.closePath();
+                ctx.fill();
+
+                // Stripe + subtle scale shimmer
                 ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = 1.4;
                 ctx.beginPath(); ctx.moveTo(0, -r * 0.5); ctx.lineTo(0, r * 0.5); ctx.stroke();
+                // Scale shimmer — a moving highlight
+                const shimmerPos = (Math.sin(this.wiggle * 0.6) * 0.5 + 0.5) * r * 0.8;
+                ctx.fillStyle = 'rgba(255,220,150,0.22)';
+                ctx.beginPath();
+                ctx.ellipse(-shimmerPos + r * 0.2, -r * 0.15, r * 0.35, r * 0.18, -0.4, 0, Math.PI * 2);
+                ctx.fill();
 
                 // Eye
                 ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(r * 0.7, -r * 0.12, r * 0.26, 0, Math.PI * 2); ctx.fill();
@@ -2221,9 +2272,9 @@
                             gameState.fish.splice(idx, 1);
                         }
                         this.hunger = Math.max(0, this.hunger - 55);
-                                this.lastEat = gameState.time;
+                                this.lastEat = gameState.time; Audio2.fx('eat');
                         this.energy = Math.min(this.maxStats, this.energy + 40);
-                        this.eatFlash = 0.4;
+                        this.eatFlash = 0.4; Audio2.fx('hunt');
                     }
                 } else {
                     // Saabas are apex marine predators — they reproduce slowly so they
@@ -2250,7 +2301,7 @@
                             const baby = new Saaba(this.x, this.y, childGenes, Math.max(this.generation, mate.generation) + 1);
                             baby.age = 0; baby.hunger = 10;
                             gameState.saabas.push(baby);
-                            spawnBirthEffect(this.x, this.y, '#8fd9ff'); spawnMatingHearts((this.x + mate.x)/2, (this.y + mate.y)/2 - 10);
+                            spawnBirthEffect(this.x, this.y, '#8fd9ff'); spawnMatingHearts((this.x + mate.x)/2, (this.y + mate.y)/2 - 10); Audio2.fx('birth');
                             this.lastReproduction = gameState.time; mate.lastReproduction = gameState.time;
                         }
                     } else {
@@ -2350,11 +2401,12 @@
                 ctx.closePath();
                 ctx.fill();
 
-                // Gills
+                // Gills — pulse open/closed rhythmically
+                const gillPulse = 0.42 + Math.sin(this.wiggle * 0.5) * 0.14;
                 ctx.strokeStyle = 'rgba(10,40,60,0.5)'; ctx.lineWidth = 1.2;
                 for (let i = 0; i < 3; i++) {
                     ctx.beginPath();
-                    ctx.arc(r * 0.5 - i * r * 0.18, 0, r * 0.42, Math.PI * 0.7, Math.PI * 1.3);
+                    ctx.arc(r * 0.5 - i * r * 0.18, 0, r * gillPulse, Math.PI * 0.7, Math.PI * 1.3);
                     ctx.stroke();
                 }
 
@@ -2365,9 +2417,25 @@
                 ctx.fillStyle = fero > 0.5 ? '#8a0d10' : '#10243a';
                 ctx.beginPath(); ctx.arc(r * 1.14, -r * 0.16, r * 0.11 * vS, 0, Math.PI * 2); ctx.fill();
 
-                // Toothy mouth
+                // Jaw — drops open when eating, shows teeth
+                const jawOpen = this.eatFlash > 0 ? Math.min(1, this.eatFlash / 0.3) : 0;
                 ctx.strokeStyle = '#0a2536'; ctx.lineWidth = 1.4;
-                ctx.beginPath(); ctx.moveTo(r * 1.6, r * 0.05); ctx.lineTo(r * 1.05, r * 0.32); ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(r * 1.6, r * 0.05 - jawOpen * r * 0.12);
+                ctx.lineTo(r * 1.05, r * 0.32 + jawOpen * r * 0.16);
+                ctx.stroke();
+                if (jawOpen > 0.1) {
+                    ctx.fillStyle = '#fffbe8';
+                    for (let t = 0; t < 3; t++) {
+                        const tx = r * 1.45 - t * r * 0.16;
+                        ctx.beginPath();
+                        ctx.moveTo(tx, r * 0.08);
+                        ctx.lineTo(tx + r * 0.05, r * 0.08 + jawOpen * r * 0.2);
+                        ctx.lineTo(tx + r * 0.1, r * 0.08);
+                        ctx.closePath();
+                        ctx.fill();
+                    }
+                }
                 if (this.eatFlash > 0) {
                     ctx.fillStyle = 'rgba(255,80,80,' + Math.min(0.6, this.eatFlash) + ')';
                     ctx.beginPath(); ctx.ellipse(0, 0, r * 1.7, r * 0.7, 0, 0, Math.PI * 2); ctx.fill();
@@ -3979,7 +4047,7 @@
                     baby.hunger = Math.random() * 20;
                     baby.thirst = Math.random() * 20;
                     gameState.seepas.push(baby);
-                    spawnBirthEffect(nx, ny, '#ffd84d'); spawnMatingHearts((a.x + b.x)/2, (a.y + b.y)/2 - 8);
+                    spawnBirthEffect(nx, ny, '#ffd84d'); spawnMatingHearts((a.x + b.x)/2, (a.y + b.y)/2 - 8); Audio2.fx('birth');
                     births++;
 
                     a.hunger = Math.min(a.maxStats, a.hunger + 20);
@@ -4016,12 +4084,18 @@
                 this.lifeSpan = 360;
                 this.birthRadius = this.radius;
                 this.cold = 0;
+                this.blinkT = 2 + Math.random() * 3;
+                this.bouncePhase = Math.random() * Math.PI * 2;
             }
 
             update(deltaTime, gameState) {
                 deltaTime = deltaTime / 1000;
                 if (gameState.settings.agingEnabled) this.age += deltaTime;
                 const careFactor = this.age < 18 ? 0.35 : 1.0;
+                const _suubaMov = Math.sqrt(this.vx * this.vx + this.vy * this.vy) + 0.1;
+                this.bouncePhase = (this.bouncePhase || 0) + deltaTime / 1000 * _suubaMov * 10;
+                this.blinkT = (this.blinkT ?? 2) - deltaTime / 1000;
+                if (this.blinkT < 0) this.blinkT = 2 + Math.random() * 4;
                 this.energy -= 2 * deltaTime * careFactor;
                 if (gameState.settings.predatorsEnabled) {
                     this.hunger = Math.min(this.maxStats, this.hunger + 2 * deltaTime * careFactor * geneHungerMult(this));
@@ -4091,7 +4165,7 @@
                                 gameState.seepas.splice(idx, 1);
                                 this.energy = Math.min(this.maxStats, this.energy + 120);
                                 this.hunger = Math.max(0, this.hunger - 80);
-                                this.lastEat = gameState.time;
+                                this.lastEat = gameState.time; Audio2.fx('hunt');
                                 this.eatCooldown = 2.4;
                             }
                         }
@@ -4124,7 +4198,7 @@
                                 baby.hunger = 8;
                                 baby.thirst = 8;
                                 gameState.suubas.push(baby);
-                                spawnBirthEffect(bx, by, '#ffb3b3'); spawnMatingHearts((this.x + other.x)/2, (this.y + other.y)/2 - 12);
+                                spawnBirthEffect(bx, by, '#ffb3b3'); spawnMatingHearts((this.x + other.x)/2, (this.y + other.y)/2 - 12); Audio2.fx('birth');
                                 this.energy -= 70; other.energy -= 70;
                                 this.lastReproduction = gameState.time; other.lastReproduction = gameState.time;
                                 break;
@@ -4158,12 +4232,16 @@
                 const heading = Math.atan2(this.vy, this.vx);
                 ctx.rotate(heading);
 
+                const R = this.radius;
+                const nightHunter = getDayPhase() === 'Night';
+
                 // Gene expression: faster Suubas are leaner & longer
                 const spN = Math.max(0, Math.min(1, (this.speed - 0.9) / (2.0 - 0.9)));
                 ctx.scale(0.92 + spN * 0.32, 1.08 - spN * 0.24);
 
-                const R = this.radius;
-                const nightHunter = getDayPhase() === 'Night';
+                // Body bounce — gentle hop when walking
+                const _bounce = Math.sin(this.bouncePhase || 0) * R * 0.07;
+                ctx.translate(0, _bounce);
 
                 // Soft drop shadow
                 ctx.fillStyle = 'rgba(0,0,0,0.18)';
@@ -4279,6 +4357,15 @@
                     ctx.beginPath();
                     ctx.arc(R * 1.16, ey - eyeR * 0.28, eyeR * 0.18, 0, Math.PI * 2);
                     ctx.fill();
+                    // Blink eyelid
+                    if ((this.blinkT ?? 2) < 0.1) {
+                        const bf = Math.min(1, (0.1 - this.blinkT) / 0.05);
+                        const eyeBodyCol = this.sex === 'male' ? '#9a52c8' : '#b875d8';
+                        ctx.fillStyle = eyeBodyCol;
+                        ctx.beginPath();
+                        ctx.ellipse(R * 1.18, ey - eyeR * (1 - bf), eyeR, eyeR * bf, 0, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
                 }
 
                 // Little pouty mouth — small downward curve
@@ -4412,7 +4499,7 @@
                 logEvent(sIcon, sDesc);
                 // Trigger a dramatic season title card that fades in and out
                 const cardIcon = season === 'Winter' ? '❄️' : season === 'Summer' ? '☀️' : season === 'Autumn' ? '🍂' : '🌱';
-                gameState.seasonCard = { season: season, icon: cardIcon, t: 0, dur: 3400 };
+                gameState.seasonCard = { season: season, icon: cardIcon, t: 0, dur: 3400 }; Audio2.fx('season');
             }
 
             // Advance the cross-fade (takes ~3 real seconds at normal speed)
@@ -4462,7 +4549,7 @@
                 const seepa = gameState.seepas[i];
                 seepa.update(deltaTime, gameState);
                 if (!seepa.isAlive()) {
-                    spawnDeathEffect(seepa.x, seepa.y, '#9fb3c4');
+                    spawnDeathEffect(seepa.x, seepa.y, '#9fb3c4'); Audio2.fx('death');
                     if (gameState.inspected && gameState.inspected.ref === seepa) gameState.inspected = null;
                     gameState.seepas.splice(i, 1);
                 }
@@ -4473,7 +4560,7 @@
                     const siiba = gameState.siibas[i];
                     siiba.update(deltaTime, gameState);
                     if (!siiba.isAlive()) {
-                        spawnDeathEffect(siiba.x, siiba.y, '#c9a3ad');
+                        spawnDeathEffect(siiba.x, siiba.y, '#c9a3ad'); Audio2.fx('death');
                         if (gameState.inspected && gameState.inspected.ref === siiba) gameState.inspected = null;
                         gameState.siibas.splice(i, 1);
                     }
@@ -4485,7 +4572,7 @@
                     const suuba = gameState.suubas[i];
                     suuba.update(deltaTime, gameState);
                     if (!suuba.isAlive()) {
-                        spawnDeathEffect(suuba.x, suuba.y, '#9a7bb0');
+                        spawnDeathEffect(suuba.x, suuba.y, '#9a7bb0'); Audio2.fx('death');
                         if (gameState.inspected && gameState.inspected.ref === suuba) gameState.inspected = null;
                         gameState.suubas.splice(i, 1);
                     }
@@ -4508,7 +4595,7 @@
                     const fish = gameState.fish[i];
                     fish.update(deltaTime, gameState);
                     if (!fish.isAlive()) {
-                        spawnDeathEffect(fish.x, fish.y, '#c89a6a');
+                        spawnDeathEffect(fish.x, fish.y, '#c89a6a'); Audio2.fx('death');
                         if (gameState.inspected && gameState.inspected.ref === fish) gameState.inspected = null;
                         gameState.fish.splice(i, 1);
                     }
@@ -4521,7 +4608,7 @@
                     const saaba = gameState.saabas[i];
                     saaba.update(deltaTime, gameState);
                     if (!saaba.isAlive()) {
-                        spawnDeathEffect(saaba.x, saaba.y, '#7fa0b8');
+                        spawnDeathEffect(saaba.x, saaba.y, '#7fa0b8'); Audio2.fx('death');
                         if (gameState.inspected && gameState.inspected.ref === saaba) gameState.inspected = null;
                         gameState.saabas.splice(i, 1);
                     }
@@ -4673,6 +4760,69 @@
         }
 
         // ---------- Render ----------
+        // God-mode visuals: lightning bolt for smite, expanding shockwave for meteor.
+        function drawGodModeEffects() {
+            // Smite lightning bolt — a jagged streak from the sky, fades fast
+            const bolt = gameState.smiteBolt;
+            if (bolt) {
+                bolt.t += 16;
+                const a = Math.max(0, 1 - bolt.t / 400);
+                if (a > 0) {
+                    ctx.save();
+                    ctx.globalAlpha = a;
+                    ctx.strokeStyle = '#fff6a0';
+                    ctx.lineWidth = 3;
+                    ctx.shadowColor = '#ffe066';
+                    ctx.shadowBlur = 12;
+                    ctx.beginPath();
+                    let px = bolt.x, py = 0;
+                    ctx.moveTo(px, py);
+                    const segs = 6;
+                    for (let i = 1; i <= segs; i++) {
+                        px = bolt.x + (Math.random() - 0.5) * 30 * (1 - i / segs);
+                        py = (bolt.y / segs) * i;
+                        ctx.lineTo(px, py);
+                    }
+                    ctx.stroke();
+                    // bright flash at impact
+                    const fl = ctx.createRadialGradient(bolt.x, bolt.y, 0, bolt.x, bolt.y, 40);
+                    fl.addColorStop(0, 'rgba(255,255,200,' + (a * 0.8) + ')');
+                    fl.addColorStop(1, 'rgba(255,255,200,0)');
+                    ctx.fillStyle = fl;
+                    ctx.beginPath(); ctx.arc(bolt.x, bolt.y, 40, 0, Math.PI * 2); ctx.fill();
+                    ctx.restore();
+                } else {
+                    gameState.smiteBolt = null;
+                }
+            }
+            // Meteor — expanding shockwave ring + scorch flash
+            const met = gameState.meteor;
+            if (met) {
+                met.t += 16;
+                const prog = met.t / 700;
+                if (prog < 1) {
+                    ctx.save();
+                    // shockwave ring
+                    ctx.globalAlpha = (1 - prog) * 0.9;
+                    ctx.strokeStyle = '#ff8a3a';
+                    ctx.lineWidth = 5 * (1 - prog) + 1;
+                    ctx.beginPath();
+                    ctx.arc(met.x, met.y, met.radius * prog, 0, Math.PI * 2);
+                    ctx.stroke();
+                    // inner flash
+                    ctx.globalAlpha = (1 - prog) * 0.5;
+                    const g = ctx.createRadialGradient(met.x, met.y, 0, met.x, met.y, met.radius * prog);
+                    g.addColorStop(0, 'rgba(255,220,120,0.7)');
+                    g.addColorStop(1, 'rgba(255,80,40,0)');
+                    ctx.fillStyle = g;
+                    ctx.beginPath(); ctx.arc(met.x, met.y, met.radius * prog, 0, Math.PI * 2); ctx.fill();
+                    ctx.restore();
+                } else {
+                    gameState.meteor = null;
+                }
+            }
+        }
+
         function render() {
             ctx.drawImage(backgroundCanvas, 0, 0);
             drawAnimatedPondRipples();
@@ -4691,17 +4841,51 @@
             drawParticles();
             drawWeather();
             drawSeasonAtmosphere();
+            drawGodModeEffects();
             drawSeasonCard();
 
             // Highlight inspected creature
             if (gameState.inspected && gameState.inspected.ref) {
                 const c = gameState.inspected.ref;
                 const pulse = 3 + Math.sin(Date.now() / 200) * 2;
+                // Follow-cam trail
+                if (gameState.followMode && gameState.followTrail && gameState.followTrail.length > 1) {
+                    ctx.strokeStyle = 'rgba(255,216,77,0.35)';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(gameState.followTrail[0].x, gameState.followTrail[0].y);
+                    for (const p of gameState.followTrail) ctx.lineTo(p.x, p.y);
+                    ctx.stroke();
+                }
                 ctx.strokeStyle = '#ffd84d';
                 ctx.lineWidth = 2;
                 ctx.beginPath();
                 ctx.arc(c.x, c.y, c.radius + 6 + pulse, 0, Math.PI * 2);
                 ctx.stroke();
+                // Follow-cam: crosshair reticle + live label
+                if (gameState.followMode) {
+                    const rr = c.radius + 14 + pulse;
+                    ctx.strokeStyle = 'rgba(255,216,77,0.8)';
+                    ctx.lineWidth = 1.5;
+                    for (let k = 0; k < 4; k++) {
+                        const ang = k * Math.PI / 2;
+                        ctx.beginPath();
+                        ctx.moveTo(c.x + Math.cos(ang) * rr, c.y + Math.sin(ang) * rr);
+                        ctx.lineTo(c.x + Math.cos(ang) * (rr + 8), c.y + Math.sin(ang) * (rr + 8));
+                        ctx.stroke();
+                    }
+                    // Live label above the creature
+                    const label = gameState.inspected.type + '  ' + Math.round((1 - c.hunger / c.maxStats) * 100) + '%🍖';
+                    ctx.font = 'bold 12px Arial';
+                    const lw = ctx.measureText(label).width + 12;
+                    const lx = c.x - lw / 2, ly = c.y - c.radius - 30;
+                    ctx.fillStyle = 'rgba(20,24,28,0.78)';
+                    roundRect(ctx, lx, ly, lw, 18, 5, true, false);
+                    ctx.fillStyle = '#ffe27a';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(label, c.x, ly + 13);
+                    ctx.textAlign = 'left';
+                }
             }
 
             ctx.fillStyle = '#fff';
@@ -4731,6 +4915,21 @@
             deltaTime = Math.min(deltaTime, 120);
 
             update(deltaTime);
+            // Follow-cam: keep the inspector live and record a motion trail
+            if (gameState.followMode && gameState.inspected && gameState.inspected.ref) {
+                const c = gameState.inspected.ref;
+                if (c.isAlive && c.isAlive()) {
+                    if (!gameState.followTrail) gameState.followTrail = [];
+                    gameState.followTrail.push({ x: c.x, y: c.y });
+                    if (gameState.followTrail.length > 40) gameState.followTrail.shift();
+                    updateInspector();
+                } else {
+                    gameState.followMode = false;
+                    gameState.followTrail = null;
+                }
+            } else if (gameState.followTrail) {
+                gameState.followTrail = null;
+            }
             render();
             drawClockWidgets();
             drawGraph();
@@ -4805,7 +5004,10 @@
                 if (g.stealth !== undefined) html += '<br>• stealth: ' + (g.stealth * 100).toFixed(0) + '%';
                 html += '<br>Generation: ' + c.generation;
             }
+            html += '<br><label class="toggle-row" style="margin-top:8px;"><input type="checkbox" id="followToggle"' + (gameState.followMode ? ' checked' : '') + '> 🎯 Follow this creature</label>';
             panel.innerHTML = html;
+            const ft = document.getElementById('followToggle');
+            if (ft) ft.addEventListener('change', () => { gameState.followMode = ft.checked; });
         }
 
         function drawClockWidgets() {
@@ -4838,6 +5040,104 @@
             gameState.speed = parseFloat(e.target.value);
             document.getElementById('speedLabel').textContent = gameState.speed.toFixed(1) + 'x';
         });
+
+        // ── Audio controls ──
+        (function setupAudio() {
+            const volSlider = document.getElementById('volumeSlider');
+            const muteBtn = document.getElementById('muteBtn');
+            const sfxBtn = document.getElementById('sfxBtn');
+            // Restore saved prefs
+            try {
+                const sv = localStorage.getItem('evo-volume');
+                if (sv !== null) { Audio2.volume = parseFloat(sv); volSlider.value = Math.round(Audio2.volume * 100); }
+                const sm = localStorage.getItem('evo-muted');
+                if (sm === '1') { Audio2.muted = true; muteBtn.textContent = '🔇'; }
+                const sfx = localStorage.getItem('evo-fxmuted');
+                if (sfx === '1') { Audio2.fxMuted = true; sfxBtn.textContent = '🔇'; sfxBtn.style.opacity = '0.55'; }
+            } catch (e) {}
+
+            sfxBtn.addEventListener('click', () => {
+                Audio2.start();
+                const m = !Audio2.fxMuted;
+                Audio2.setFxMuted(m);
+                sfxBtn.textContent = m ? '🔇' : '🐾';
+                sfxBtn.style.opacity = m ? '0.55' : '1';
+                try { localStorage.setItem('evo-fxmuted', m ? '1' : '0'); } catch (e) {}
+            });
+
+            volSlider.addEventListener('input', () => {
+                const v = parseInt(volSlider.value) / 100;
+                Audio2.setVolume(v);
+                if (Audio2.muted && v > 0) { Audio2.muted = false; muteBtn.textContent = '🔊'; Audio2.setMuted(false); }
+                try { localStorage.setItem('evo-volume', v); } catch (e) {}
+            });
+            muteBtn.addEventListener('click', () => {
+                Audio2.start();
+                const m = !Audio2.muted;
+                Audio2.setMuted(m);
+                muteBtn.textContent = m ? '🔇' : '🔊';
+                try { localStorage.setItem('evo-muted', m ? '1' : '0'); } catch (e) {}
+            });
+
+            // Browsers require a user gesture before audio can play — start on first interaction
+            const kick = () => {
+                Audio2.start();
+                window.removeEventListener('pointerdown', kick);
+                window.removeEventListener('keydown', kick);
+            };
+            window.addEventListener('pointerdown', kick);
+            window.addEventListener('keydown', kick);
+        })();
+
+        // ── Stats data export (CSV) ──
+        document.getElementById('exportCsvBtn').addEventListener('click', () => {
+            Audio2.fx('click');
+            const pop = gameState.popHistory || [];
+            const gh = gameState.geneHistory || {};
+            if (pop.length === 0) { logEvent('info', 'No data yet — let the sim run a bit first'); return; }
+            const species = ['seepa', 'suuba', 'siiba', 'fish', 'saaba'];
+            const geneKeys = { seepa: ['speed','size','vision','metabolism','camouflage'], suuba: ['speed','size','vision','metabolism','ferocity'], siiba: ['speed','size','vision','metabolism','stealth'], fish: ['speed','size','vision','metabolism'], saaba: ['speed','size','vision','metabolism','ferocity'] };
+            // Header
+            let header = ['sample', 'seepas', 'suubas', 'siibas', 'soobas', 'saabas'];
+            for (const sp of species) for (const k of geneKeys[sp]) header.push(sp + '_' + k);
+            const rows = [header.join(',')];
+            for (let i = 0; i < pop.length; i++) {
+                const p = pop[i];
+                const row = [i, p.se, p.su, p.si, p.fi, p.sa];
+                for (const sp of species) {
+                    const entry = (gh[sp] && gh[sp][i]) ? gh[sp][i] : {};
+                    for (const k of geneKeys[sp]) {
+                        const v = entry[k];
+                        row.push(v === null || v === undefined ? '' : (+v).toFixed(4));
+                    }
+                }
+                rows.push(row.join(','));
+            }
+            const csv = rows.join('\n');
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'evolution-data-' + Math.round(gameState.time / 1000) + 's.csv';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            logEvent('info', 'Exported ' + pop.length + ' samples to CSV');
+        });
+
+        document.getElementById('themeToggleBtn').addEventListener('click', () => {            const isNature = document.body.classList.toggle('nature-theme');
+            document.getElementById('themeToggleBtn').textContent = isNature ? '🖥️ Classic Theme' : '🎨 Nature Theme';
+            // Persist preference
+            try { localStorage.setItem('evo-theme', isNature ? 'nature' : 'classic'); } catch(e) {}
+        });
+        // Restore saved theme on load
+        try {
+            if (localStorage.getItem('evo-theme') === 'nature') {
+                document.body.classList.add('nature-theme');
+                document.getElementById('themeToggleBtn').textContent = '🖥️ Classic Theme';
+            }
+        } catch(e) {}
 
         document.getElementById('geneSpeciesSelect').addEventListener('change', () => {
             lastGeneLegendSpecies = null; // force legend rebuild for the new species
@@ -4949,6 +5249,74 @@
                 } else {
                     spawnParticles(x, y, '#888', 5, 1.0); // fizzle — saabas need the sea
                 }
+            } else if (mode === 'food') {
+                // Drop a fresh, full bush of food on land
+                if (!isMarine(x, y)) {
+                    const bush = makeBush(x, y);
+                    for (const f of bush.fruits) f.available = true;
+                    gameState.bushes.push(bush);
+                    spawnParticles(x, y, '#7bd88f', 10, 1.4);
+                    logEvent('birth', 'A fresh bush sprouts (god-mode)');
+                } else {
+                    spawnParticles(x, y, '#888', 5, 1.0);
+                }
+            } else if (mode === 'smite') {
+                // Kill the nearest creature within reach
+                let victim = null, vBest = 40 * 40, vList = null, vIdx = -1;
+                const lists = [['seepas', gameState.seepas], ['suubas', gameState.suubas], ['siibas', gameState.siibas], ['fish', gameState.fish], ['saabas', gameState.saabas]];
+                for (const [key, list] of lists) {
+                    for (let i = 0; i < list.length; i++) {
+                        const d2 = distanceSq(x, y, list[i].x, list[i].y);
+                        if (d2 < vBest) { vBest = d2; victim = list[i]; vList = list; vIdx = i; }
+                    }
+                }
+                if (victim) {
+                    // Lightning bolt visual
+                    gameState.smiteBolt = { x: victim.x, y: victim.y, t: 0 };
+                    spawnDeathEffect(victim.x, victim.y, '#ffe066');
+                    spawnParticles(victim.x, victim.y, '#ffffff', 16, 3.0);
+                    if (gameState.inspected && gameState.inspected.ref === victim) gameState.inspected = null;
+                    vList.splice(vIdx, 1);
+                    Audio2.fx('hunt');
+                }
+            } else if (mode === 'bless') {
+                // Heal & fully feed all creatures near the click
+                let blessed = 0;
+                const all = [...gameState.seepas, ...gameState.suubas, ...gameState.siibas, ...gameState.fish, ...gameState.saabas];
+                for (const c of all) {
+                    if (distanceSq(x, y, c.x, c.y) < 90 * 90) {
+                        c.hunger = 0; c.thirst = 0;
+                        if (c.energy !== undefined) c.energy = c.maxStats;
+                        if (c.cold !== undefined) c.cold = 0;
+                        if (c.disease !== undefined) c.disease = 0;
+                        blessed++;
+                    }
+                }
+                for (let i = 0; i < 14; i++) {
+                    const a = Math.random() * Math.PI * 2, rr = Math.random() * 90;
+                    gameState.particles.push({ x: x + Math.cos(a) * rr, y: y + Math.sin(a) * rr, vx: 0, vy: -0.6, life: 1000, maxLife: 1000, size: 3, color: '#fff3c4', kind: 'sparkle', twinkle: Math.random() * 6 });
+                }
+                if (blessed) Audio2.fx('birth');
+            } else if (mode === 'meteor') {
+                // Wipe out everything in a blast radius
+                gameState.meteor = { x, y, t: 0, radius: 130 };
+                const blastSq = 130 * 130;
+                const lists2 = [gameState.seepas, gameState.suubas, gameState.siibas, gameState.fish, gameState.saabas];
+                for (const list of lists2) {
+                    for (let i = list.length - 1; i >= 0; i--) {
+                        if (distanceSq(x, y, list[i].x, list[i].y) < blastSq) {
+                            if (gameState.inspected && gameState.inspected.ref === list[i]) gameState.inspected = null;
+                            spawnParticles(list[i].x, list[i].y, '#ff6b3a', 6, 2.2);
+                            list.splice(i, 1);
+                        }
+                    }
+                }
+                for (let i = 0; i < 40; i++) {
+                    const a = Math.random() * Math.PI * 2, v = 1 + Math.random() * 4;
+                    gameState.particles.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 700 + Math.random() * 500, maxLife: 1200, size: 2 + Math.random() * 3, color: i % 2 ? '#ff6b3a' : '#ffd24d', kind: 'puff' });
+                }
+                logEvent('extinct', 'A meteor struck!');
+                Audio2.fx('hunt');
             }
         });
 
