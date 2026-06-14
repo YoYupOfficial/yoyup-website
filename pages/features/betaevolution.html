@@ -214,6 +214,31 @@
                 <button id="nsModeBtn" style="margin-top:6px;width:100%;background:#2d4a3a;">🧪 Natural Selection Mode</button>
                 <div class="hint">25 safe Seepas vs 100 hunted by a Suuba, split by uncrossable water. Watch their genes diverge.</div>
             </div>
+
+            <div class="section-title">Scenarios</div>
+            <div class="control-group">
+                <select id="scenarioSelect">
+                    <option value="sandbox">🌍 Sandbox (free play)</option>
+                    <option value="iceage">❄️ Ice Age</option>
+                    <option value="predator">🦁 Predator Pressure</option>
+                    <option value="plague">🦠 Plague Outbreak</option>
+                    <option value="founders">🏝️ Lonely Founders</option>
+                    <option value="speedrun">⚡ Speed Run</option>
+                </select>
+                <div id="scenarioDesc" class="hint" style="margin-top:6px;min-height:30px;">Free play — no goal. Experiment however you like.</div>
+                <button id="startScenarioBtn" style="margin-top:6px;width:100%;">▶ Start Scenario</button>
+                <div id="scenarioObjective" style="display:none;margin-top:8px;font-size:12px;padding:7px;border-radius:5px;background:rgba(126,200,122,0.12);border:1px solid #4a7a46;color:#9bd34a;"></div>
+                <div id="interventionPanel" style="display:none;margin-top:8px;">
+                    <div style="font-size:11px;color:#bbb;margin-bottom:5px;">🛟 Help (Intervention Points: <strong id="interventionPts" style="color:#e8c46a;">30</strong>/40) — click a tool, then click the map</div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;">
+                        <button class="intervene-btn" data-tool="grove" style="font-size:11px;padding:6px 4px;">🌿 Grove<br><span style="font-size:9px;opacity:0.7;">2 pts</span></button>
+                        <button class="intervene-btn" data-tool="warm" style="font-size:11px;padding:6px 4px;">☀️ Warmth<br><span style="font-size:9px;opacity:0.7;">2 pts</span></button>
+                        <button class="intervene-btn" data-tool="cure" style="font-size:11px;padding:6px 4px;">💊 Cure<br><span style="font-size:9px;opacity:0.7;">3 pts</span></button>
+                    </div>
+                    <div id="interventionHint" style="font-size:10px;color:#888;margin-top:4px;"></div>
+                </div>
+                <div id="scenarioResult" style="display:none;margin-top:8px;font-size:13px;padding:9px;border-radius:5px;background:rgba(232,196,106,0.15);border:1px solid #e8c46a;color:#ffe27a;text-align:center;"></div>
+            </div>
             <div class="control-group">
                 <label>Map view:</label>
                 <select id="viewSelect">
@@ -245,6 +270,19 @@
                 <label class="toggle-row"><input type="checkbox" id="flockToggle" checked> Flocking (spring)</label>
                 <label class="toggle-row"><input type="checkbox" id="rescueToggle" checked> Migration rescue (new flock arrives if a species dies out)</label>
                 <label class="toggle-row"><input type="checkbox" id="agingToggle" checked> Aging (creatures grow old and die)</label>
+                <label class="toggle-row"><input type="checkbox" id="diseaseToggle"> 🦠 Disease (illness spreads; resistance evolves)</label>
+            </div>
+
+            <div class="section-title">Weather Events</div>
+            <div class="control-group">
+                <label class="toggle-row"><input type="checkbox" id="autoWeatherToggle" checked> Random weather events</label>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:6px;">
+                    <button class="weather-btn" data-weather="heatwave" style="font-size:12px;padding:7px;">🔥 Heatwave</button>
+                    <button class="weather-btn" data-weather="storm" style="font-size:12px;padding:7px;">⛈️ Storm</button>
+                    <button class="weather-btn" data-weather="blizzard" style="font-size:12px;padding:7px;">❄️ Blizzard</button>
+                    <button class="weather-btn" data-weather="tornado" style="font-size:12px;padding:7px;">🌪️ Tornado</button>
+                </div>
+                <div class="hint">Punctuated pressures beyond the seasons. Heatwaves spike thirst; storms pour rain and bring relief; blizzards bury the screen in snow and freeze creatures; tornadoes tear across and fling animals around.</div>
             </div>
 
             <div class="section-title">Starting Populations</div>
@@ -275,7 +313,8 @@
                     <span><span class="graph-dot" style="background:#ff9b33;"></span>Sooba</span>
                     <span><span class="graph-dot" style="background:#3a8fc4;"></span>Saaba</span>
                 </div>
-                <button id="exportCsvBtn" style="margin-top:8px;font-size:12px;padding:7px;">📊 Export data (CSV)</button>
+                <button class="graph-dl-btn" data-graph="pop" style="margin-top:8px;font-size:12px;padding:7px;">⬇ Download population data (CSV)</button>
+                <button id="exportCsvBtn" style="margin-top:6px;font-size:11px;padding:6px;opacity:0.85;">📊 Export everything (CSV)</button>
             </div>
 
             <div id="nsPanel" style="display:none;">
@@ -295,6 +334,7 @@
                     </div>
                     <div id="nsStatsText" style="font-size:11px;color:#bbb;margin-top:4px;line-height:1.7;"></div>
                     <div class="hint">Group A has no predator (control). Group B is hunted. The vertical axis auto-zooms to the live data range, so even small differences show clearly — watch the red (hunted) line pull above the green.</div>
+                    <button class="graph-dl-btn" data-graph="ns" style="margin-top:6px;font-size:11px;padding:6px;">⬇ Download NS data (CSV)</button>
                 </div>
             </div>
 
@@ -311,6 +351,19 @@
                 <div class="graph-legend" id="geneGraphLegend"></div>
                 <div id="geneAvgText" style="font-size:11px;color:#bbb;margin-top:4px;line-height:1.6;"></div>
                 <div class="hint">Lines show each gene's average, scaled to its possible range (top = max). Watch traits drift as selection acts.</div>
+                <button class="graph-dl-btn" data-graph="gene" style="margin-top:6px;font-size:11px;padding:6px;">⬇ Download gene data (CSV)</button>
+            </div>
+
+            <div class="section-title">🦠 Disease</div>
+            <div class="graph-panel">
+                <canvas id="diseaseGraphCanvas" width="260" height="110"></canvas>
+                <div class="graph-legend">
+                    <span><span class="graph-dot" style="background:#d65a5a;"></span>Infected</span>
+                    <span><span class="graph-dot" style="background:#9bd34a;"></span>Avg resistance</span>
+                </div>
+                <div id="diseaseText" style="font-size:11px;color:#bbb;margin-top:4px;line-height:1.6;"></div>
+                <div class="hint">Red = how many creatures are sick. Green = average resistance gene. Enable Disease to watch resistance evolve as the illness selects out the vulnerable.</div>
+                <button class="graph-dl-btn" data-graph="disease" style="margin-top:6px;font-size:11px;padding:6px;">⬇ Download disease data (CSV)</button>
             </div>
 
             <div class="section-title">Event Log</div>
@@ -605,7 +658,15 @@
             weather: { type: null, drops: [] },
             popHistory: [],
             geneHistory: { seepa: [], suuba: [], siiba: [], fish: [], saaba: [] },
+            diseaseHistory: [],
+            weatherEvent: null,       // active weather event { type, t, dur }
+            weatherCooldown: 30000,   // time until next possible random event
+            autoWeather: true,
             nsMode: false,
+            scenario: 'sandbox',
+            scenarioWon: false,
+            interventionPoints: 30,
+            interventionRegen: 0,
             nsHistory: { A: [], B: [] },
             lastSample: 0,
             lastRescue: 0,
@@ -632,6 +693,7 @@
                 flockingEnabled: true,
                 rescueEnabled: true,
                 agingEnabled: true,
+                diseaseEnabled: false,
                 clickMode: 'inspect',
                 currentView: 'auto'
             }
@@ -845,34 +907,39 @@
                 size:       { min: 3.5, max: 10,  start: [5, 7],     mut: 0.12, type: 'mult' },
                 vision:     { min: 0.5, max: 1.8, start: [0.9, 1.1], mut: 0.10, type: 'mult' },
                 metabolism: { min: 0.6, max: 1.5, start: [0.9, 1.1], mut: 0.10, type: 'mult' },
-                camouflage: { min: 0.0, max: 1.0, start: [0.0, 0.5], mut: 0.08, type: 'add'  }
+                camouflage: { min: 0.0, max: 1.0, start: [0.0, 0.5], mut: 0.08, type: 'add'  },
+                resistance: { min: 0.0, max: 1.0, start: [0.1, 0.4], mut: 0.07, type: 'add'  }
             },
             suuba: {
                 speed:      { min: 0.9, max: 2.0, start: [1.2, 1.6], mut: 0.10, type: 'mult' },
                 size:       { min: 20,  max: 34,  start: [24, 32],   mut: 0.10, type: 'mult' },
                 vision:     { min: 0.5, max: 1.8, start: [0.9, 1.1], mut: 0.10, type: 'mult' },
                 metabolism: { min: 0.6, max: 1.5, start: [0.9, 1.1], mut: 0.10, type: 'mult' },
-                ferocity:   { min: 0.0, max: 1.0, start: [0.3, 0.6], mut: 0.08, type: 'add'  }
+                ferocity:   { min: 0.0, max: 1.0, start: [0.3, 0.6], mut: 0.08, type: 'add'  },
+                resistance: { min: 0.0, max: 1.0, start: [0.1, 0.4], mut: 0.07, type: 'add'  }
             },
             siiba: {
                 speed:      { min: 1.0, max: 2.4, start: [1.4, 1.8], mut: 0.10, type: 'mult' },
                 size:       { min: 6,   max: 12,  start: [7, 10],    mut: 0.10, type: 'mult' },
                 vision:     { min: 0.5, max: 1.8, start: [0.9, 1.1], mut: 0.10, type: 'mult' },
                 metabolism: { min: 0.6, max: 1.5, start: [0.9, 1.1], mut: 0.10, type: 'mult' },
-                stealth:    { min: 0.0, max: 1.0, start: [0.2, 0.5], mut: 0.08, type: 'add'  }
+                stealth:    { min: 0.0, max: 1.0, start: [0.2, 0.5], mut: 0.08, type: 'add'  },
+                resistance: { min: 0.0, max: 1.0, start: [0.1, 0.4], mut: 0.07, type: 'add'  }
             },
             fish: {
                 speed:      { min: 1.2, max: 3.0, start: [1.6, 2.1], mut: 0.10, type: 'mult' },
                 size:       { min: 4,   max: 9,   start: [5, 7],     mut: 0.10, type: 'mult' },
                 vision:     { min: 0.5, max: 1.8, start: [0.9, 1.1], mut: 0.10, type: 'mult' },
-                metabolism: { min: 0.6, max: 1.5, start: [0.9, 1.1], mut: 0.10, type: 'mult' }
+                metabolism: { min: 0.6, max: 1.5, start: [0.9, 1.1], mut: 0.10, type: 'mult' },
+                resistance: { min: 0.0, max: 1.0, start: [0.1, 0.4], mut: 0.07, type: 'add'  }
             },
             saaba: {
                 speed:      { min: 1.0, max: 2.6, start: [1.4, 1.9], mut: 0.10, type: 'mult' },
                 size:       { min: 9,   max: 18,  start: [11, 15],   mut: 0.10, type: 'mult' },
                 vision:     { min: 0.5, max: 1.8, start: [0.9, 1.1], mut: 0.10, type: 'mult' },
                 metabolism: { min: 0.6, max: 1.5, start: [0.9, 1.1], mut: 0.10, type: 'mult' },
-                ferocity:   { min: 0.0, max: 1.0, start: [0.3, 0.6], mut: 0.08, type: 'add'  }
+                ferocity:   { min: 0.0, max: 1.0, start: [0.3, 0.6], mut: 0.08, type: 'add'  },
+                resistance: { min: 0.0, max: 1.0, start: [0.1, 0.4], mut: 0.07, type: 'add'  }
             }
         };
 
@@ -969,11 +1036,19 @@
         }
 
         function updateCold(creature, dtSeconds, ratePerSec) {
+            const coldSnap = weatherColdAdd();
             if (getSeasonName() === 'Winter') {
                 if (creature.hidden || isSheltered(creature.x, creature.y, 10)) {
-                    creature.cold = Math.max(0, creature.cold - 14 * dtSeconds);
+                    creature.cold = Math.max(0, creature.cold - 14 * dtSeconds + coldSnap * 0.5 * dtSeconds);
                 } else {
-                    creature.cold = Math.min(120, creature.cold + ratePerSec * dtSeconds);
+                    creature.cold = Math.min(120, creature.cold + (ratePerSec + coldSnap) * dtSeconds);
+                }
+            } else if (coldSnap > 0) {
+                // A cold snap can chill creatures even outside winter
+                if (creature.hidden || isSheltered(creature.x, creature.y, 10)) {
+                    creature.cold = Math.max(0, creature.cold - 10 * dtSeconds);
+                } else {
+                    creature.cold = Math.min(120, creature.cold + coldSnap * dtSeconds);
                 }
             } else {
                 creature.cold = Math.max(0, creature.cold - 25 * dtSeconds);
@@ -1193,6 +1268,7 @@
                                 this.lastEat = gameState.time; Audio2.fx('eat');
                                 bush.fruits[i].available = false;
                                 bush.fruits[i].eatTime = gameState.time;
+                                if (bush.vigor !== undefined) bush.vigor = Math.max(0, bush.vigor - 9);
                                 spawnParticles(this.x, this.y, '#ffb066', 6, 1.4);
                                 return true;
                             }
@@ -1709,6 +1785,7 @@
                                 for (const it of items) {
                                     if (it.available) {
                                         it.available = false; it.eatTime = gameState.time;
+                                        if (fType === 'bush' && food.vigor !== undefined) food.vigor = Math.max(0, food.vigor - 9);
                                         this.hunger = Math.max(0, this.hunger - 42);
                                 this.lastEat = gameState.time; Audio2.fx('eat');
                                         this.energy = Math.min(this.maxStats, this.energy + 32);
@@ -2476,7 +2553,121 @@
 
         function getSeasonName() {
             if (gameState.nsMode) return 'Spring'; // controlled experiment: hold conditions constant
+            if (gameState.scenario === 'iceage') return 'Winter'; // eternal winter
             return gameState.seasonNames[getSeasonIndex()];
+        }
+
+        // ── Challenge / scenario modes ──
+        // Each preset configures the starting world and defines a victory goal.
+        // Goals are victory-only (no failure) — the scenario simply runs until achieved.
+        const SCENARIOS = {
+            sandbox: {
+                name: 'Sandbox', icon: '🌍',
+                desc: 'Free play — no goal. Experiment however you like.',
+                setup: (s) => {},
+                goal: null
+            },
+            iceage: {
+                name: 'Ice Age', icon: '❄️',
+                desc: 'Eternal winter with blizzards — Seepas are the only creatures left. Grow them to 25. Tip: planting groves gives both food and shelter from the cold.',
+                setup: (s) => {
+                    s.seepaSpawn = 15; s.suubaSpawn = 0; s.siibaSpawn = 0; s.fishSpawn = 0; s.saabaSpawn = 0;
+                    s.diseaseEnabled = false;
+                    s.predatorsEnabled = false;
+                    gameState.autoWeather = true;
+                    gameState.weatherCooldown = 14000;
+                },
+                objective: 'Reach 25 Seepas',
+                goal: () => gameState.seepas.length >= 25
+            },
+            predator: {
+                name: 'Predator Pressure', icon: '🦁',
+                desc: 'Swarming predators, scarce prey. Survive and rebuild the Seepa population to 80.',
+                setup: (s) => {
+                    s.seepaSpawn = 30; s.suubaSpawn = 18; s.siibaSpawn = 24; s.fishSpawn = 30; s.saabaSpawn = 8;
+                    s.predatorsEnabled = true;
+                },
+                objective: 'Reach 80 Seepas',
+                goal: () => gameState.seepas.length >= 80
+            },
+            plague: {
+                name: 'Plague Outbreak', icon: '🦠',
+                desc: 'A disease ravages the land. Help the population evolve average resistance above 75%.',
+                setup: (s) => {
+                    s.seepaSpawn = 90; s.suubaSpawn = 3; s.siibaSpawn = 6; s.fishSpawn = 24; s.saabaSpawn = 2;
+                    s.diseaseEnabled = true;
+                },
+                objective: 'Evolve 75% avg resistance',
+                goal: () => {
+                    const all = [...gameState.seepas, ...gameState.suubas, ...gameState.siibas, ...gameState.fish, ...gameState.saabas];
+                    if (all.length < 20) return false;
+                    let s = 0; for (const c of all) s += (c.genes && c.genes.resistance) || 0;
+                    return (s / all.length) >= 0.75;
+                }
+            },
+            founders: {
+                name: 'Lonely Founders', icon: '🏝️',
+                desc: 'Just two Seepas to start. Grow the colony to a thriving population of 120.',
+                setup: (s) => {
+                    s.seepaSpawn = 2; s.suubaSpawn = 0; s.siibaSpawn = 0; s.fishSpawn = 10; s.saabaSpawn = 0;
+                },
+                objective: 'Reach 120 Seepas',
+                goal: () => gameState.seepas.length >= 120
+            },
+            speedrun: {
+                name: 'Speed Run', icon: '⚡',
+                desc: 'Apply selection pressure to evolve faster Seepas — get their average speed gene above 2.2.',
+                setup: (s) => {
+                    s.seepaSpawn = 70; s.suubaSpawn = 6; s.siibaSpawn = 10; s.fishSpawn = 20; s.saabaSpawn = 3;
+                },
+                objective: 'Evolve avg Seepa speed > 2.2',
+                goal: () => {
+                    if (gameState.seepas.length < 15) return false;
+                    let s = 0; for (const c of gameState.seepas) s += c.genes.speed;
+                    return (s / gameState.seepas.length) >= 2.2;
+                }
+            }
+        };
+
+        function checkScenarioGoal() {
+            const sc = SCENARIOS[gameState.scenario];
+            if (!sc || !sc.goal) return;
+            // Regenerate intervention points slowly (1 every ~20s, cap 10) while a goal is active
+            if (!gameState.scenarioWon) {
+                gameState.interventionRegen += gameState.time - (gameState._lastInterventionTick || gameState.time);
+                gameState._lastInterventionTick = gameState.time;
+                if (gameState.interventionRegen >= 20000 && gameState.interventionPoints < 40) {
+                    gameState.interventionPoints++;
+                    gameState.interventionRegen = 0;
+                    updateInterventionUI();
+                } else if (gameState.interventionRegen >= 20000) {
+                    gameState.interventionRegen = 0;
+                }
+            }
+            if (gameState.scenarioWon) return;
+            if (sc.goal()) {
+                gameState.scenarioWon = true;
+                gameState.scenarioWonTime = gameState.time;
+                const secs = Math.round(gameState.time / 1000);
+                const used = gameState.helpUsed || 0;
+                // Tiered awards by how much help was used — the less, the more prestigious
+                let medal, title, sub, color;
+                if (used === 0)      { medal = '💎'; title = 'Flawless Victory'; sub = 'No help at all — pure evolution!'; color = '#9be8ff'; }
+                else if (used <= 6)  { medal = '🥇'; title = 'Gold Victory';     sub = 'Barely any help — masterful.'; color = '#ffd24d'; }
+                else if (used <= 16) { medal = '🥈'; title = 'Silver Victory';   sub = 'A steady, measured hand.'; color = '#d8e0e8'; }
+                else if (used <= 30) { medal = '🥉'; title = 'Bronze Victory';   sub = 'Got there with solid support.'; color = '#e0a06a'; }
+                else                 { medal = '🏆'; title = 'Victory';          sub = 'Whatever it took!'; color = '#e8c46a'; }
+                logEvent('rescue', medal + ' ' + sc.name + ' — ' + title + (used === 0 ? ' (unaided)!' : ' (' + used + ' help pts)!'));
+                Audio2.fx('birth');
+                const banner = document.getElementById('scenarioResult');
+                if (banner) {
+                    banner.style.display = 'block';
+                    banner.style.borderColor = color;
+                    banner.style.color = color;
+                    const usageLine = used === 0 ? '✨ ' + sub : '🛟 ' + used + ' help points spent — ' + sub;
+                    banner.innerHTML = medal + ' <strong>' + title + '!</strong><br>' + sc.name + ' — goal achieved at ' + secs + 's<br><span style="font-size:11px;opacity:0.85;">' + usageLine + '</span>';
+                }
+            }
         }
 
         function getSeasonProgress() {
@@ -2487,15 +2678,120 @@
         // Food regrows slower in cold seasons, faster in summer
         // Summer heatwave: creatures dehydrate faster, so water becomes critical.
         function seasonThirstMultiplier() {
-            return getSeasonName() === 'Summer' ? 1.7 : 1.0;
+            return (getSeasonName() === 'Summer' ? 1.7 : 1.0) * weatherThirstMultiplier();
         }
 
         function seasonRegrowMultiplier() {
+            let m;
             switch (getSeasonName()) {
-                case 'Summer': return 0.7;
-                case 'Autumn': return 0.45;  // harvest season — food regrows fast and plentiful
-                case 'Winter': return 4.5;   // harsh scarcity — food regrows very slowly
-                default: return 1;
+                case 'Summer': m = 0.7; break;
+                case 'Autumn': m = 0.45; break;  // harvest season — food regrows fast and plentiful
+                case 'Winter': m = 4.5; break;   // harsh scarcity — food regrows very slowly
+                default: m = 1;
+            }
+            return m * weatherRegrowMultiplier();
+        }
+
+        // ── Weather events ──
+        // Punctuated pressures beyond the seasonal baseline. They modify thirst, food
+        // regrowth, cold, and visibility, and each has its own on-screen effect.
+        const WEATHER_DEFS = {
+            heatwave: { name: 'Heatwave', icon: '🔥', dur: 13000, color: '#e8702f' },
+            storm:    { name: 'Storm',    icon: '⛈️', dur: 14000, color: '#5a78a8' },
+            blizzard: { name: 'Blizzard', icon: '❄️', dur: 16000, color: '#bfe6ff' },
+            tornado:  { name: 'Tornado',  icon: '🌪️', dur: 12000, color: '#9aa6b2' }
+        };
+        function weatherThirstMultiplier() {
+            const w = gameState.weatherEvent;
+            if (!w) return 1;
+            if (w.type === 'heatwave') return 1.9;
+            if (w.type === 'storm') return 0.6;   // rain eases thirst
+            return 1;
+        }
+        function weatherRegrowMultiplier() {
+            const w = gameState.weatherEvent;
+            if (!w) return 1;
+            if (w.type === 'heatwave') return 1.35;
+            if (w.type === 'storm') return 0.7;    // rain helps plants
+            if (w.type === 'blizzard') return 2.2; // hard freeze, plants struggle
+            return 1;
+        }
+        function weatherColdAdd() {
+            const w = gameState.weatherEvent;
+            if (w && w.type === 'blizzard') return 8; // 2x a normal winter's chill
+            return 0;
+        }
+
+        function triggerWeather(type) {
+            const def = WEATHER_DEFS[type];
+            if (!def) return;
+            gameState.weatherEvent = { type, t: 0, dur: def.dur };
+            gameState.weatherCooldown = 75000 + Math.random() * 70000;
+            logEvent('season', def.icon + ' ' + def.name + ' begins');
+            gameState.seasonCard = { season: def.name, icon: def.icon, t: 0, dur: 3000 };
+            Audio2.fx('season');
+        }
+
+        function updateWeatherEvents(deltaTime) {
+            const w = gameState.weatherEvent;
+            if (w) {
+                w.t += deltaTime;
+                // Tornado physically flings nearby land creatures around its funnel
+                if (w.type === 'tornado') {
+                    // Initialise a wandering position the first time
+                    if (w.tx === undefined) {
+                        w.tx = canvas.width * (0.25 + Math.random() * 0.5);
+                        w.ty = canvas.height * (0.45 + Math.random() * 0.4);
+                        w.vx = (Math.random() < 0.5 ? -1 : 1) * (0.6 + Math.random() * 0.5);
+                        w.vy = (Math.random() < 0.5 ? -1 : 1) * (0.5 + Math.random() * 0.5);
+                    }
+                    // Meander across the map on both axes, steering gently and bouncing off bounds
+                    const step = deltaTime / 16;
+                    w.vx += (Math.random() - 0.5) * 0.08;
+                    w.vy += (Math.random() - 0.5) * 0.10;
+                    const spd = Math.hypot(w.vx, w.vy), capS = 1.5;
+                    if (spd > capS) { w.vx *= capS / spd; w.vy *= capS / spd; }
+                    w.tx += w.vx * step; w.ty += w.vy * step;
+                    const minX = 110, maxX = canvas.width - 110, minY = canvas.height * 0.32, maxY = canvas.height - 36;
+                    if (w.tx < minX) { w.tx = minX; w.vx = Math.abs(w.vx); }
+                    if (w.tx > maxX) { w.tx = maxX; w.vx = -Math.abs(w.vx); }
+                    if (w.ty < minY) { w.ty = minY; w.vy = Math.abs(w.vy); }
+                    if (w.ty > maxY) { w.ty = maxY; w.vy = -Math.abs(w.vy); }
+                    // Scatter creatures caught near the funnel base
+                    const cx = w.tx, cyBase = w.ty;
+                    const reach = 120, reachSq = reach * reach;
+                    const groups = [gameState.seepas, gameState.suubas, gameState.siibas];
+                    for (const list of groups) {
+                        if (!list) continue;
+                        for (const c of list) {
+                            const dx = c.x - cx, dy = c.y - cyBase;
+                            const d2 = dx * dx + dy * dy;
+                            if (d2 < reachSq) {
+                                const d = Math.sqrt(d2) || 1;
+                                const pull = (1 - d / reach) * 2.4;
+                                c.vx += (-dy / d) * pull - (dx / d) * pull * 0.4;
+                                c.vy += (dx / d) * pull - (dy / d) * pull * 0.4;
+                                c.x += (-dy / d) * pull * 2;
+                                c.y += (dx / d) * pull * 2;
+                            }
+                        }
+                    }
+                }
+                if (w.t >= w.dur) {
+                    logEvent('season', (WEATHER_DEFS[w.type].icon) + ' ' + WEATHER_DEFS[w.type].name + ' passes');
+                    gameState.weatherEvent = null;
+                }
+            } else if (gameState.autoWeather) {
+                gameState.weatherCooldown -= deltaTime;
+                if (gameState.weatherCooldown <= 0) {
+                    const season = getSeasonName();
+                    let pool;
+                    if (season === 'Summer') pool = ['heatwave', 'heatwave', 'storm', 'tornado'];
+                    else if (season === 'Winter') pool = ['blizzard', 'blizzard', 'storm'];
+                    else if (season === 'Autumn') pool = ['storm', 'storm', 'tornado', 'blizzard'];
+                    else pool = ['storm', 'tornado', 'heatwave'];
+                    triggerWeather(pool[Math.floor(Math.random() * pool.length)]);
+                }
             }
         }
 
@@ -2598,7 +2894,8 @@
         // ---------- Food makers (kind drives how they're drawn & where they grow) ----------
         function makeBush(x, y) {
             const cap = Math.floor(Math.random() * 5) + 3;
-            return { x, y, radius: 36 + Math.random() * 8, kind: 'bush', maxFruits: cap, fruits: createFruits(cap) };
+            return { x, y, radius: 36 + Math.random() * 8, kind: 'bush', maxFruits: cap, fruits: createFruits(cap),
+                     vigor: 100, age: 0, spreadCooldown: 8000 + Math.random() * 8000 };
         }
         function makeCactus(x, y) {
             const cap = 2 + Math.floor(Math.random() * 3);
@@ -2740,6 +3037,9 @@
             gameState.particles = [];
             gameState.popHistory = [];
             gameState.geneHistory = { seepa: [], suuba: [], siiba: [], fish: [], saaba: [] };
+            gameState.diseaseHistory = [];
+            gameState.weatherEvent = null;
+            gameState.weatherCooldown = 30000 + Math.random() * 20000;
             gameState.lastSample = 0;
             gameState.lastRescue = 0;
             gameState.lastSeason = null;
@@ -3111,6 +3411,24 @@
             });
             if (gameState.popHistory.length > 240) gameState.popHistory.shift();
 
+            // Disease tracking: how many are infected, and average resistance gene
+            const diseaseStat = (arr) => {
+                let infected = 0, resSum = 0, n = arr.length;
+                for (const c of arr) {
+                    if (c.disease && c.disease > 1) infected++;
+                    resSum += (c.genes && c.genes.resistance) ? c.genes.resistance : 0;
+                }
+                return { infected, total: n, resist: n ? resSum / n : 0 };
+            };
+            const allCreatures = [...gameState.seepas, ...gameState.suubas, ...(gameState.siibas || []), ...(gameState.fish || []), ...(gameState.saabas || [])];
+            const dAll = diseaseStat(allCreatures);
+            gameState.diseaseHistory.push({
+                infected: dAll.infected,
+                total: dAll.total,
+                resist: dAll.resist
+            });
+            if (gameState.diseaseHistory.length > 240) gameState.diseaseHistory.shift();
+
             // Average gene values per species (for the genetics graphs)
             const sampleGenes = (arr, species) => {
                 const schema = GENE_SCHEMA[species];
@@ -3235,6 +3553,53 @@
             speed: '#ffd84d', size: '#7bd88f', vision: '#63a6ff',
             metabolism: '#ff9b33', camouflage: '#b07dff', ferocity: '#ff6b6b', stealth: '#5ad1c8'
         };
+        let diseaseGraphCanvas = null, diseaseGraphCtx = null;
+        function drawDiseaseGraph() {
+            if (!diseaseGraphCtx) {
+                diseaseGraphCanvas = document.getElementById('diseaseGraphCanvas');
+                diseaseGraphCtx = diseaseGraphCanvas ? diseaseGraphCanvas.getContext('2d') : null;
+                if (!diseaseGraphCtx) return;
+            }
+            const hist = gameState.diseaseHistory || [];
+            const W = diseaseGraphCanvas.width, H = diseaseGraphCanvas.height;
+            const g = diseaseGraphCtx;
+            g.clearRect(0, 0, W, H);
+            g.fillStyle = '#1c1c1c';
+            g.fillRect(0, 0, W, H);
+            const pad = 4;
+
+            if (hist.length < 2) {
+                g.fillStyle = '#666';
+                g.font = '10px Arial';
+                g.textAlign = 'center';
+                g.fillText(gameState.settings.diseaseEnabled ? 'Gathering data…' : 'Enable Disease to see data', W / 2, H / 2);
+                g.textAlign = 'left';
+                document.getElementById('diseaseText').textContent = '';
+                return;
+            }
+            // Infected as a fraction of total (red), resistance 0..1 (green) — both 0..1 scaled
+            const maxInf = Math.max(1, ...hist.map(d => d.total ? d.infected / d.total : 0), 0.05);
+            const line = (key, color, fill) => {
+                g.strokeStyle = color; g.lineWidth = 1.8;
+                g.beginPath();
+                for (let i = 0; i < hist.length; i++) {
+                    const x = pad + (i / (hist.length - 1)) * (W - pad * 2);
+                    const v = key === 'inf' ? (hist[i].total ? (hist[i].infected / hist[i].total) / maxInf : 0) : hist[i].resist;
+                    const y = H - pad - v * (H - pad * 2);
+                    if (i === 0) g.moveTo(x, y); else g.lineTo(x, y);
+                }
+                g.stroke();
+            };
+            line('res', '#9bd34a');
+            line('inf', '#d65a5a');
+
+            const latest = hist[hist.length - 1];
+            const infPct = latest.total ? Math.round(latest.infected / latest.total * 100) : 0;
+            document.getElementById('diseaseText').innerHTML =
+                'Infected: <strong style="color:#d65a5a">' + latest.infected + '</strong> (' + infPct + '%) &nbsp; ' +
+                'Avg resistance: <strong style="color:#9bd34a">' + (latest.resist * 100).toFixed(0) + '%</strong>';
+        }
+
         let geneGraphCanvas = null, geneGraphCtx = null;
 
         function drawGeneGraph() {
@@ -3548,6 +3913,12 @@
                 ctx.save();
                 ctx.translate(bush.x, bush.y);
 
+                // Over-grazed bushes visibly wilt: shrink slightly, droop, and brown.
+                if (bush.vigor !== undefined && bush.vigor < 55) {
+                    const wilt = bush.vigor / 55; // 0 = dead, 1 = healthy threshold
+                    ctx.globalAlpha = 0.4 + wilt * 0.6;
+                    ctx.scale(0.8 + wilt * 0.2, 0.72 + wilt * 0.28); // shrink & sag
+                }
                 // Shadow
                 ctx.fillStyle = 'rgba(0,0,0,0.15)';
                 ctx.beginPath();
@@ -4409,6 +4780,72 @@
         }
 
         // ---------- Rescue: stop total extinction ----------
+        // ── Disease system ──
+        // An illness that appears spontaneously, spreads between nearby creatures,
+        // drains health, and kills the weak — selecting for the 'resistance' gene.
+        function updateDisease(deltaTime) {
+            if (!gameState.settings.diseaseEnabled) return;
+            const dt = deltaTime / 1000;
+            const groups = [
+                ['seepa', gameState.seepas],
+                ['suuba', gameState.suubas],
+                ['siiba', gameState.siibas],
+                ['fish', gameState.fish],
+                ['saaba', gameState.saabas]
+            ];
+            for (const [kind, list] of groups) {
+                if (!list || list.length === 0) continue;
+                for (const c of list) {
+                    if (c.disease === undefined) c.disease = 0;
+                    const resist = (c.genes && c.genes.resistance) || 0;
+
+                    // Spontaneous infection — rare, and rarer for resistant creatures
+                    if (c.disease <= 0) {
+                        const baseChance = 0.0006 * dt * 60; // per ~frame-second
+                        if (Math.random() < baseChance * (1 - resist * 0.7)) {
+                            c.disease = 18 + Math.random() * 12;
+                            logEvent('disease', 'A ' + kind + ' fell ill');
+                        }
+                        continue;
+                    }
+
+                    // Progression: resistant creatures fight it off; others worsen
+                    const fightOff = resist * 9;       // recovery power
+                    const worsen = 5 * (1 - resist * 0.5); // illness growth
+                    c.disease += (worsen - fightOff) * dt;
+
+                    // Symptoms: drains energy/hunger faster, so illness has a real cost
+                    if (c.energy !== undefined) c.energy = Math.max(0, c.energy - 3 * dt * (c.disease / 50));
+                    c.hunger = Math.min(c.maxStats, c.hunger + 1.5 * dt * (c.disease / 50));
+
+                    if (c.disease <= 0) {
+                        c.disease = 0; // recovered
+                    } else if (c.disease > 100) {
+                        // Died of illness — mark via hunger so the normal death path removes it
+                        c.hunger = c.maxStats + 1;
+                        c.disease = 100;
+                    }
+                }
+
+                // Spread: infected creatures infect nearby same-species neighbours
+                for (let i = 0; i < list.length; i++) {
+                    const a = list[i];
+                    if (!a.disease || a.disease < 12) continue;
+                    for (let j = i + 1; j < list.length; j++) {
+                        const b = list[j];
+                        if (b.disease > 0) continue;
+                        const range = (a.radius + b.radius + 14);
+                        if (distanceSq(a.x, a.y, b.x, b.y) < range * range) {
+                            const bResist = (b.genes && b.genes.resistance) || 0;
+                            if (Math.random() < 0.04 * (1 - bResist * 0.8)) {
+                                b.disease = 14 + Math.random() * 10;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         function handleRescue() {
             if (gameState.nsMode) return; // no migrants — keep the experiment pure
             if (!gameState.settings.rescueEnabled) return;
@@ -4513,12 +4950,60 @@
             }
 
             if (gameState.bushes) {
-                for (const bush of gameState.bushes) {
+                const bushCap = Math.round(46 * ((canvas.width * canvas.height) / (1600 * 1080)));
+                const newSprouts = [];
+                for (let bi = gameState.bushes.length - 1; bi >= 0; bi--) {
+                    const bush = gameState.bushes[bi];
+                    // Living plants: vigor recovers when rested, faster in warm seasons
+                    if (bush.vigor !== undefined) {
+                        bush.age = (bush.age || 0) + deltaTime;
+                        const recover = winterScarcity ? 0.4 : (regrowMult < 0.6 ? 2.2 : 1.3);
+                        bush.vigor = Math.min(100, bush.vigor + recover * deltaTime / 1000 * 10);
+                        // A bush grazed to nothing for too long withers and dies
+                        if (bush.vigor <= 1) {
+                            bush.deadTimer = (bush.deadTimer || 0) + deltaTime;
+                            if (bush.deadTimer > 14000) {
+                                spawnParticles(bush.x, bush.y, '#8a7a4a', 6, 1.0);
+                                gameState.bushes.splice(bi, 1);
+                                continue;
+                            }
+                        } else {
+                            bush.deadTimer = 0;
+                        }
+                        // Healthy, mature bushes occasionally spread a seedling nearby
+                        bush.spreadCooldown = (bush.spreadCooldown || 10000) - deltaTime;
+                        if (bush.spreadCooldown <= 0) {
+                            bush.spreadCooldown = 12000 + Math.random() * 10000;
+                            if (bush.vigor > 70 && bush.age > 9000 &&
+                                gameState.bushes.length + newSprouts.length < bushCap && Math.random() < 0.6) {
+                                const ang = Math.random() * Math.PI * 2;
+                                const dist = bush.radius + 30 + Math.random() * 50;
+                                const nx = bush.x + Math.cos(ang) * dist;
+                                const ny = bush.y + Math.sin(ang) * dist;
+                                if (nx > 20 && nx < canvas.width - 20 && ny > 20 && ny < canvas.height - 20 &&
+                                    !isMarine(nx, ny)) {
+                                    // not too close to an existing plant
+                                    let clear = true;
+                                    for (const o of gameState.bushes) {
+                                        if (distanceSq(nx, ny, o.x, o.y) < 40 * 40) { clear = false; break; }
+                                    }
+                                    if (clear) {
+                                        const seed = makeBush(nx, ny);
+                                        seed.vigor = 55; seed.age = 0;
+                                        for (const f of seed.fruits) { f.available = false; f.eatTime = gameState.time; }
+                                        newSprouts.push(seed);
+                                        spawnParticles(nx, ny, '#7bd88f', 4, 1.0);
+                                    }
+                                }
+                            }
+                        }
+                    }
                     if (!bush.fruits) continue;
+                    // Fruit only regrows if the plant has vigor to support it
+                    const vigorOk = bush.vigor === undefined || bush.vigor > 12;
                     for (let fruit of bush.fruits) {
                         if (fruit.winterDormant) continue; // stays barren all winter
-                        if (!fruit.available && gameState.time - fruit.eatTime >= gameState.fruitRegrowTime * regrowMult) {
-                            // In winter, even the remaining berries are slow and unreliable
+                        if (!fruit.available && vigorOk && gameState.time - fruit.eatTime >= gameState.fruitRegrowTime * regrowMult) {
                             if (winterScarcity && Math.random() < 0.5) {
                                 fruit.eatTime = gameState.time;
                             } else {
@@ -4527,6 +5012,7 @@
                         }
                     }
                 }
+                for (const s of newSprouts) gameState.bushes.push(s);
             }
 
             if (gameState.trees) {
@@ -4630,6 +5116,9 @@
             if ((gameState.fish||[]).length > 0) extinct.fi = false;
 
             handleRescue();
+            updateDisease(deltaTime);
+            updateWeatherEvents(deltaTime);
+            checkScenarioGoal();
 
             // Natural Selection: the experiment needs continuous predation on group B,
             // so if the lone Suuba dies, a fresh one arrives on the right side.
@@ -4823,8 +5312,257 @@
             }
         }
 
+        // Motion smear: fast-moving creatures leave a short tapering blur behind them,
+        // tinted to their species. On-screen speed factors in the speed gene, so genuinely
+        // fast individuals (and fleeing/hunting bursts) smear more.
+        function drawSpeedBlurs() {
+            const tints = { seepa: '#bcd6ff', suuba: '#cda6e6', siiba: '#ffb3c2', fish: '#ffce8a', saaba: '#9cc8ea' };
+            const groups = [
+                ['seepa', gameState.seepas], ['suuba', gameState.suubas],
+                ['siiba', gameState.siibas], ['fish', gameState.fish], ['saaba', gameState.saabas]
+            ];
+            const TH = 1.45, FULL = 3.2;
+            for (const [kind, list] of groups) {
+                if (!list) continue;
+                for (const c of list) {
+                    if (c.hidden) continue;
+                    const geneSpeed = c.speed || (c.genes && c.genes.speed) || 1;
+                    const sp = Math.sqrt(c.vx * c.vx + c.vy * c.vy) * geneSpeed;
+                    if (sp < TH) continue;
+                    const intensity = Math.min(1, (sp - TH) / (FULL - TH));
+                    const ang = Math.atan2(c.vy, c.vx);
+                    const r = c.radius || 6;
+                    const echoes = 3;
+                    for (let k = 1; k <= echoes; k++) {
+                        const back = k * r * 0.55;
+                        const ex = c.x - Math.cos(ang) * back;
+                        const ey = c.y - Math.sin(ang) * back;
+                        ctx.save();
+                        ctx.globalAlpha = intensity * (0.30 - k * 0.07);
+                        ctx.fillStyle = tints[kind] || '#ffffff';
+                        ctx.translate(ex, ey);
+                        ctx.rotate(ang);
+                        ctx.beginPath();
+                        ctx.ellipse(0, 0, r * (1.2 - k * 0.18), r * (0.72 - k * 0.04), 0, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.restore();
+                    }
+                }
+            }
+            ctx.globalAlpha = 1;
+        }
+
+        // Visual overlay for active weather events: rain/lightning for storms, heat
+        // shimmer tint for heat, pouring rain for storms, whiteout for blizzards, funnel for tornado.
+        function drawWeatherEventOverlay() {
+            const w = gameState.weatherEvent;
+            if (!w) return;
+            const W = canvas.width, H = canvas.height;
+            const fade = Math.min(1, w.t / 1500, (w.dur - w.t) / 1500);
+            ctx.save();
+            if (w.type === 'heatwave') {
+                ctx.globalAlpha = 0.16 * fade;
+                const g = ctx.createLinearGradient(0, 0, 0, H);
+                g.addColorStop(0, '#ff8a3a');
+                g.addColorStop(1, '#ffd24d');
+                ctx.fillStyle = g;
+                ctx.fillRect(0, 0, W, H);
+                // rising heat shimmer bands
+                ctx.globalAlpha = 0.05 * fade;
+                ctx.fillStyle = '#fff';
+                for (let i = 0; i < 5; i++) {
+                    const yy = (H - ((Date.now() / 20 + i * 120) % H));
+                    ctx.fillRect(0, yy, W, 8);
+                }
+            } else if (w.type === 'storm') {
+                // Dark, heavy sky
+                ctx.globalAlpha = 0.42 * fade;
+                ctx.fillStyle = '#1f2942';
+                ctx.fillRect(0, 0, W, H);
+                // Pouring rain — dense, fast, angled streaks in two layers for depth
+                const t = Date.now();
+                ctx.strokeStyle = 'rgba(174,196,224,0.55)';
+                ctx.lineWidth = 1.4;
+                ctx.globalAlpha = 0.5 * fade;
+                ctx.beginPath();
+                for (let i = 0; i < 320; i++) {
+                    const seed = i * 9173;
+                    const speed = 1.8 + (i % 5) * 0.5;
+                    const x = ((seed % W) + (t * speed) % W * 0.3 - (t * 0.9)) % W;
+                    const xx = ((x % W) + W) % W;
+                    const y = (((seed * 1.7) % H) + (t * speed * 1.4 + i * 23)) % H;
+                    ctx.moveTo(xx, y);
+                    ctx.lineTo(xx - 6, y + 22);
+                }
+                ctx.stroke();
+                // A lighter, faster foreground layer
+                ctx.strokeStyle = 'rgba(210,228,248,0.4)';
+                ctx.lineWidth = 1;
+                ctx.globalAlpha = 0.45 * fade;
+                ctx.beginPath();
+                for (let i = 0; i < 180; i++) {
+                    const seed = i * 5419 + 700;
+                    const x = (((seed % W)) + (-(t * 1.6) - i * 11)) % W;
+                    const xx = ((x % W) + W) % W;
+                    const y = (((seed * 1.3) % H) + (t * 2.4 + i * 31)) % H;
+                    ctx.moveTo(xx, y);
+                    ctx.lineTo(xx - 4, y + 15);
+                }
+                ctx.stroke();
+                // Lightning flash
+                if (Math.random() < 0.02) {
+                    ctx.globalAlpha = 0.55 * fade;
+                    ctx.fillStyle = '#fff';
+                    ctx.fillRect(0, 0, W, H);
+                }
+            } else if (w.type === 'blizzard') {
+                // Whiteout — heavy blue-white veil, much stronger than a winter flurry
+                ctx.globalAlpha = 0.4 * fade;
+                ctx.fillStyle = '#cfe6f8';
+                ctx.fillRect(0, 0, W, H);
+                // Dense driving snow across the whole screen (2x winter), wind-blown sideways
+                const t = Date.now();
+                ctx.fillStyle = '#ffffff';
+                ctx.globalAlpha = 0.85 * fade;
+                for (let i = 0; i < 480; i++) {
+                    const seed = i * 7333;
+                    const sz = 1 + (i % 4);
+                    const drift = Math.sin((t / 600) + i) * 40; // gusting
+                    const x = (((seed % W)) + (t * 0.22 + i * 7) + drift) % W;
+                    const xx = ((x % W) + W) % W;
+                    const y = (((seed * 1.9) % H) + (t * (0.28 + (i % 5) * 0.05) * 1.2 + i * 13)) % H;
+                    ctx.beginPath();
+                    ctx.arc(xx, y, sz, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                // settling frost at edges
+                ctx.globalAlpha = 0.3 * fade;
+                const vg = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.15, W / 2, H / 2, Math.max(W, H) * 0.7);
+                vg.addColorStop(0, 'rgba(255,255,255,0)');
+                vg.addColorStop(1, 'rgba(220,240,255,0.7)');
+                ctx.fillStyle = vg;
+                ctx.fillRect(0, 0, W, H);
+            } else if (w.type === 'tornado') {
+                // Subtle greenish storm cast (light — does NOT cover/obscure the whole map)
+                ctx.globalAlpha = 0.12 * fade;
+                ctx.fillStyle = '#3a4438';
+                ctx.fillRect(0, 0, W, H);
+                ctx.restore();
+
+                const t = Date.now();
+                const tx = (w.tx !== undefined) ? w.tx : W * 0.5;
+                const ty = (w.ty !== undefined) ? w.ty : H * 0.7;
+                const fh = Math.min(ty - 8, H * 0.46);   // funnel height — contained, rises from base
+                const topY = ty - fh;
+                const lean = Math.sin(t / 900) * 26;     // whole funnel sways side to side
+
+                // shape helpers: u=0 at base (narrow), u=1 at top (wide)
+                const axisX = (u) => tx + lean * u + Math.sin(u * 3.2 + t / 260) * (6 + u * 20);
+                const halfW = (u) => 7 + u * u * 52;
+                const yAt = (u) => ty - fh * u;
+
+                ctx.save();
+                ctx.globalAlpha = fade;
+
+                // 1) Outer vapour haze (wide, very soft)
+                ctx.beginPath();
+                let first = true;
+                for (let u = 0; u <= 1.001; u += 0.1) { const x = axisX(u) + halfW(u) * 1.5, y = yAt(u); first ? (ctx.moveTo(x, y), first = false) : ctx.lineTo(x, y); }
+                for (let u = 1; u >= -0.001; u -= 0.1) { ctx.lineTo(axisX(u) - halfW(u) * 1.5, yAt(u)); }
+                ctx.closePath();
+                ctx.fillStyle = 'rgba(150,156,162,0.12)';
+                ctx.fill();
+
+                // 2) Main funnel body with vertical gradient
+                ctx.beginPath();
+                first = true;
+                for (let u = 0; u <= 1.001; u += 0.06) { const x = axisX(u) + halfW(u), y = yAt(u); first ? (ctx.moveTo(x, y), first = false) : ctx.lineTo(x, y); }
+                for (let u = 1; u >= -0.001; u -= 0.06) { ctx.lineTo(axisX(u) - halfW(u), yAt(u)); }
+                ctx.closePath();
+                const bodyG = ctx.createLinearGradient(0, topY, 0, ty);
+                bodyG.addColorStop(0, 'rgba(110,116,122,0.78)');
+                bodyG.addColorStop(0.6, 'rgba(92,98,104,0.7)');
+                bodyG.addColorStop(1, 'rgba(70,74,80,0.55)');
+                ctx.fillStyle = bodyG;
+                ctx.fill();
+
+                // 3) Darker inner core (gives it depth)
+                ctx.beginPath();
+                first = true;
+                for (let u = 0; u <= 1.001; u += 0.08) { const x = axisX(u) + halfW(u) * 0.45, y = yAt(u); first ? (ctx.moveTo(x, y), first = false) : ctx.lineTo(x, y); }
+                for (let u = 1; u >= -0.001; u -= 0.08) { ctx.lineTo(axisX(u) - halfW(u) * 0.45, yAt(u)); }
+                ctx.closePath();
+                ctx.fillStyle = 'rgba(48,52,58,0.45)';
+                ctx.fill();
+
+                // 4) Rotating debris bands spiralling up the funnel
+                ctx.lineWidth = 2;
+                for (let k = 0; k < 14; k++) {
+                    const u = k / 14;
+                    const phase = t / 130 + k * 0.9;
+                    const cxB = axisX(u) + Math.cos(phase) * halfW(u) * 0.5;
+                    const yB = yAt(u);
+                    const squash = 0.2 + 0.12 * Math.sin(phase);
+                    ctx.strokeStyle = 'rgba(55,59,64,' + (0.5 - u * 0.2) + ')';
+                    ctx.beginPath();
+                    ctx.ellipse(axisX(u), yB, halfW(u), halfW(u) * squash, 0, 0, Math.PI * 2);
+                    ctx.stroke();
+                    // a bright vapour fleck riding the band
+                    ctx.fillStyle = 'rgba(190,196,202,0.5)';
+                    ctx.beginPath();
+                    ctx.arc(cxB, yB, 1.8, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // 5) Orbiting debris specks near the base
+                for (let d = 0; d < 10; d++) {
+                    const ang = t / 90 + d * (Math.PI * 2 / 10);
+                    const rad = 14 + (d % 3) * 9;
+                    ctx.fillStyle = 'rgba(80,76,68,0.7)';
+                    ctx.beginPath();
+                    ctx.arc(tx + Math.cos(ang) * rad, ty - 6 + Math.sin(ang) * rad * 0.4, 1.6 + (d % 2), 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // 6) Dust skirt kicked up at the base
+                ctx.globalAlpha = 0.4 * fade;
+                const skirt = ctx.createRadialGradient(tx, ty, 2, tx, ty, halfW(0) + 34);
+                skirt.addColorStop(0, 'rgba(140,134,120,0.55)');
+                skirt.addColorStop(1, 'rgba(140,134,120,0)');
+                ctx.fillStyle = skirt;
+                ctx.beginPath();
+                ctx.ellipse(tx, ty, halfW(0) + 34, 18, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // 7) Storm cloud cap where the funnel meets the sky
+                ctx.globalAlpha = 0.5 * fade;
+                ctx.fillStyle = 'rgba(70,74,80,0.7)';
+                ctx.beginPath();
+                ctx.ellipse(axisX(1), topY + 4, halfW(1) * 1.6, 16, 0, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.restore();
+
+            // Banner showing current event + countdown
+            const def = WEATHER_DEFS[w.type];
+            const secsLeft = Math.ceil((w.dur - w.t) / 1000);
+            ctx.save();
+            ctx.globalAlpha = 0.85 * fade;
+            ctx.font = 'bold 13px Arial';
+            const label = def.icon + ' ' + def.name + '  ' + secsLeft + 's';
+            const tw = ctx.measureText(label).width + 16;
+            ctx.fillStyle = 'rgba(20,24,28,0.7)';
+            roundRect(ctx, W - tw - 12, 10, tw, 22, 6, true, false);
+            ctx.fillStyle = def.color;
+            ctx.textAlign = 'center';
+            ctx.fillText(label, W - tw / 2 - 12, 25);
+            ctx.textAlign = 'left';
+            ctx.restore();
+        }
+
         function render() {
             ctx.drawImage(backgroundCanvas, 0, 0);
+            drawSpeedBlurs();
             drawAnimatedPondRipples();
             drawCorals();
             if (gameState.fish) for (const fish of gameState.fish) fish.draw();
@@ -4841,7 +5579,38 @@
             drawParticles();
             drawWeather();
             drawSeasonAtmosphere();
+            drawWeatherEventOverlay();
             drawGodModeEffects();
+            // Sickness markers — a sickly green haze + spots over infected creatures
+            if (gameState.settings.diseaseEnabled) {
+                const groups = [gameState.seepas, gameState.suubas, gameState.siibas, gameState.fish, gameState.saabas];
+                for (const list of groups) {
+                    if (!list) continue;
+                    for (const c of list) {
+                        if (!c.disease || c.disease < 8) continue;
+                        const intensity = Math.min(1, c.disease / 80);
+                        ctx.save();
+                        ctx.globalAlpha = 0.25 + intensity * 0.4;
+                        const g = ctx.createRadialGradient(c.x, c.y, 0, c.x, c.y, c.radius + 6);
+                        g.addColorStop(0, 'rgba(140,200,90,0)');
+                        g.addColorStop(0.7, 'rgba(120,190,70,' + (0.3 * intensity) + ')');
+                        g.addColorStop(1, 'rgba(90,150,40,0)');
+                        ctx.fillStyle = g;
+                        ctx.beginPath(); ctx.arc(c.x, c.y, c.radius + 6, 0, Math.PI * 2); ctx.fill();
+                        // little spore dots circling
+                        ctx.globalAlpha = 0.5 + intensity * 0.4;
+                        ctx.fillStyle = '#9bd34a';
+                        const t = Date.now() / 400;
+                        for (let k = 0; k < 3; k++) {
+                            const ang = t + k * Math.PI * 2 / 3;
+                            ctx.beginPath();
+                            ctx.arc(c.x + Math.cos(ang) * (c.radius + 4), c.y + Math.sin(ang) * (c.radius + 4), 1.6, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                        ctx.restore();
+                    }
+                }
+            }
             drawSeasonCard();
 
             // Highlight inspected creature
@@ -4935,6 +5704,7 @@
             drawGraph();
             drawGeneGraph();
             drawNsGraph();
+            drawDiseaseGraph();
 
             frameCount++;
             if (now - lastFpsTime >= 1000) {
@@ -4994,6 +5764,7 @@
             if (typeof c.energy === 'number') html += '<br>Energy: ' + Math.round(c.energy);
             if (typeof c.cold === 'number' && c.cold > 1) html += '<br>Cold: ' + Math.round(c.cold) + '%';
             if (c.hidden) html += '<br><em>🌙 Hiding in shelter</em>';
+            if (typeof c.disease === 'number' && c.disease > 1) html += '<br><span style="color:#9bd34a;">🦠 Infected: ' + Math.round(c.disease) + '%</span>';
             if (c.genes) {
                 const g = c.genes;
                 html += '<br><strong>Genes</strong>';
@@ -5090,6 +5861,75 @@
         })();
 
         // ── Stats data export (CSV) ──
+        // ── Shared CSV download helper ──
+        function downloadCsv(filenameBase, rows) {
+            if (!rows || rows.length <= 1) { logEvent('info', 'No data yet — let the sim run a bit first'); return; }
+            const csv = rows.join('\n');
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filenameBase + '-' + Math.round(gameState.time / 1000) + 's.csv';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            logEvent('info', 'Downloaded ' + filenameBase + '.csv');
+        }
+
+        // ── Per-graph CSV download buttons ──
+        document.querySelectorAll('.graph-dl-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                Audio2.fx('click');
+                const which = btn.getAttribute('data-graph');
+                if (which === 'pop') {
+                    const pop = gameState.popHistory || [];
+                    const rows = ['sample,seepas,suubas,siibas,soobas,saabas'];
+                    pop.forEach((p, i) => rows.push([i, p.se, p.su, p.si, p.fi, p.sa].join(',')));
+                    downloadCsv('population-data', rows);
+                } else if (which === 'gene') {
+                    const sel = document.getElementById('geneSpeciesSelect');
+                    const species = sel ? sel.value : 'seepa';
+                    const schema = GENE_SCHEMA[species];
+                    const keys = Object.keys(schema);
+                    const hist = (gameState.geneHistory[species]) || [];
+                    const rows = ['sample,' + keys.join(',')];
+                    hist.forEach((entry, i) => {
+                        const row = [i];
+                        for (const k of keys) { const v = entry[k]; row.push(v === null || v === undefined ? '' : (+v).toFixed(4)); }
+                        rows.push(row.join(','));
+                    });
+                    downloadCsv(species + '-gene-data', rows);
+                } else if (which === 'disease') {
+                    const hist = gameState.diseaseHistory || [];
+                    const rows = ['sample,infected,total,infected_pct,avg_resistance'];
+                    hist.forEach((d, i) => {
+                        const pct = d.total ? (d.infected / d.total * 100).toFixed(1) : '0';
+                        rows.push([i, d.infected, d.total, pct, d.resist.toFixed(4)].join(','));
+                    });
+                    downloadCsv('disease-data', rows);
+                } else if (which === 'ns') {
+                    if (!gameState.nsMode) { logEvent('info', 'Natural Selection mode is off'); return; }
+                    const A = gameState.nsHistory.A || [], B = gameState.nsHistory.B || [];
+                    const schema = GENE_SCHEMA.seepa;
+                    const keys = Object.keys(schema);
+                    const head = ['sample', 'A_count', 'B_count'];
+                    for (const k of keys) { head.push('A_' + k); head.push('B_' + k); }
+                    const rows = [head.join(',')];
+                    const n = Math.min(A.length, B.length);
+                    for (let i = 0; i < n; i++) {
+                        const row = [i, A[i].count, B[i].count];
+                        for (const k of keys) {
+                            row.push(A[i][k] === null || A[i][k] === undefined ? '' : (+A[i][k]).toFixed(4));
+                            row.push(B[i][k] === null || B[i][k] === undefined ? '' : (+B[i][k]).toFixed(4));
+                        }
+                        rows.push(row.join(','));
+                    }
+                    downloadCsv('natural-selection-data', rows);
+                }
+            });
+        });
+
         document.getElementById('exportCsvBtn').addEventListener('click', () => {
             Audio2.fx('click');
             const pop = gameState.popHistory || [];
@@ -5157,8 +5997,94 @@
             updateStats();
         });
 
+        // ── Scenario controls ──
+        function updateInterventionUI() {
+            const pts = document.getElementById('interventionPts');
+            if (pts) pts.textContent = gameState.interventionPoints;
+        }
+        const INTERVENTION_COST = { grove: 2, warm: 2, cure: 3 };
+        let pendingIntervention = null;
+        document.querySelectorAll('.intervene-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                Audio2.start();
+                const tool = btn.getAttribute('data-tool');
+                const cost = INTERVENTION_COST[tool];
+                if (gameState.interventionPoints < cost) {
+                    document.getElementById('interventionHint').textContent = 'Not enough points — they regenerate over time.';
+                    return;
+                }
+                pendingIntervention = tool;
+                document.querySelectorAll('.intervene-btn').forEach(b => b.style.outline = '');
+                btn.style.outline = '2px solid #e8c46a';
+                const names = { grove: 'plant a grove of food', warm: 'cast a warm spell', cure: 'cure disease' };
+                document.getElementById('interventionHint').textContent = 'Now click the map to ' + names[tool] + '.';
+            });
+        });
+
+        function syncControlsToSettings() {
+            const s = gameState.settings;
+            const setVal = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+            const setLbl = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+            setVal('seepaPop', s.seepaSpawn); setLbl('seepaPopLabel', s.seepaSpawn);
+            setVal('suubaPop', s.suubaSpawn); setLbl('suubaPopLabel', s.suubaSpawn);
+            setVal('siibaPop', s.siibaSpawn); setLbl('siibaPopLabel', s.siibaSpawn);
+            setVal('fishPop', s.fishSpawn); setLbl('fishPopLabel', s.fishSpawn);
+            setVal('saabaPop', s.saabaSpawn); setLbl('saabaPopLabel', s.saabaSpawn);
+            const dt = document.getElementById('diseaseToggle'); if (dt) dt.checked = s.diseaseEnabled;
+            const pt = document.getElementById('predToggle'); if (pt) pt.checked = s.predatorsEnabled;
+            const awt = document.getElementById('autoWeatherToggle'); if (awt) awt.checked = gameState.autoWeather;
+        }
+
+        document.getElementById('scenarioSelect').addEventListener('change', (e) => {
+            const sc = SCENARIOS[e.target.value];
+            document.getElementById('scenarioDesc').textContent = sc ? sc.desc : '';
+        });
+
+        document.getElementById('startScenarioBtn').addEventListener('click', () => {
+            Audio2.start();
+            const key = document.getElementById('scenarioSelect').value;
+            const sc = SCENARIOS[key];
+            if (!sc) return;
+            gameState.nsMode = false;
+            gameState.scenario = key;
+            gameState.scenarioWon = false;
+            gameState.interventionPoints = 30;
+            gameState.interventionRegen = 0;
+            gameState._lastInterventionTick = 0;
+            gameState.helpUsed = 0;
+            pendingIntervention = null;
+            // Apply the scenario's preset configuration, then start fresh
+            sc.setup(gameState.settings);
+            syncControlsToSettings();
+            init();
+            gameState.paused = false;
+            document.getElementById('pausePlayBtn').textContent = '⏸ PAUSE';
+            lastTime = Date.now();
+            updateStats();
+            updateInterventionUI();
+            // Objective + intervention panel
+            const obj = document.getElementById('scenarioObjective');
+            const res = document.getElementById('scenarioResult');
+            const ip = document.getElementById('interventionPanel');
+            res.style.display = 'none';
+            if (sc.goal) {
+                obj.style.display = 'block';
+                obj.innerHTML = '🎯 <strong>Objective:</strong> ' + sc.objective;
+                ip.style.display = 'block';
+                document.getElementById('interventionHint').textContent = '';
+            } else {
+                obj.style.display = 'none';
+                ip.style.display = 'none';
+            }
+        });
+
         document.getElementById('resetBtn').addEventListener('click', () => {
             gameState.nsMode = false; // RESET always returns to the normal sandbox
+            gameState.scenario = 'sandbox';
+            gameState.scenarioWon = false;
+            document.getElementById('scenarioObjective').style.display = 'none';
+            document.getElementById('scenarioResult').style.display = 'none';
+            document.getElementById('interventionPanel').style.display = 'none';
             init();
             gameState.paused = false;
             document.getElementById('pausePlayBtn').textContent = '⏸ PAUSE';
@@ -5186,6 +6112,26 @@
         document.getElementById('agingToggle').addEventListener('change', (e) => {
             gameState.settings.agingEnabled = e.target.checked;
         });
+        document.getElementById('autoWeatherToggle').addEventListener('change', (e) => {
+            gameState.autoWeather = e.target.checked;
+        });
+        document.querySelectorAll('.weather-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                Audio2.start();
+                triggerWeather(btn.getAttribute('data-weather'));
+            });
+        });
+
+        document.getElementById('diseaseToggle').addEventListener('change', (e) => {
+            gameState.settings.diseaseEnabled = e.target.checked;
+            if (!e.target.checked) {
+                // Clear all active infections when disease is switched off
+                const all = [gameState.seepas, gameState.suubas, gameState.siibas, gameState.fish, gameState.saabas];
+                for (const list of all) if (list) for (const c of list) c.disease = 0;
+            } else {
+                logEvent('disease', 'Disease enabled — an outbreak may begin');
+            }
+        });
 
         function bindPopSlider(sliderId, labelId, key) {
             const slider = document.getElementById(sliderId);
@@ -5207,6 +6153,82 @@
             const x = (e.clientX - rect.left) * (canvas.width / rect.width);
             const y = (e.clientY - rect.top) * (canvas.height / rect.height);
             const mode = gameState.settings.clickMode;
+
+            // Intervention tools: if one is armed, apply it here (spends points). These are
+            // the *only* sanctioned way to affect a challenge — limited by the points budget.
+            if (pendingIntervention) {
+                const tool = pendingIntervention;
+                const cost = INTERVENTION_COST[tool];
+                if (gameState.interventionPoints < cost) { pendingIntervention = null; return; }
+                let applied = false;
+                if (tool === 'grove') {
+                    if (!isMarine(x, y)) {
+                        for (let i = 0; i < 3; i++) {
+                            const ang = Math.random() * Math.PI * 2, d = Math.random() * 45;
+                            const bx = x + Math.cos(ang) * d, by = y + Math.sin(ang) * d;
+                            if (!isMarine(bx, by)) {
+                                const bush = makeBush(bx, by);
+                                for (const f of bush.fruits) f.available = true;
+                                gameState.bushes.push(bush);
+                            }
+                        }
+                        spawnParticles(x, y, '#7bd88f', 14, 1.6);
+                        applied = true;
+                    }
+                } else if (tool === 'warm') {
+                    const all = [...gameState.seepas, ...gameState.suubas, ...gameState.siibas];
+                    for (const c of all) {
+                        if (distanceSq(x, y, c.x, c.y) < 120 * 120 && c.cold !== undefined) c.cold = 0;
+                    }
+                    for (let i = 0; i < 16; i++) {
+                        const ang = Math.random() * Math.PI * 2, rr = Math.random() * 120;
+                        gameState.particles.push({ x: x + Math.cos(ang) * rr, y: y + Math.sin(ang) * rr, vx: 0, vy: -0.5, life: 900, maxLife: 900, size: 3, color: '#ffd86b', kind: 'sparkle', twinkle: Math.random() * 6 });
+                    }
+                    applied = true;
+                } else if (tool === 'cure') {
+                    const all = [...gameState.seepas, ...gameState.suubas, ...gameState.siibas, ...gameState.fish, ...gameState.saabas];
+                    for (const c of all) {
+                        if (distanceSq(x, y, c.x, c.y) < 110 * 110 && c.disease !== undefined) c.disease = 0;
+                    }
+                    for (let i = 0; i < 14; i++) {
+                        const ang = Math.random() * Math.PI * 2, rr = Math.random() * 110;
+                        gameState.particles.push({ x: x + Math.cos(ang) * rr, y: y + Math.sin(ang) * rr, vx: 0, vy: -0.5, life: 900, maxLife: 900, size: 3, color: '#9bd34a', kind: 'sparkle', twinkle: Math.random() * 6 });
+                    }
+                    applied = true;
+                }
+                if (applied) {
+                    gameState.interventionPoints -= cost;
+                    gameState.helpUsed = (gameState.helpUsed || 0) + cost;
+                    updateInterventionUI();
+                    Audio2.fx('birth');
+                } else {
+                    document.getElementById('interventionHint').textContent = 'Can\'t place that there — try again.';
+                }
+                pendingIntervention = null;
+                document.querySelectorAll('.intervene-btn').forEach(b => b.style.outline = '');
+                return;
+            }
+
+            // Anti-cheese: while a scenario goal is active (and unwon), block god-mode
+            // tools and creature spawning. Inspect stays allowed (it can't affect the outcome).
+            const activeScenario = SCENARIOS[gameState.scenario];
+            if (activeScenario && activeScenario.goal && !gameState.scenarioWon && mode !== 'inspect') {
+                const note = document.getElementById('scenarioObjective');
+                if (note) {
+                    const prev = note.innerHTML;
+                    note.innerHTML = '🔒 No spawning or god-mode during a challenge — earn it!';
+                    note.style.borderColor = '#d4736a';
+                    note.style.color = '#ff9b8f';
+                    clearTimeout(window._scenarioNoteTimer);
+                    window._scenarioNoteTimer = setTimeout(() => {
+                        note.innerHTML = '🎯 <strong>Objective:</strong> ' + activeScenario.objective;
+                        note.style.borderColor = '#4a7a46';
+                        note.style.color = '#9bd34a';
+                    }, 1800);
+                }
+                spawnParticles(x, y, '#888', 4, 0.8);
+                return;
+            }
 
             if (mode === 'inspect') {
                 let best = null; let bestD = Infinity; let bestType = '';
