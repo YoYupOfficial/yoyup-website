@@ -312,6 +312,13 @@
             </div>
             <div class="control-group">
                 <button id="resetBtn">RESET</button>
+                <button id="photoBtn" style="margin-top:6px;width:100%;background:#2d3a4a;">📷 Save Snapshot (PNG)</button>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px;">
+                    <button id="saveWorldBtn" style="background:#2d4a3a;">💾 Save World</button>
+                    <button id="loadWorldBtn" style="background:#3a3a4a;">📂 Load World</button>
+                </div>
+                <input type="file" id="loadWorldInput" accept="application/json,.json" style="display:none;">
+                <div class="hint">Save exports your entire world (creatures, genes, lineage, painted terrain & settings) to a file you can reload or share later.</div>
                 <button id="nsModeBtn" style="margin-top:6px;width:100%;background:#2d4a3a;">🧪 Natural Selection Mode</button>
                 <div class="hint">25 safe Seepas vs 100 hunted by a Suuba, split by uncrossable water. Watch their genes diverge.</div>
             </div>
@@ -365,6 +372,7 @@
                     <option value="smite">⚡ Smite creature</option>
                     <option value="bless">✨ Bless (heal & feed)</option>
                     <option value="meteor">☄️ Meteor strike</option>
+                    <option value="radiation">☢️ Place radiation zone</option>
                 </select>
             </div>
 
@@ -397,6 +405,27 @@
                 <label class="toggle-row"><input type="checkbox" id="agingToggle" checked> Aging (creatures grow old and die)</label>
                 <label class="toggle-row"><input type="checkbox" id="diseaseToggle"> 🦠 Disease (illness spreads; resistance evolves)</label>
                 <label class="toggle-row"><input type="checkbox" id="structuresToggle" checked> 🏗️ Creatures build structures (nests, burrows, dams)</label>
+            </div>
+
+            <div class="section-title">View (Zoom &amp; Pan)</div>
+            <div class="control-group">
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;">
+                    <button id="zoomInBtn" style="font-size:14px;padding:7px;">➕</button>
+                    <button id="zoomOutBtn" style="font-size:14px;padding:7px;">➖</button>
+                    <button id="resetViewBtn" style="font-size:12px;padding:7px;">⤢ Fit</button>
+                </div>
+                <div class="hint">Scroll to zoom, right-drag (or WASD / arrows) to pan, and click the minimap to jump. Press 0 to reset the view.</div>
+            </div>
+
+            <div class="section-title">Climate &amp; Time</div>
+            <div class="control-group">
+                <div class="pop-slider-row"><span>Day length</span><strong id="dayLenLabel">48s</strong></div>
+                <input type="range" id="dayLenSlider" min="12" max="120" step="2" value="48" style="width:100%;">
+                <div class="pop-slider-row" style="margin-top:6px;"><span>Season length</span><strong id="seasonLenLabel">12s</strong></div>
+                <input type="range" id="seasonLenSlider" min="4" max="40" step="1" value="12" style="width:100%;">
+                <div class="pop-slider-row" style="margin-top:6px;"><span>Global temperature</span><strong id="climateTempLabel">Normal</strong></div>
+                <input type="range" id="climateTempSlider" min="-3" max="3" step="1" value="0" style="width:100%;">
+                <div class="hint">Warmer climates raise thirst and ease the cold; colder climates do the reverse. Shorten the day or season cycles to speed up day/night and the march of the seasons.</div>
             </div>
 
             <div class="section-title">Weather Events</div>
@@ -499,6 +528,15 @@
             <div class="section-title">Event Log</div>
             <div id="eventLog" style="font-size:11px;line-height:1.7;color:#ccc;max-height:120px;overflow-y:auto;background:#1a1a1a;border-radius:4px;padding:6px 8px;"></div>
 
+            <div class="section-title">🏆 Milestones</div>
+            <div id="milestoneLog" style="font-size:11px;line-height:1.7;color:#ccc;max-height:120px;overflow-y:auto;background:#1a1a1a;border-radius:4px;padding:6px 8px;"></div>
+
+            <div class="section-title">Deaths by Cause</div>
+            <div id="deathStatsPanel" style="font-size:11px;line-height:1.6;color:#ccc;background:#1a1a1a;border-radius:4px;padding:8px;">No deaths yet.</div>
+
+            <div class="section-title">Species Stats</div>
+            <div id="speciesStatsPanel" style="font-size:11px;line-height:1.5;color:#ccc;background:#1a1a1a;border-radius:4px;padding:8px;">No data yet.</div>
+
             <div class="section-title">Stats</div>
             <div class="stats">
                 <div class="stat-line"><span>Total Seepas:</span><strong id="seepasCount">0</strong></div>
@@ -580,6 +618,28 @@
     <script>
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
+
+        // ---------- Camera (zoom & pan) ----------
+        const cam = { x: 0, y: 0, zoom: 1, minZoom: 1, maxZoom: 8 };
+        function clampCam() {
+            cam.zoom = Math.max(cam.minZoom, Math.min(cam.maxZoom, cam.zoom));
+            const viewW = canvas.width / cam.zoom, viewH = canvas.height / cam.zoom;
+            cam.x = Math.max(0, Math.min(canvas.width - viewW, cam.x));
+            cam.y = Math.max(0, Math.min(canvas.height - viewH, cam.y));
+        }
+        function applyCamera() { ctx.scale(cam.zoom, cam.zoom); ctx.translate(-cam.x, -cam.y); }
+        function screenToWorld(sx, sy) { return { x: sx / cam.zoom + cam.x, y: sy / cam.zoom + cam.y }; }
+        function zoomAt(screenX, screenY, factor) {
+            const before = screenToWorld(screenX, screenY);
+            cam.zoom *= factor;
+            clampCam();
+            const after = screenToWorld(screenX, screenY);
+            cam.x += before.x - after.x;
+            cam.y += before.y - after.y;
+            clampCam();
+        }
+        function resetView() { cam.x = 0; cam.y = 0; cam.zoom = 1; }
+
         const backgroundCanvas = document.createElement('canvas');
         backgroundCanvas.width = canvas.width;
         backgroundCanvas.height = canvas.height;
@@ -862,6 +922,171 @@
             while (el.children.length > 12) el.removeChild(el.lastChild);
         }
 
+        // ---------- Death-cause tracking ----------
+        const DEATH_CAUSES = ['starved', 'thirst', 'frozen', 'oldage', 'disease', 'hunted'];
+        const SPECIES_KEYS = ['seepa', 'suuba', 'siiba', 'fish', 'saaba', 'syyba'];
+        function recordDeath(species, c, causeOverride) {
+            if (!gameState.deathStats) gameState.deathStats = {};
+            if (!gameState.deathStats[species]) {
+                gameState.deathStats[species] = { starved: 0, thirst: 0, frozen: 0, oldage: 0, disease: 0, hunted: 0 };
+            }
+            let cause = causeOverride;
+            if (!cause) {
+                if (c.disease !== undefined && c.disease >= 100) cause = 'disease';
+                else if (c.cold !== undefined && c.cold >= 100) cause = 'frozen';
+                else if (c.age !== undefined && c.age >= (c.lifeSpan || 100) - 0.6) cause = 'oldage';
+                else if (c.thirst !== undefined && c.thirst >= c.maxStats) cause = 'thirst';
+                else cause = 'starved';
+            }
+            gameState.deathStats[species][cause]++;
+            // Per-species life stats
+            const st = speciesStat(species);
+            st.deaths++;
+            if (c.age !== undefined) { st.lifeSum += c.age; st.lifeCount++; }
+            // Mark death in the lineage registry
+            if (c.id && gameState.lineage && gameState.lineage.has(c.id)) {
+                gameState.lineage.get(c.id).died = Math.round(gameState.time / 1000);
+            }
+        }
+
+        // ---------- Lineage / family trees ----------
+        function cid(c) {
+            if (!c.id) { gameState._nextId = (gameState._nextId || 0) + 1; c.id = gameState._nextId; }
+            return c.id;
+        }
+        function speciesStat(sp) {
+            if (!gameState.speciesStats) gameState.speciesStats = {};
+            if (!gameState.speciesStats[sp]) gameState.speciesStats[sp] = { births: 0, deaths: 0, lifeSum: 0, lifeCount: 0 };
+            return gameState.speciesStats[sp];
+        }
+        function recordBirth(baby, sp, pa, pb) {
+            if (!gameState.lineage) gameState.lineage = new Map();
+            const id = cid(baby);
+            baby.species = sp;
+            baby.birthT = Math.round(gameState.time / 1000);
+            baby.parents = [pa ? cid(pa) : null, pb ? cid(pb) : null];
+            gameState.lineage.set(id, {
+                id, sp, gen: baby.generation || 1,
+                parents: baby.parents.slice(),
+                born: baby.birthT, died: null,
+                name: baby.name || null
+            });
+            // also register parents lightly so trees can climb up even for initial spawns
+            for (const p of [pa, pb]) {
+                if (p && !gameState.lineage.has(cid(p))) {
+                    gameState.lineage.set(p.id, { id: p.id, sp, gen: p.generation || 1, parents: p.parents ? p.parents.slice() : [null, null], born: p.birthT || 0, died: null, name: p.name || null });
+                }
+            }
+            speciesStat(sp).births++;
+            // cap registry size
+            if (gameState.lineage.size > 2500) {
+                const firstKey = gameState.lineage.keys().next().value;
+                gameState.lineage.delete(firstKey);
+            }
+        }
+
+        // Build a small family-tree readout for the inspector
+        function renderLineageHtml(c) {
+            if (!c || !gameState.lineage) return '';
+            const lin = gameState.lineage;
+            const id = c.id;
+            if (!id) return '<div style="margin-top:8px;font-size:11px;opacity:0.55;">👪 No recorded lineage yet (a founder — its descendants will be tracked).</div>';
+            const rec = lin.get(id);
+            const nameOf = (rid) => {
+                if (!rid) return '—';
+                const r = lin.get(rid);
+                if (!r) return '#' + rid;
+                return (r.name ? r.name + ' ' : '') + '#' + rid + (r.died != null ? ' †' : '');
+            };
+            let html = '<div style="margin-top:8px;padding-top:6px;border-top:1px solid #333;font-size:11px;"><strong>👪 Family</strong>';
+            html += '<br>ID: #' + id + ' · gen ' + (rec ? rec.gen : (c.generation || 1));
+            const parents = rec ? rec.parents : (c.parents || [null, null]);
+            if (parents && (parents[0] || parents[1])) {
+                html += '<br>Parents: ' + nameOf(parents[0]) + ' × ' + nameOf(parents[1]);
+            } else {
+                html += '<br>Parents: founder (no recorded parents)';
+            }
+            const gp = [];
+            for (const p of (parents || [])) {
+                const pr = p && lin.get(p);
+                if (pr && pr.parents) gp.push(...pr.parents.filter(Boolean));
+            }
+            if (gp.length) html += '<br>Grandparents: ' + gp.slice(0, 4).map(nameOf).join(', ');
+            const kids = [];
+            for (const [kid, r] of lin) {
+                if (r.parents && (r.parents[0] === id || r.parents[1] === id)) kids.push(kid);
+            }
+            html += '<br>Children: ' + (kids.length ? kids.length + ' (' + kids.slice(0, 6).map(nameOf).join(', ') + (kids.length > 6 ? '…' : '') + ')' : 'none yet');
+            html += '</div>';
+            return html;
+        }
+
+        // ---------- Milestones ----------
+        function addMilestone(icon, text) {
+            if (!gameState.milestones) gameState.milestones = [];
+            gameState.milestones.unshift({ icon, text, t: Math.round(gameState.time / 1000) });
+            if (gameState.milestones.length > 40) gameState.milestones.pop();
+            const panel = document.getElementById('milestoneLog');
+            if (panel && typeof panel.insertBefore === 'function') {
+                const line = document.createElement('div');
+                line.textContent = icon + ' [' + Math.round(gameState.time / 1000) + 's] ' + text;
+                panel.insertBefore(line, panel.firstChild);
+                while (panel.children.length > 30) panel.removeChild(panel.lastChild);
+            }
+        }
+        function checkMilestones() {
+            if (!gameState.peakPop) gameState.peakPop = {};
+            if (!gameState.milestoneFlags) gameState.milestoneFlags = {};
+            const lists = { seepa: gameState.seepas, suuba: gameState.suubas, siiba: gameState.siibas, fish: gameState.fish, saaba: gameState.saabas, syyba: gameState.syybas };
+            const names = { seepa: 'Seepa', suuba: 'Suuba', siiba: 'Siiba', fish: 'Sooba', saaba: 'Saaba', syyba: 'Syyba' };
+            for (const k of SPECIES_KEYS) {
+                const list = lists[k] || [];
+                const n = list.length;
+                // Population-record milestones at round thresholds
+                const prevPeak = gameState.peakPop[k] || 0;
+                if (n > prevPeak) {
+                    gameState.peakPop[k] = n;
+                    for (const thresh of [25, 50, 100, 150, 200, 300]) {
+                        const key = k + '_pop_' + thresh;
+                        if (n >= thresh && !gameState.milestoneFlags[key]) {
+                            gameState.milestoneFlags[key] = true;
+                            addMilestone('📈', names[k] + 's reached ' + thresh + '!');
+                        }
+                    }
+                }
+                // Extinction (only after it had once lived) — logged once
+                const everKey = k + '_lived';
+                if (n > 0) gameState.milestoneFlags[everKey] = true;
+                const extKey = k + '_extinct_logged';
+                if (n === 0 && gameState.milestoneFlags[everKey] && !gameState.milestoneFlags[extKey]) {
+                    gameState.milestoneFlags[extKey] = true;
+                    addMilestone('💀', names[k] + 's went extinct');
+                }
+                // Generation milestones
+                let maxGen = 0;
+                for (const c of list) if ((c.generation || 1) > maxGen) maxGen = c.generation || 1;
+                for (const g of [5, 10, 20, 35, 50]) {
+                    const gkey = k + '_gen_' + g;
+                    if (maxGen >= g && !gameState.milestoneFlags[gkey]) {
+                        gameState.milestoneFlags[gkey] = true;
+                        addMilestone('🧬', names[k] + 's reached generation ' + g);
+                    }
+                }
+                // Record-fast Seepa
+                if (k === 'seepa') {
+                    let fastest = 0;
+                    for (const c of list) if (c.genes && c.genes.speed > fastest) fastest = c.genes.speed;
+                    const rec = gameState.fastestSeepa || 0;
+                    if (fastest > rec + 0.15 && fastest > 1.9) {
+                        gameState.fastestSeepa = fastest;
+                        addMilestone('⚡', 'New fastest Seepa: speed ' + fastest.toFixed(2));
+                    } else if (fastest > rec) {
+                        gameState.fastestSeepa = fastest;
+                    }
+                }
+            }
+        }
+
         // ---------- Particles ----------
         function spawnParticles(x, y, color, count, spd) {
             count = count || 8;
@@ -1022,6 +1247,13 @@
         // Shared per-creature animation: a squash-stretch "pop" when eating, and a
         // fear-shake when fleeing. Called right after a draw() translates to the creature,
         // so it composes with each species' own rotate/scale.
+        // Speed gene → visible body shape: faster creatures look leaner & longer.
+        function applyGeneStretch(c) {
+            const sp = (c.genes && c.genes.speed) || 1;
+            const spNorm = Math.max(0, Math.min(1, (sp - 0.8) / 1.4));
+            ctx.scale(1 + spNorm * 0.28, 1 - spNorm * 0.16);
+        }
+
         function applyCritterAnim(c) {
             const eat = Math.max(0, 1 - (gameState.time - (c.lastEat || -1e9)) / 260);
             if (eat > 0) {
@@ -1199,9 +1431,11 @@
                         const m = near.find(c => c.sex === 'male'), f = near.find(c => c.sex === 'female');
                         if (m && f) {
                             const g = inheritGenes(m.genes, f.genes, GENE_RANGES.seepa);
+                            const _pa = m, _pb = f;
                             const baby = new Seepa(s.x + (Math.random() - 0.5) * 12, s.y + (Math.random() - 0.5) * 12, g,
                                 Math.max(m.generation || 1, f.generation || 1) + 1);
                             baby.age = 0;
+                            recordBirth(baby, 'seepa', _pa, _pb);
                             gameState.seepas.push(baby);
                             spawnBirthEffect(s.x, s.y, '#ffd86b');
                             s.cool = 9 + Math.random() * 6;
@@ -1369,18 +1603,21 @@
 
         function updateCold(creature, dtSeconds, ratePerSec) {
             const coldSnap = weatherColdAdd();
+            const climate = (gameState.climateTemp || 0); // + = warmer (less cold), - = colder
+            ratePerSec = Math.max(0, ratePerSec - climate * 1.5);
+            const frigid = climate < 0 ? -climate * 2.2 : 0; // cold climates chill even outside winter
             if (getSeasonName() === 'Winter') {
                 if (creature.hidden || isSheltered(creature.x, creature.y, 10)) {
                     creature.cold = Math.max(0, creature.cold - 14 * dtSeconds + coldSnap * 0.5 * dtSeconds);
                 } else {
                     creature.cold = Math.min(120, creature.cold + (ratePerSec + coldSnap) * dtSeconds);
                 }
-            } else if (coldSnap > 0) {
-                // A cold snap can chill creatures even outside winter
+            } else if (coldSnap > 0 || frigid > 0) {
+                // A cold snap or frigid climate can chill creatures even outside winter
                 if (creature.hidden || isSheltered(creature.x, creature.y, 10)) {
                     creature.cold = Math.max(0, creature.cold - 10 * dtSeconds);
                 } else {
-                    creature.cold = Math.min(120, creature.cold + coldSnap * dtSeconds);
+                    creature.cold = Math.min(120, creature.cold + (coldSnap + frigid) * dtSeconds);
                 }
             } else {
                 creature.cold = Math.max(0, creature.cold - 25 * dtSeconds);
@@ -1582,6 +1819,7 @@
                         if (dSq < minSq) {
                             spawnParticles(siiba.x, siiba.y, '#ff9fb3', 10, 2);
                             if (gameState.inspected && gameState.inspected.ref === siiba) gameState.inspected = null;
+                            recordDeath('siiba', siiba, 'hunted');
                             gameState.siibas.splice(i, 1);
                             this.hunger = Math.max(0, this.hunger - 60);
                             return true;
@@ -2127,6 +2365,7 @@
                                 spawnParticles(target.x, target.y, '#ff6b6b', 6, 1.6);
                                 if (target.energy <= 0) {
                                     if (gameState.inspected && gameState.inspected.ref === target) gameState.inspected = null;
+                                    recordDeath('suuba', target, 'hunted');
                                     gameState.suubas.splice(idx, 1);
                                     spawnParticles(target.x, target.y, '#8a2f2f', 14, 2.4);
                                     this.energy = Math.min(this.maxStats, this.energy + 80);
@@ -2226,6 +2465,7 @@
                             const childGenes = inheritGenes(this.genes, other.genes, GENE_RANGES.siiba);
                             const childGen = Math.max(this.generation, other.generation) + 1;
                             const baby = new Siiba(bx, by, childGenes, childGen);
+                            recordBirth(baby, 'siiba', this, other);
                             baby.age = 0; baby.energy = 90; baby.hunger = 10; baby.thirst = 10;
                             gameState.siibas.push(baby);
                             spawnBirthEffect(bx, by, '#ffd2d9'); spawnMatingHearts((this.x + other.x)/2, (this.y + other.y)/2 - 8); Audio2.fx('birth');
@@ -2269,97 +2509,163 @@
                 ctx.globalAlpha = 1 - (this.genes.stealth ?? 0) * 0.45;
                 const angle = Math.atan2(this.vy, this.vx);
                 ctx.rotate(angle * 0.1);
+                applyGeneStretch(this);
 
                 // Soft ground shadow
                 ctx.fillStyle = 'rgba(0,0,0,0.16)';
                 ctx.beginPath();
-                ctx.ellipse(0, r * 0.85, r * 1.05, r * 0.4, 0, 0, Math.PI * 2);
+                ctx.ellipse(0, r * 0.92, r * 1.15, r * 0.4, 0, 0, Math.PI * 2);
                 ctx.fill();
 
-                // Bushy tail behind the body — wags gently when walking
-                const siibaTailWag = Math.sin(this.walkPhase || 0) * 0.18;
-                const tailG = ctx.createLinearGradient(-r * 1.7, 0, -r * 0.6, 0);
-                tailG.addColorStop(0, '#ff8fa6');
-                tailG.addColorStop(1, '#ffc2cd');
-                ctx.fillStyle = tailG;
+                // ════════ SIIBA — sleek rose lynx-fox (side view, +X forward) ════════
+                const wp = this.walkPhase || 0;
+                const alert = this.alertT || 0;
+                // Life-stage tinted rose-predator palette
+                let fur1, fur2, fur3, dark, outline;
+                if (this.age > 130) { fur1 = '#f3e0e2'; fur2 = '#cf9aa6'; fur3 = '#a86f7e'; dark = '#7a4a57'; outline = '#4a2730'; }
+                else if (this.age < 12) { fur1 = '#fff0ef'; fur2 = '#ffc9cf'; fur3 = '#f0939f'; dark = '#c46676'; outline = '#7a3344'; }
+                else if (this.sex === 'male') { fur1 = '#fff2ee'; fur2 = '#ffb0bf'; fur3 = '#e86b86'; dark = '#b23f57'; outline = '#6e2436'; }
+                else { fur1 = '#fff4f2'; fur2 = '#ffc0c8'; fur3 = '#ef859b'; dark = '#bf526a'; outline = '#742a3c'; }
+
+                // ── Back legs then front legs (walk cycle), drawn under the body ──
+                ctx.strokeStyle = dark; ctx.lineWidth = Math.max(1.6, r * 0.2); ctx.lineCap = 'round';
+                const legPairs = [
+                    { bx: -r * 0.55, ph: 0 }, { bx: -r * 0.4, ph: Math.PI },   // back legs
+                    { bx: r * 0.45, ph: Math.PI }, { bx: r * 0.6, ph: 0 }      // front legs
+                ];
+                for (const L of legPairs) {
+                    const sw = Math.sin(wp + L.ph) * r * 0.32;
+                    ctx.beginPath();
+                    ctx.moveTo(L.bx, r * 0.45);
+                    ctx.quadraticCurveTo(L.bx + sw * 0.5, r * 0.85, L.bx + sw, r * 1.12);
+                    ctx.stroke();
+                    // paw "sock"
+                    ctx.fillStyle = '#fff6f6';
+                    ctx.beginPath(); ctx.ellipse(L.bx + sw, r * 1.12, r * 0.14, r * 0.1, 0, 0, Math.PI * 2); ctx.fill();
+                }
+                ctx.lineCap = 'butt';
+
+                // ── Long bushy tail (curves up behind), with fur texture & pale tip ──
+                const tailWag = Math.sin(wp) * 0.2 + alert * 0.25;
                 ctx.save();
-                ctx.translate(-r * 1.15, r * 0.15);
-                ctx.rotate(siibaTailWag);
+                ctx.translate(-r * 1.0, r * 0.05);
+                ctx.rotate(-0.4 + tailWag);
+                const tg = ctx.createLinearGradient(-r * 1.4, 0, 0, 0);
+                tg.addColorStop(0, fur1); tg.addColorStop(0.4, fur3); tg.addColorStop(1, fur2);
+                ctx.fillStyle = tg;
                 ctx.beginPath();
-                ctx.ellipse(0, 0, r * 0.62, r * 0.4, -0.5, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.restore();
-                // White tail tip
+                ctx.moveTo(0, -r * 0.3);
+                ctx.quadraticCurveTo(-r * 1.0, -r * 0.7, -r * 1.5, -r * 0.05);
+                ctx.quadraticCurveTo(-r * 1.05, r * 0.05, -r * 1.5, r * 0.2);
+                ctx.quadraticCurveTo(-r * 0.9, r * 0.55, 0, r * 0.3);
+                ctx.closePath(); ctx.fill();
+                // pale fluffy tip
                 ctx.fillStyle = '#fff6f8';
-                const tailTipX = -r * 1.15 + Math.cos(-0.5 + siibaTailWag) * r * 0.62;
-                const tailTipY = r * 0.15 + Math.sin(-0.5 + siibaTailWag) * r * 0.4;
-                ctx.beginPath();
-                ctx.arc(tailTipX - r * 0.3, tailTipY, r * 0.26, 0, Math.PI * 2);
-                ctx.fill();
+                ctx.beginPath(); ctx.ellipse(-r * 1.4, r * 0.07, r * 0.26, r * 0.3, 0, 0, Math.PI * 2); ctx.fill();
+                // fur streaks
+                ctx.strokeStyle = 'rgba(120,40,60,0.18)'; ctx.lineWidth = 0.8;
+                for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.moveTo(-r * (0.3 + i * 0.35), -r * 0.15); ctx.lineTo(-r * (0.7 + i * 0.35), r * 0.1); ctx.stroke(); }
+                ctx.restore();
 
-                // Tufted ears — perk upward when alert (hunting)
-                const alertPerk = (this.alertT || 0) * 0.3;
-                const earOut = '#ff9fb3';
-                const earIn = '#c96b7d';
+                // ── Body: a lean, slightly crouched predator torso ──
+                ctx.beginPath();
+                ctx.moveTo(-r * 0.95, r * 0.1);                                    // rear-low
+                ctx.quadraticCurveTo(-r * 1.05, -r * 0.7, -r * 0.35, -r * 0.78);    // haunch up
+                ctx.quadraticCurveTo(r * 0.45, -r * 0.9, r * 0.95, -r * 0.4);       // back to shoulder
+                ctx.quadraticCurveTo(r * 1.15, r * 0.0, r * 0.85, r * 0.5);         // chest
+                ctx.quadraticCurveTo(r * 0.2, r * 0.78, -r * 0.5, r * 0.62);        // belly
+                ctx.quadraticCurveTo(-r * 0.95, r * 0.5, -r * 0.95, r * 0.1);       // back to rear
+                ctx.closePath();
+                const bg = ctx.createRadialGradient(-r * 0.2, -r * 0.45, r * 0.1, 0, 0, r * 1.5);
+                bg.addColorStop(0, fur1); bg.addColorStop(0.5, fur2); bg.addColorStop(1, fur3);
+                ctx.fillStyle = bg; ctx.fill();
+                ctx.strokeStyle = outline; ctx.lineWidth = 1.1; ctx.stroke();
+
+                // Pale belly + chest blaze
+                ctx.fillStyle = 'rgba(255,250,250,0.6)';
+                ctx.beginPath(); ctx.ellipse(r * 0.15, r * 0.42, r * 0.6, r * 0.24, 0, 0, Math.PI * 2); ctx.fill();
+                // Darker dorsal marking for definition
+                ctx.strokeStyle = 'rgba(140,50,75,0.3)'; ctx.lineWidth = r * 0.18;
+                ctx.beginPath(); ctx.moveTo(-r * 0.7, -r * 0.55); ctx.quadraticCurveTo(0, -r * 0.85, r * 0.7, -r * 0.45); ctx.stroke();
+
+                // ── Head (distinct, at the front) ──
+                ctx.beginPath();
+                ctx.ellipse(r * 0.82, -r * 0.18, r * 0.56, r * 0.5, 0.15, 0, Math.PI * 2);
+                const hg = ctx.createRadialGradient(r * 0.65, -r * 0.4, r * 0.1, r * 0.82, -r * 0.18, r * 0.7);
+                hg.addColorStop(0, fur1); hg.addColorStop(0.55, fur2); hg.addColorStop(1, fur3);
+                ctx.fillStyle = hg; ctx.fill();
+                ctx.strokeStyle = outline; ctx.lineWidth = 1.0; ctx.stroke();
+
+                // ── Lynx ears: tall, pointed, dark tufts, pink inner ──
                 for (const side of [-1, 1]) {
-                    ctx.fillStyle = earOut;
+                    const ebx = r * 0.62 + side * r * 0.12;
+                    const eby = -r * 0.55;
+                    const tip = -r * (1.35 + alert * 0.35) + side * r * 0.1;
+                    ctx.fillStyle = fur3;
                     ctx.beginPath();
-                    ctx.moveTo(side * r * 0.5, -r * 0.55);
-                    ctx.lineTo(side * r * 0.95, -r * (1.25 + alertPerk));
-                    ctx.lineTo(side * r * 0.15, -r * 0.85);
-                    ctx.closePath();
-                    ctx.fill();
-                    ctx.fillStyle = earIn;
+                    ctx.moveTo(ebx - r * 0.22, eby);
+                    ctx.lineTo(ebx + side * r * 0.18, tip);
+                    ctx.lineTo(ebx + r * 0.26, eby - r * 0.1);
+                    ctx.closePath(); ctx.fill();
+                    ctx.strokeStyle = outline; ctx.lineWidth = 0.9; ctx.stroke();
+                    // pink inner
+                    ctx.fillStyle = '#ffd2db';
                     ctx.beginPath();
-                    ctx.moveTo(side * r * 0.52, -r * 0.62);
-                    ctx.lineTo(side * r * 0.78, -r * (1.05 + alertPerk));
-                    ctx.lineTo(side * r * 0.32, -r * 0.82);
-                    ctx.closePath();
-                    ctx.fill();
+                    ctx.moveTo(ebx - r * 0.08, eby - r * 0.02);
+                    ctx.lineTo(ebx + side * r * 0.12, tip + r * 0.22);
+                    ctx.lineTo(ebx + r * 0.14, eby - r * 0.08);
+                    ctx.closePath(); ctx.fill();
+                    // dark tuft at the tip
+                    ctx.strokeStyle = dark; ctx.lineWidth = 1.2;
+                    ctx.beginPath(); ctx.moveTo(ebx + side * r * 0.18, tip); ctx.lineTo(ebx + side * r * 0.22, tip - r * 0.16); ctx.stroke();
                 }
 
-                // Body
-                const g = ctx.createRadialGradient(-r * 0.3, -r * 0.4, 1, 0, 0, r * 1.4);
-                g.addColorStop(0, '#fff4f0');
-                g.addColorStop(0.55, '#ffc6d0');
-                g.addColorStop(1, '#f47e96');
-                ctx.fillStyle = g;
+                // ── Tapered muzzle + nose ──
+                ctx.fillStyle = fur2;
                 ctx.beginPath();
-                ctx.ellipse(0, 0, r * 1.05, r, 0, 0, Math.PI * 2);
-                ctx.fill();
+                ctx.moveTo(r * 1.18, -r * 0.28);
+                ctx.quadraticCurveTo(r * 1.62, -r * 0.05, r * 1.5, r * 0.18);
+                ctx.quadraticCurveTo(r * 1.2, r * 0.22, r * 1.05, r * 0.05);
+                ctx.closePath(); ctx.fill();
+                ctx.fillStyle = '#fff8f6'; // pale muzzle underside
+                ctx.beginPath(); ctx.ellipse(r * 1.18, r * 0.12, r * 0.28, r * 0.16, 0, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = '#3a1820'; // nose
+                ctx.beginPath(); ctx.ellipse(r * 1.52, r * 0.02, r * 0.11, r * 0.09, 0, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = 'rgba(255,255,255,0.5)';
+                ctx.beginPath(); ctx.arc(r * 1.49, -r * 0.02, r * 0.03, 0, Math.PI * 2); ctx.fill();
+                // mouth line
+                ctx.strokeStyle = 'rgba(80,30,40,0.5)'; ctx.lineWidth = 0.9;
+                ctx.beginPath(); ctx.moveTo(r * 1.5, r * 0.08); ctx.quadraticCurveTo(r * 1.25, r * 0.3, r * 1.0, r * 0.2); ctx.stroke();
+                // whiskers
+                ctx.strokeStyle = 'rgba(255,255,255,0.45)'; ctx.lineWidth = 0.7;
+                for (let wi = 0; wi < 3; wi++) {
+                    ctx.beginPath(); ctx.moveTo(r * 1.3, r * 0.0 + wi * r * 0.06);
+                    ctx.quadraticCurveTo(r * 1.7, r * 0.0 + wi * r * 0.1, r * 1.95, r * 0.04 + wi * r * 0.13); ctx.stroke();
+                }
 
-                // Pale cheek/snout area
-                ctx.fillStyle = 'rgba(255, 250, 250, 0.85)';
-                ctx.beginPath();
-                ctx.ellipse(r * 0.5, r * 0.12, r * 0.55, r * 0.45, 0, 0, Math.PI * 2);
-                ctx.fill();
-
-                // Pointed snout
-                ctx.fillStyle = '#f9a8b8';
-                ctx.beginPath();
-                ctx.moveTo(r * 0.85, -r * 0.12);
-                ctx.lineTo(r * 1.4, r * 0.1);
-                ctx.lineTo(r * 0.85, r * 0.32);
-                ctx.closePath();
-                ctx.fill();
-                // Nose
-                ctx.fillStyle = '#5a2330';
-                ctx.beginPath();
-                ctx.arc(r * 1.36, r * 0.1, r * 0.12, 0, Math.PI * 2);
-                ctx.fill();
-
-                // Eyes (almond, alert) — size grows with the vision gene
-                const sVis = 0.8 + Math.max(0, Math.min(1, ((this.genes.vision ?? 1) - 0.5) / 1.3)) * 0.5;
-                for (const ey of [-1, 1]) {
-                    const eyY = -r * 0.12 + ey * r * 0.28;
+                // ── Predatory almond eye with vertical slit pupil ──
+                const sVis = 0.85 + Math.max(0, Math.min(1, ((this.genes.vision ?? 1) - 0.5) / 1.3)) * 0.5;
+                const blink = (Math.sin((gameState.time / 1000) * 1.3 + this.x * 0.5) > 0.985);
+                const eX = r * 0.92, eY = -r * 0.28, eW = r * 0.26 * sVis, eH = r * 0.2 * sVis;
+                if (blink) {
+                    ctx.strokeStyle = outline; ctx.lineWidth = 1.3;
+                    ctx.beginPath(); ctx.moveTo(eX - eW, eY); ctx.quadraticCurveTo(eX, eY + eH * 0.4, eX + eW, eY); ctx.stroke();
+                } else {
+                    // almond white
                     ctx.fillStyle = '#fffaf5';
-                    ctx.beginPath();
-                    ctx.ellipse(r * 0.32, eyY, r * 0.2 * sVis, r * 0.16 * sVis, 0, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.fillStyle = '#241015';
-                    ctx.beginPath();
-                    ctx.arc(r * 0.38, eyY, r * 0.1 * sVis, 0, Math.PI * 2);
-                    ctx.fill();
+                    ctx.beginPath(); ctx.ellipse(eX, eY, eW, eH, -0.18, 0, Math.PI * 2); ctx.fill();
+                    // amber iris
+                    ctx.fillStyle = this.age > 130 ? '#6aa84a' : '#e8a32c';
+                    ctx.beginPath(); ctx.ellipse(eX + r * 0.04, eY, eW * 0.7, eH * 0.92, 0, 0, Math.PI * 2); ctx.fill();
+                    // vertical slit pupil (predator)
+                    ctx.fillStyle = '#160a0e';
+                    ctx.beginPath(); ctx.ellipse(eX + r * 0.05, eY, eW * 0.18, eH * 0.82, 0, 0, Math.PI * 2); ctx.fill();
+                    // catchlight
+                    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+                    ctx.beginPath(); ctx.arc(eX, eY - eH * 0.4, eW * 0.22, 0, Math.PI * 2); ctx.fill();
+                    // dark eye liner toward the ear (sly look)
+                    ctx.strokeStyle = dark; ctx.lineWidth = 1; ctx.beginPath();
+                    ctx.moveTo(eX - eW * 0.8, eY - eH * 0.4); ctx.lineTo(eX - eW * 1.5, eY - eH * 0.9); ctx.stroke();
                 }
 
                 // Icy tint when freezing
@@ -2367,7 +2673,7 @@
                     ctx.globalAlpha = Math.min(0.5, (this.cold - 25) / 120);
                     ctx.fillStyle = '#bfe6ff';
                     ctx.beginPath();
-                    ctx.ellipse(0, 0, r * 1.05, r, 0, 0, Math.PI * 2);
+                    ctx.ellipse(0, 0, r * 1.15, r, 0, 0, Math.PI * 2);
                     ctx.fill();
                     ctx.globalAlpha = 1;
                 }
@@ -2559,6 +2865,7 @@
                         if (d < this.radius + mate.radius + 6) {
                             const childGenes = inheritGenes(this.genes, mate.genes, GENE_RANGES.fish);
                             const baby = new Fish(this.x, this.y, childGenes, Math.max(this.generation, mate.generation) + 1);
+                            recordBirth(baby, 'fish', this, mate);
                             baby.age = 0; baby.hunger = 10;
                             gameState.fish.push(baby);
                             spawnBirthEffect(this.x, this.y, '#ffd36b'); spawnMatingHearts((this.x + mate.x)/2, (this.y + mate.y)/2 - 8); Audio2.fx('birth');
@@ -2600,6 +2907,7 @@
                 ctx.translate(this.x, this.y);
                 applyCritterAnim(this);
                 ctx.rotate(Math.atan2(this.vy, this.vx));
+                applyGeneStretch(this);
                 const tailFlick = Math.sin(this.wiggle) * 0.4;
 
                 // Tail
@@ -2800,6 +3108,7 @@
                             const idx = gameState.fish.indexOf(target);
                             if (idx >= 0) {
                                 if (gameState.inspected && gameState.inspected.ref === target) gameState.inspected = null;
+                                recordDeath('fish', target, 'hunted');
                                 gameState.fish.splice(idx, 1);
                                 this.hunger = Math.max(0, this.hunger - 70);
                                 this.energy = Math.min(this.maxStats * 1.6, this.energy + 80);
@@ -2810,6 +3119,7 @@
                             const idx = gameState.seepas.indexOf(target);
                             if (idx >= 0) {
                                 if (gameState.inspected && gameState.inspected.ref === target) gameState.inspected = null;
+                                recordDeath('seepa', target, 'hunted');
                                 gameState.seepas.splice(idx, 1);
                                 this.hunger = Math.max(0, this.hunger - 70);
                                 this.energy = Math.min(this.maxStats * 1.6, this.energy + 80);
@@ -2839,6 +3149,7 @@
                         if (d < this.radius + mate.radius + 6) {
                             const childGenes = inheritGenes(this.genes, mate.genes, GENE_RANGES.syyba);
                             const baby = new Syyba(this.x, this.y, childGenes, Math.max(this.generation, mate.generation) + 1);
+                            recordBirth(baby, 'syyba', this, mate);
                             baby.age = 0; baby.hunger = 12; baby.energy = 100;
                             gameState.syybas.push(baby);
                             this.lastReproduction = gameState.time; mate.lastReproduction = gameState.time;
@@ -2864,6 +3175,7 @@
                 ctx.translate(this.x, this.y);
                 applyCritterAnim(this);
                 ctx.rotate(angle);
+                applyGeneStretch(this);
 
                 let fur1, fur2, fur3, outline;
                 if (this.age > 90) { fur1 = '#b8a890'; fur2 = '#8a7a60'; fur3 = '#5e4f3a'; outline = '#332813'; }
@@ -3002,6 +3314,7 @@
                         if (idx !== -1) {
                             spawnParticles(prey.x, prey.y, '#ff9b33', 9, 1.8);
                             if (gameState.inspected && gameState.inspected.ref === prey) gameState.inspected = null;
+                            recordDeath('fish', prey, 'hunted');
                             gameState.fish.splice(idx, 1);
                         }
                         this.hunger = Math.max(0, this.hunger - 55);
@@ -3032,6 +3345,7 @@
                         if (d < this.radius + mate.radius + 8) {
                             const childGenes = inheritGenes(this.genes, mate.genes, GENE_RANGES.saaba);
                             const baby = new Saaba(this.x, this.y, childGenes, Math.max(this.generation, mate.generation) + 1);
+                            recordBirth(baby, 'saaba', this, mate);
                             baby.age = 0; baby.hunger = 10;
                             gameState.saabas.push(baby);
                             spawnBirthEffect(this.x, this.y, '#8fd9ff'); spawnMatingHearts((this.x + mate.x)/2, (this.y + mate.y)/2 - 10); Audio2.fx('birth');
@@ -3074,6 +3388,7 @@
                 ctx.translate(this.x, this.y);
                 applyCritterAnim(this);
                 ctx.rotate(Math.atan2(this.vy, this.vx));
+                applyGeneStretch(this);
 
                 // Speed → sleeker body; ferocity → colour
                 const spN = Math.max(0, Math.min(1, (this.speed - 1.0) / (2.6 - 1.0)));
@@ -3334,7 +3649,8 @@
         // Food regrows slower in cold seasons, faster in summer
         // Summer heatwave: creatures dehydrate faster, so water becomes critical.
         function seasonThirstMultiplier() {
-            return (getSeasonName() === 'Summer' ? 1.7 : 1.0) * weatherThirstMultiplier();
+            const climate = 1 + (gameState.climateTemp || 0) * 0.12; // warmer = thirstier
+            return (getSeasonName() === 'Summer' ? 1.7 : 1.0) * weatherThirstMultiplier() * climate;
         }
 
         function seasonRegrowMultiplier() {
@@ -3613,6 +3929,17 @@
             gameState.bushes = [];
             gameState.trees = [];
             gameState.structures = [];
+            gameState.radZones = [];
+            if (typeof resetView === 'function') resetView();
+            gameState.lineage = new Map();
+            gameState._nextId = 0;
+            gameState.speciesStats = {};
+            gameState.deathStats = {};
+            gameState.milestones = [];
+            gameState.milestoneFlags = {};
+            gameState.peakPop = {};
+            gameState.fastestSeepa = 0;
+            const mlog = document.getElementById('milestoneLog'); if (mlog) mlog.innerHTML = '';
             if (!gameState.paintGrid) gameState.paintGrid = new Map();
             gameState.lastStructureBuild = 0;
             gameState.corals = [];
@@ -3831,6 +4158,206 @@
             if (b === 'savanna')  return n < 0.3 ? '#cdb360' : n < 0.55 ? '#bda24f' : n < 0.78 ? '#a98e3f' : '#8f7733';
             if (b === 'swamp')    return n < 0.3 ? '#3a4a2a' : n < 0.55 ? '#2f3f22' : n < 0.78 ? '#27331c' : '#1e2916';
             return n < 0.1 ? '#3d5b2d' : n < 0.35 ? '#2c4e20' : n < 0.65 ? '#1a3516' : '#143012'; // grassland
+        }
+
+        // ---------- Save / load worlds ----------
+        const SPECIES_CLASS = { seepa: () => Seepa, suuba: () => Suuba, siiba: () => Siiba, fish: () => Fish, saaba: () => Saaba, syyba: () => Syyba };
+        const SPECIES_ARRAY = { seepa: 'seepas', suuba: 'suubas', siiba: 'siibas', fish: 'fish', saaba: 'saabas', syyba: 'syybas' };
+
+        function serializeState() {
+            const plain = (arr) => (arr || []).map(c => {
+                const o = {};
+                for (const k in c) { if (typeof c[k] !== 'function') o[k] = c[k]; }
+                // JSON can't hold -Infinity; sentinel it
+                if (o.lastReproduction === -Infinity) o.lastReproduction = '-inf';
+                if (o.lastEat === -Infinity) o.lastEat = '-inf';
+                return o;
+            });
+            return {
+                version: 1,
+                savedAt: new Date().toISOString(),
+                time: gameState.time,
+                dayDuration: gameState.dayDuration,
+                seasonDuration: gameState.seasonDuration,
+                climateTemp: gameState.climateTemp || 0,
+                nsMode: gameState.nsMode,
+                scenario: gameState.scenario,
+                settings: gameState.settings,
+                paintGrid: gameState.paintGrid ? Array.from(gameState.paintGrid.entries()) : [],
+                seepas: plain(gameState.seepas), suubas: plain(gameState.suubas),
+                siibas: plain(gameState.siibas), fish: plain(gameState.fish),
+                saabas: plain(gameState.saabas), syybas: plain(gameState.syybas),
+                bushes: gameState.bushes, trees: gameState.trees, corals: gameState.corals,
+                structures: gameState.structures, radZones: gameState.radZones,
+                popHistory: gameState.popHistory, geneHistory: gameState.geneHistory,
+                diseaseHistory: gameState.diseaseHistory,
+                lineage: gameState.lineage ? Array.from(gameState.lineage.entries()) : [],
+                speciesStats: gameState.speciesStats, deathStats: gameState.deathStats,
+                milestones: gameState.milestones, milestoneFlags: gameState.milestoneFlags,
+                peakPop: gameState.peakPop, _nextId: gameState._nextId, fastestSeepa: gameState.fastestSeepa,
+                dim: { w: canvas.width, h: canvas.height }
+            };
+        }
+
+        function reviveCreatures(species, dataArr) {
+            const Cls = SPECIES_CLASS[species]();
+            return (dataArr || []).map(d => {
+                const c = Object.create(Cls.prototype);
+                Object.assign(c, d);
+                if (c.lastReproduction === '-inf' || c.lastReproduction == null) c.lastReproduction = -Infinity;
+                if (c.lastEat === '-inf' || c.lastEat == null) c.lastEat = -Infinity;
+                return c;
+            });
+        }
+
+        function loadState(data) {
+            if (!data || !data.version) { logEvent('death', 'Save file not recognised'); return; }
+            gameState.paused = true;
+            // Scalars
+            gameState.time = data.time || 0;
+            gameState.dayDuration = data.dayDuration || gameState.dayDuration;
+            gameState.seasonDuration = data.seasonDuration || gameState.seasonDuration;
+            gameState.climateTemp = data.climateTemp || 0;
+            gameState.nsMode = !!data.nsMode;
+            gameState.scenario = data.scenario || 'sandbox';
+            if (data.settings) Object.assign(gameState.settings, data.settings);
+            // Terrain
+            gameState.paintGrid = new Map(data.paintGrid || []);
+            // Plants & objects
+            gameState.bushes = data.bushes || [];
+            gameState.trees = data.trees || [];
+            gameState.corals = data.corals || [];
+            gameState.structures = data.structures || [];
+            gameState.radZones = data.radZones || [];
+            // Creatures (revived as class instances)
+            for (const sp in SPECIES_ARRAY) {
+                gameState[SPECIES_ARRAY[sp]] = reviveCreatures(sp, data[SPECIES_ARRAY[sp]]);
+            }
+            // History & stats
+            gameState.popHistory = data.popHistory || [];
+            gameState.geneHistory = data.geneHistory || { seepa: [], suuba: [], siiba: [], fish: [], saaba: [], syyba: [] };
+            gameState.diseaseHistory = data.diseaseHistory || [];
+            gameState.lineage = new Map(data.lineage || []);
+            gameState.speciesStats = data.speciesStats || {};
+            gameState.deathStats = data.deathStats || {};
+            gameState.milestones = data.milestones || [];
+            gameState.milestoneFlags = data.milestoneFlags || {};
+            gameState.peakPop = data.peakPop || {};
+            gameState._nextId = data._nextId || 0;
+            gameState.fastestSeepa = data.fastestSeepa || 0;
+            gameState.inspected = null;
+            gameState.followMode = false;
+            resetView();
+            // Rebuild derived world data + visuals
+            buildMarinePoints();
+            buildEnvironmentBackground();
+            // Refresh UI
+            updateStats();
+            const mlog = document.getElementById('milestoneLog');
+            if (mlog) { mlog.innerHTML = ''; for (const m of (gameState.milestones || []).slice().reverse()) addMilestoneLine(m); }
+            syncControlsToSettings();
+            gameState.paused = false;
+            document.getElementById('pausePlayBtn').textContent = '⏸ PAUSE';
+            lastTime = Date.now();
+            logEvent('rescue', '📂 World loaded (' + (data.savedAt ? data.savedAt.slice(0, 10) : 'save') + ')');
+        }
+
+        function addMilestoneLine(m) {
+            const panel = document.getElementById('milestoneLog');
+            if (!panel) return;
+            const line = document.createElement('div');
+            line.textContent = m.icon + ' [' + m.t + 's] ' + m.text;
+            panel.insertBefore(line, panel.firstChild);
+        }
+
+        function downloadSave() {
+            try {
+                const blob = new Blob([JSON.stringify(serializeState())], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'evolution-world-' + Math.round(gameState.time / 1000) + 's.json';
+                a.click();
+                setTimeout(() => URL.revokeObjectURL(url), 2000);
+                logEvent('rescue', '💾 World saved');
+            } catch (e) {
+                logEvent('death', 'Save failed: ' + e.message);
+            }
+        }
+        // Creatures lingering in a zone have their genes mutated over time, visibly
+        // accelerating (and randomising) evolution wherever you place one.
+        function updateRadZones(deltaTime) {
+            const zones = gameState.radZones;
+            if (!zones || !zones.length) return;
+            const dt = deltaTime / 1000;
+            const lists = [gameState.seepas, gameState.suubas, gameState.siibas, gameState.fish, gameState.saabas, gameState.syybas];
+            for (const z of zones) {
+                z.pulse = (z.pulse || 0) + dt;
+                const r2 = z.r * z.r;
+                for (const list of lists) {
+                    if (!list) continue;
+                    for (const c of list) {
+                        if (!c.genes) continue;
+                        if (distanceSq(c.x, c.y, z.x, z.y) > r2) continue;
+                        // chance to mutate a random gene this frame (~ once every few seconds)
+                        if (Math.random() < dt * 0.6) {
+                            const keys = Object.keys(c.genes);
+                            const k = keys[Math.floor(Math.random() * keys.length)];
+                            const schema = (GENE_SCHEMA[speciesOfCreature(c)] || {})[k];
+                            if (schema) {
+                                const span = schema.max - schema.min;
+                                c.genes[k] = Math.max(schema.min, Math.min(schema.max, c.genes[k] + (Math.random() - 0.5) * span * 0.25));
+                                // keep visible traits in sync
+                                if (k === 'size') c.radius = c.genes.size;
+                                if (k === 'speed') c.speed = c.genes.speed;
+                                if (Math.random() < 0.3) gameState.particles.push({ x: c.x, y: c.y, vx: 0, vy: -0.6, life: 700, maxLife: 700, size: 2.5, color: '#9bff5c', kind: 'sparkle', twinkle: Math.random() * 6 });
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        function speciesOfCreature(c) {
+            if (gameState.seepas.includes(c)) return 'seepa';
+            if (gameState.suubas.includes(c)) return 'suuba';
+            if (gameState.siibas.includes(c)) return 'siiba';
+            if (gameState.fish.includes(c)) return 'fish';
+            if (gameState.saabas.includes(c)) return 'saaba';
+            if (gameState.syybas.includes(c)) return 'syyba';
+            return 'seepa';
+        }
+        function drawRadZones() {
+            const zones = gameState.radZones;
+            if (!zones || !zones.length) return;
+            for (const z of zones) {
+                const pulse = 0.5 + 0.5 * Math.sin((z.pulse || 0) * 3);
+                ctx.save();
+                // glowing fill
+                const g = ctx.createRadialGradient(z.x, z.y, z.r * 0.1, z.x, z.y, z.r);
+                g.addColorStop(0, 'rgba(140,255,80,0.06)');
+                g.addColorStop(0.7, 'rgba(120,230,60,0.10)');
+                g.addColorStop(1, 'rgba(100,210,40,0.20)');
+                ctx.fillStyle = g;
+                ctx.beginPath(); ctx.arc(z.x, z.y, z.r, 0, Math.PI * 2); ctx.fill();
+                // pulsing dashed border
+                ctx.strokeStyle = 'rgba(150,255,90,' + (0.4 + pulse * 0.4) + ')';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([8, 6]);
+                ctx.lineDashOffset = -(z.pulse || 0) * 20;
+                ctx.beginPath(); ctx.arc(z.x, z.y, z.r, 0, Math.PI * 2); ctx.stroke();
+                ctx.setLineDash([]);
+                // radiation trefoil symbol
+                ctx.fillStyle = 'rgba(170,255,110,' + (0.5 + pulse * 0.3) + ')';
+                ctx.beginPath(); ctx.arc(z.x, z.y, 4, 0, Math.PI * 2); ctx.fill();
+                for (let k = 0; k < 3; k++) {
+                    const a0 = k * Math.PI * 2 / 3 - Math.PI / 2;
+                    ctx.beginPath();
+                    ctx.moveTo(z.x, z.y);
+                    ctx.arc(z.x, z.y, 13, a0 - 0.5, a0 + 0.5);
+                    ctx.closePath(); ctx.fill();
+                }
+                ctx.restore();
+            }
         }
 
         // ---------- Terrain editor ----------
@@ -4111,6 +4638,7 @@
         function samplePopulation() {
             if (gameState.time - gameState.lastSample < 500) return;
             gameState.lastSample = gameState.time;
+            checkMilestones();
             gameState.popHistory.push({
                 se: gameState.seepas.length,
                 su: gameState.suubas.length,
@@ -5156,6 +5684,7 @@
                     const childGenes = inheritGenes(a.genes, b.genes);
                     const childGen = Math.max(a.generation, b.generation) + 1;
                     const baby = new Seepa(nx, ny, childGenes, childGen);
+                    recordBirth(baby, 'seepa', a, b);
                     baby.age = 0;
                     baby.lastReproduction = -Infinity;
                     baby.hunger = Math.random() * 20;
@@ -5276,6 +5805,7 @@
                             if (idx !== -1) {
                                 spawnParticles(target.x, target.y, '#ff5a5a', 12, 2.2);
                                 if (gameState.inspected && gameState.inspected.ref === target) gameState.inspected = null;
+                                recordDeath('seepa', target, 'hunted');
                                 gameState.seepas.splice(idx, 1);
                                 this.energy = Math.min(this.maxStats, this.energy + 120);
                                 this.hunger = Math.max(0, this.hunger - 80);
@@ -5305,6 +5835,7 @@
                                 const childGenes = inheritGenes(this.genes, other.genes, GENE_RANGES.suuba);
                                 const childGen = Math.max(this.generation, other.generation) + 1;
                                 const baby = new Suuba(bx, by, childGenes, childGen);
+                                recordBirth(baby, 'suuba', this, other);
                                 baby.radius = 12 + Math.random() * 4;
                                 baby.birthRadius = baby.radius;
                                 baby.age = 0;
@@ -5345,6 +5876,7 @@
                 applyCritterAnim(this);
                 const heading = Math.atan2(this.vy, this.vx);
                 ctx.rotate(heading);
+                applyGeneStretch(this);
 
                 const R = this.radius;
                 const nightHunter = getDayPhase() === 'Night';
@@ -5792,7 +6324,7 @@
                 const seepa = gameState.seepas[i];
                 seepa.update(deltaTime, gameState);
                 if (!seepa.isAlive()) {
-                    spawnDeathEffect(seepa.x, seepa.y, '#9fb3c4'); Audio2.fx('death');
+                    recordDeath('seepa', seepa); spawnDeathEffect(seepa.x, seepa.y, '#9fb3c4'); Audio2.fx('death');
                     if (gameState.inspected && gameState.inspected.ref === seepa) gameState.inspected = null;
                     gameState.seepas.splice(i, 1);
                 }
@@ -5803,7 +6335,7 @@
                     const siiba = gameState.siibas[i];
                     siiba.update(deltaTime, gameState);
                     if (!siiba.isAlive()) {
-                        spawnDeathEffect(siiba.x, siiba.y, '#c9a3ad'); Audio2.fx('death');
+                        recordDeath('siiba', siiba); spawnDeathEffect(siiba.x, siiba.y, '#c9a3ad'); Audio2.fx('death');
                         if (gameState.inspected && gameState.inspected.ref === siiba) gameState.inspected = null;
                         gameState.siibas.splice(i, 1);
                     }
@@ -5815,7 +6347,7 @@
                     const suuba = gameState.suubas[i];
                     suuba.update(deltaTime, gameState);
                     if (!suuba.isAlive()) {
-                        spawnDeathEffect(suuba.x, suuba.y, '#9a7bb0'); Audio2.fx('death');
+                        recordDeath('suuba', suuba); spawnDeathEffect(suuba.x, suuba.y, '#9a7bb0'); Audio2.fx('death');
                         if (gameState.inspected && gameState.inspected.ref === suuba) gameState.inspected = null;
                         gameState.suubas.splice(i, 1);
                     }
@@ -5838,7 +6370,7 @@
                     const fish = gameState.fish[i];
                     fish.update(deltaTime, gameState);
                     if (!fish.isAlive()) {
-                        spawnDeathEffect(fish.x, fish.y, '#c89a6a'); Audio2.fx('death');
+                        recordDeath('fish', fish); spawnDeathEffect(fish.x, fish.y, '#c89a6a'); Audio2.fx('death');
                         if (gameState.inspected && gameState.inspected.ref === fish) gameState.inspected = null;
                         gameState.fish.splice(i, 1);
                     }
@@ -5851,7 +6383,7 @@
                     const saaba = gameState.saabas[i];
                     saaba.update(deltaTime, gameState);
                     if (!saaba.isAlive()) {
-                        spawnDeathEffect(saaba.x, saaba.y, '#7fa0b8'); Audio2.fx('death');
+                        recordDeath('saaba', saaba); spawnDeathEffect(saaba.x, saaba.y, '#7fa0b8'); Audio2.fx('death');
                         if (gameState.inspected && gameState.inspected.ref === saaba) gameState.inspected = null;
                         gameState.saabas.splice(i, 1);
                     }
@@ -5864,7 +6396,7 @@
                     const syyba = gameState.syybas[i];
                     syyba.update(deltaTime, gameState);
                     if (!syyba.isAlive()) {
-                        spawnDeathEffect(syyba.x, syyba.y, '#a89070'); Audio2.fx('death');
+                        recordDeath('syyba', syyba); spawnDeathEffect(syyba.x, syyba.y, '#a89070'); Audio2.fx('death');
                         if (gameState.inspected && gameState.inspected.ref === syyba) gameState.inspected = null;
                         gameState.syybas.splice(i, 1);
                     }
@@ -5889,6 +6421,7 @@
             updateDisease(deltaTime);
             updateWeatherEvents(deltaTime);
             updateStructures(deltaTime);
+            updateRadZones(deltaTime);
             checkScenarioGoal();
 
             // Natural Selection: the experiment needs continuous predation on group B,
@@ -6332,6 +6865,12 @@
         }
 
         function render() {
+            // Screen-space clear + letterbox, then enter camera (world) space
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.fillStyle = '#080b08';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.save();
+            applyCamera();
             ctx.drawImage(backgroundCanvas, 0, 0);
             drawSpeedBlurs();
             drawAnimatedPondRipples();
@@ -6345,6 +6884,7 @@
 
             drawBushes();
             drawStructures();
+            drawRadZones();
             drawTrees();
             if (gameState.suubas) for (const suuba of gameState.suubas) suuba.draw();
             if (gameState.syybas) for (const syyba of gameState.syybas) syyba.draw();
@@ -6416,8 +6956,8 @@
                         ctx.lineTo(c.x + Math.cos(ang) * (rr + 8), c.y + Math.sin(ang) * (rr + 8));
                         ctx.stroke();
                     }
-                    // Live label above the creature
-                    const label = gameState.inspected.type + '  ' + Math.round((1 - c.hunger / c.maxStats) * 100) + '%🍖';
+                    // Live label above the creature — shows its name if it has one
+                    const label = (c.name ? c.name + ' · ' : '') + gameState.inspected.type + '  ' + Math.round((1 - c.hunger / c.maxStats) * 100) + '%🍖';
                     ctx.font = 'bold 12px Arial';
                     const lw = ctx.measureText(label).width + 12;
                     const lx = c.x - lw / 2, ly = c.y - c.radius - 30;
@@ -6429,6 +6969,9 @@
                     ctx.textAlign = 'left';
                 }
             }
+
+            // ── Back to screen space for HUD & minimap ──
+            ctx.restore();
 
             ctx.fillStyle = '#fff';
             ctx.font = '12px Arial';
@@ -6449,6 +6992,8 @@
                 ctx.fillText('PAUSED', canvas.width / 2, canvas.height / 2);
                 ctx.textAlign = 'left';
             }
+
+            drawMinimap();
         }
 
         // ---------- Game loop ----------
@@ -6484,6 +7029,12 @@
                     if (!gameState.followTrail) gameState.followTrail = [];
                     gameState.followTrail.push({ x: c.x, y: c.y });
                     if (gameState.followTrail.length > 40) gameState.followTrail.shift();
+                    // Keep the camera centred on the followed creature when zoomed in
+                    if (cam.zoom > 1.001) {
+                        cam.x = c.x - (canvas.width / cam.zoom) / 2;
+                        cam.y = c.y - (canvas.height / cam.zoom) / 2;
+                        clampCam();
+                    }
                     updateInspector();
                 } else {
                     gameState.followMode = false;
@@ -6511,7 +7062,52 @@
         }
 
         // ---------- UI ----------
+        function renderDeathStats() {
+            const panel = document.getElementById('deathStatsPanel');
+            if (!panel) return;
+            const ds = gameState.deathStats || {};
+            const causeIcon = { starved: '🍖', thirst: '💧', frozen: '❄️', oldage: '⏳', disease: '🦠', hunted: '🩸' };
+            const names = { seepa: 'Seepa', suuba: 'Suuba', siiba: 'Siiba', fish: 'Sooba', saaba: 'Saaba', syyba: 'Syyba' };
+            // Totals per cause across all species
+            const totals = { starved: 0, thirst: 0, frozen: 0, oldage: 0, disease: 0, hunted: 0 };
+            let grand = 0;
+            for (const sp of SPECIES_KEYS) {
+                const d = ds[sp]; if (!d) continue;
+                for (const c of DEATH_CAUSES) { totals[c] += d[c]; grand += d[c]; }
+            }
+            if (grand === 0) { panel.innerHTML = 'No deaths yet.'; return; }
+            let html = '<div style="opacity:0.7;margin-bottom:4px;">Total deaths: <strong>' + grand + '</strong></div>';
+            for (const c of DEATH_CAUSES) {
+                if (totals[c] === 0) continue;
+                const pct = Math.round(totals[c] / grand * 100);
+                html += '<div style="display:flex;justify-content:space-between;"><span>' + causeIcon[c] + ' ' +
+                        c.charAt(0).toUpperCase() + c.slice(1) + '</span><span>' + totals[c] + ' (' + pct + '%)</span></div>';
+            }
+            panel.innerHTML = html;
+        }
+
+        function renderSpeciesStats() {
+            const panel = document.getElementById('speciesStatsPanel');
+            if (!panel) return;
+            const ss = gameState.speciesStats || {};
+            const names = { seepa: 'Seepa', suuba: 'Suuba', siiba: 'Siiba', fish: 'Sooba', saaba: 'Saaba', syyba: 'Syyba' };
+            const alive = { seepa: gameState.seepas.length, suuba: (gameState.suubas || []).length, siiba: (gameState.siibas || []).length, fish: (gameState.fish || []).length, saaba: (gameState.saabas || []).length, syyba: (gameState.syybas || []).length };
+            let any = false, html = '<div style="display:grid;grid-template-columns:auto auto auto auto;gap:2px 8px;"><span style="opacity:0.6;">Species</span><span style="opacity:0.6;">Born</span><span style="opacity:0.6;">Died</span><span style="opacity:0.6;">Avg life</span>';
+            for (const sp of SPECIES_KEYS) {
+                const s = ss[sp];
+                const born = s ? s.births : 0, died = s ? s.deaths : 0;
+                const avg = (s && s.lifeCount) ? (s.lifeSum / s.lifeCount).toFixed(0) : '—';
+                if (born === 0 && died === 0 && alive[sp] === 0) continue;
+                any = true;
+                html += '<span>' + names[sp] + '</span><span>' + born + '</span><span>' + died + '</span><span>' + avg + '</span>';
+            }
+            html += '</div>';
+            panel.innerHTML = any ? html : 'No data yet.';
+        }
+
         function updateStats() {
+            renderDeathStats();
+            renderSpeciesStats();
             document.getElementById('seepasCount').textContent = gameState.seepas.length;
             document.getElementById('suubasCount').textContent = (gameState.suubas || []).length;
             document.getElementById('siibasCount').textContent = (gameState.siibas || []).length;
@@ -6571,9 +7167,14 @@
                 html += '<br>Generation: ' + c.generation;
             }
             html += '<br><label class="toggle-row" style="margin-top:8px;"><input type="checkbox" id="followToggle"' + (gameState.followMode ? ' checked' : '') + '> 🎯 Follow this creature</label>';
+            html += '<div style="margin-top:6px;display:flex;gap:4px;align-items:center;"><span style="font-size:11px;opacity:0.7;">Name:</span><input type="text" id="creatureNameInput" maxlength="18" placeholder="(unnamed)" value="' + (c.name ? c.name.replace(/"/g, '&quot;') : '') + '" style="flex:1;font-size:11px;padding:3px 6px;border-radius:4px;border:1px solid #444;background:#1a1a22;color:#eee;"></div>';
+            // Family / lineage
+            html += renderLineageHtml(c);
             panel.innerHTML = html;
             const ft = document.getElementById('followToggle');
             if (ft) ft.addEventListener('change', () => { gameState.followMode = ft.checked; });
+            const ni = document.getElementById('creatureNameInput');
+            if (ni) ni.addEventListener('input', () => { c.name = ni.value.trim() || undefined; });
         }
 
         function drawClockWidgets() {
@@ -6900,6 +7501,50 @@
             }
         });
 
+        document.getElementById('zoomInBtn').addEventListener('click', () => zoomAt(canvas.width / 2, canvas.height / 2, 1.3));
+        document.getElementById('zoomOutBtn').addEventListener('click', () => zoomAt(canvas.width / 2, canvas.height / 2, 1 / 1.3));
+        document.getElementById('resetViewBtn').addEventListener('click', resetView);
+
+        document.getElementById('dayLenSlider').addEventListener('input', (e) => {
+            gameState.dayDuration = parseInt(e.target.value) * 1000;
+            document.getElementById('dayLenLabel').textContent = e.target.value + 's';
+        });
+        document.getElementById('seasonLenSlider').addEventListener('input', (e) => {
+            gameState.seasonDuration = parseInt(e.target.value) * 1000;
+            document.getElementById('seasonLenLabel').textContent = e.target.value + 's';
+        });
+        document.getElementById('climateTempSlider').addEventListener('input', (e) => {
+            gameState.climateTemp = parseInt(e.target.value);
+            const labels = { '-3': 'Frigid', '-2': 'Cold', '-1': 'Cool', '0': 'Normal', '1': 'Warm', '2': 'Hot', '3': 'Scorching' };
+            document.getElementById('climateTempLabel').textContent = labels[String(gameState.climateTemp)] || 'Normal';
+        });
+
+        document.getElementById('saveWorldBtn').addEventListener('click', downloadSave);
+        document.getElementById('loadWorldBtn').addEventListener('click', () => document.getElementById('loadWorldInput').click());
+        document.getElementById('loadWorldInput').addEventListener('change', (e) => {
+            const file = e.target.files && e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = () => {
+                try { loadState(JSON.parse(reader.result)); }
+                catch (err) { logEvent('death', 'Could not read save file'); }
+            };
+            reader.readAsText(file);
+            e.target.value = ''; // allow re-loading the same file
+        });
+
+        document.getElementById('photoBtn').addEventListener('click', () => {
+            try {
+                const link = document.createElement('a');
+                link.download = 'evolution-' + Math.round(gameState.time / 1000) + 's.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+                logEvent('rescue', '📷 Snapshot saved');
+            } catch (e) {
+                logEvent('death', 'Snapshot failed (browser blocked it)');
+            }
+        });
+
         document.getElementById('resetBtn').addEventListener('click', () => {
             gameState.nsMode = false; // RESET always returns to the normal sandbox
             gameState.scenario = 'sandbox';
@@ -6977,8 +7622,11 @@
         canvas.addEventListener('click', (e) => {
             if (gameState.terrainEditMode) return; // painting is handled by pointer events
             const rect = canvas.getBoundingClientRect();
-            const x = (e.clientX - rect.left) * (canvas.width / rect.width);
-            const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+            const sx = (e.clientX - rect.left) * (canvas.width / rect.width);
+            const sy = (e.clientY - rect.top) * (canvas.height / rect.height);
+            if (handleMinimapClick(sx, sy)) return; // clicked the minimap → navigate
+            const w = screenToWorld(sx, sy);
+            const x = w.x, y = w.y;
             const mode = gameState.settings.clickMode;
 
             // Intervention tools: if one is armed, apply it here (spends points). These are
@@ -7171,6 +7819,14 @@
                 }
                 logEvent('extinct', 'A meteor struck!');
                 Audio2.fx('hunt');
+            } else if (mode === 'radiation') {
+                if (!gameState.radZones) gameState.radZones = [];
+                gameState.radZones.push({ x, y, r: 95, pulse: 0 });
+                for (let i = 0; i < 18; i++) {
+                    const a = Math.random() * Math.PI * 2, rr = Math.random() * 95;
+                    gameState.particles.push({ x: x + Math.cos(a) * rr, y: y + Math.sin(a) * rr, vx: 0, vy: -0.6, life: 900, maxLife: 900, size: 2.5, color: '#9bff5c', kind: 'sparkle', twinkle: Math.random() * 6 });
+                }
+                logEvent('disease', '☢️ A radiation zone appears — genes will mutate here');
             }
         });
 
@@ -7178,10 +7834,9 @@
         let terrainPainting = false;
         function canvasCoords(e) {
             const rect = canvas.getBoundingClientRect();
-            return {
-                x: (e.clientX - rect.left) * (canvas.width / rect.width),
-                y: (e.clientY - rect.top) * (canvas.height / rect.height)
-            };
+            const sx = (e.clientX - rect.left) * (canvas.width / rect.width);
+            const sy = (e.clientY - rect.top) * (canvas.height / rect.height);
+            return screenToWorld(sx, sy);
         }
         function doPaint(e) {
             const p = canvasCoords(e);
@@ -7189,6 +7844,7 @@
         }
         canvas.addEventListener('pointerdown', (e) => {
             if (!gameState.terrainEditMode) return;
+            if (e.button !== 0) return; // left button paints; right/middle pans
             terrainPainting = true;
             doPaint(e);
             e.preventDefault();
@@ -7205,6 +7861,90 @@
         };
         canvas.addEventListener('pointerup', endPaint);
         canvas.addEventListener('pointerleave', endPaint);
+
+        // ── Camera input: wheel zoom, right-drag pan, WASD/arrows ──
+        canvas.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            const sx = (e.clientX - rect.left) * (canvas.width / rect.width);
+            const sy = (e.clientY - rect.top) * (canvas.height / rect.height);
+            zoomAt(sx, sy, e.deltaY < 0 ? 1.15 : 1 / 1.15);
+        }, { passive: false });
+
+        let panning = false, panStart = null;
+        canvas.addEventListener('pointerdown', (e) => {
+            if (e.button === 2 || e.button === 1) { // right/middle drag pans
+                panning = true;
+                panStart = { sx: e.clientX, sy: e.clientY, cx: cam.x, cy: cam.y };
+                e.preventDefault();
+            }
+        });
+        window.addEventListener('pointermove', (e) => {
+            if (!panning) return;
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width, scaleY = canvas.height / rect.height;
+            cam.x = panStart.cx - (e.clientX - panStart.sx) * scaleX / cam.zoom;
+            cam.y = panStart.cy - (e.clientY - panStart.sy) * scaleY / cam.zoom;
+            clampCam();
+        });
+        window.addEventListener('pointerup', (e) => { if (e.button === 2 || e.button === 1) panning = false; });
+        canvas.addEventListener('contextmenu', (e) => e.preventDefault()); // allow right-drag
+
+        window.addEventListener('keydown', (e) => {
+            const tag = (e.target && e.target.tagName) || '';
+            if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+            const panStep = 60 / cam.zoom;
+            if (e.key === 'ArrowLeft' || e.key === 'a') { cam.x -= panStep; clampCam(); }
+            else if (e.key === 'ArrowRight' || e.key === 'd') { cam.x += panStep; clampCam(); }
+            else if (e.key === 'ArrowUp' || e.key === 'w') { cam.y -= panStep; clampCam(); }
+            else if (e.key === 'ArrowDown' || e.key === 's') { cam.y += panStep; clampCam(); }
+            else if (e.key === '+' || e.key === '=') { zoomAt(canvas.width / 2, canvas.height / 2, 1.2); }
+            else if (e.key === '-' || e.key === '_') { zoomAt(canvas.width / 2, canvas.height / 2, 1 / 1.2); }
+            else if (e.key === '0') { resetView(); }
+        });
+
+        // ── Minimap ──
+        const MINIMAP = { w: 168, h: 113, pad: 12 };
+        function minimapRect() {
+            return { x: canvas.width - MINIMAP.w - MINIMAP.pad, y: canvas.height - MINIMAP.h - MINIMAP.pad, w: MINIMAP.w, h: MINIMAP.h };
+        }
+        function drawMinimap() {
+            if (cam.zoom <= 1.001 && cam.x === 0 && cam.y === 0) return; // hide when fully zoomed out
+            const m = minimapRect();
+            const sx = m.w / canvas.width, sy = m.h / canvas.height;
+            ctx.save();
+            // frame
+            ctx.fillStyle = 'rgba(12,16,14,0.82)';
+            roundRect(ctx, m.x - 2, m.y - 2, m.w + 4, m.h + 4, 5, true, false);
+            // thumbnail of the terrain
+            ctx.drawImage(backgroundCanvas, m.x, m.y, m.w, m.h);
+            // creature dots
+            const dot = (list, color) => {
+                if (!list) return;
+                ctx.fillStyle = color;
+                for (const c of list) ctx.fillRect(m.x + c.x * sx - 0.5, m.y + c.y * sy - 0.5, 1.6, 1.6);
+            };
+            dot(gameState.fish, '#ffae5c'); dot(gameState.saabas, '#3a8fc4');
+            dot(gameState.syybas, '#a8835a'); dot(gameState.siibas, '#d98fae');
+            dot(gameState.suubas, '#9a6fb0'); dot(gameState.seepas, '#6ca9ff');
+            // current view rectangle
+            const vw = canvas.width / cam.zoom, vh = canvas.height / cam.zoom;
+            ctx.strokeStyle = '#ffe27a'; ctx.lineWidth = 1.5;
+            ctx.strokeRect(m.x + cam.x * sx, m.y + cam.y * sy, vw * sx, vh * sy);
+            ctx.restore();
+        }
+        function handleMinimapClick(sx, sy) {
+            if (cam.zoom <= 1.001 && cam.x === 0 && cam.y === 0) return false;
+            const m = minimapRect();
+            if (sx < m.x || sx > m.x + m.w || sy < m.y || sy > m.y + m.h) return false;
+            // centre the camera on the clicked world position
+            const wx = (sx - m.x) / (m.w / canvas.width);
+            const wy = (sy - m.y) / (m.h / canvas.height);
+            cam.x = wx - (canvas.width / cam.zoom) / 2;
+            cam.y = wy - (canvas.height / cam.zoom) / 2;
+            clampCam();
+            return true;
+        }
 
         document.getElementById('terrainEditBtn').addEventListener('click', () => {
             gameState.terrainEditMode = !gameState.terrainEditMode;
