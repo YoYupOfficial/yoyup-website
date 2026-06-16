@@ -899,7 +899,7 @@
                 fishSpawn: 24,
                 saabaSpawn: 4,
                 syybaSpawn: 3,
-                siebaSpawn: 3,
+                siebaSpawn: 5,
                 predatorsEnabled: true,
                 flockingEnabled: true,
                 rescueEnabled: true,
@@ -1263,7 +1263,47 @@
             ctx.scale(1 + spNorm * 0.28, 1 - spNorm * 0.16);
         }
 
+        // Shortest-path angle easing
+        function angleLerp(a, b, t) {
+            let d = b - a;
+            while (d > Math.PI) d -= Math.PI * 2;
+            while (d < -Math.PI) d += Math.PI * 2;
+            return a + d * t;
+        }
+        // Per-creature eased animation state — gives smooth turning, breathing,
+        // a walk bounce, and banking into turns. Updated once per rendered frame.
+        function critterMotion(c) {
+            const sp = Math.hypot(c.vx || 0, c.vy || 0);
+            if (c._heading === undefined) {
+                c._heading = Math.atan2(c.vy || 0, c.vx || 0.001);
+                c._gait = Math.random() * 6.28;
+                c._breath = Math.random() * 6.28;
+                c._spdEase = sp; c._lean = 0;
+            }
+            const target = sp > 0.01 ? Math.atan2(c.vy, c.vx) : c._heading;
+            const prev = c._heading;
+            c._heading = angleLerp(c._heading, target, 0.16);   // smooth turning
+            let turn = c._heading - prev;
+            while (turn > Math.PI) turn -= Math.PI * 2;
+            while (turn < -Math.PI) turn += Math.PI * 2;
+            c._lean = lerp(c._lean || 0, Math.max(-0.6, Math.min(0.6, turn * 7)), 0.18); // bank into turns
+            c._spdEase = lerp(c._spdEase || 0, sp, 0.14);
+            c._gait = (c._gait || 0) + c._spdEase * 0.10 + 0.012;  // gait advances with speed
+            c._breath = (c._breath || 0) + 0.045;                  // gentle idle breathing
+        }
+        function smoothHeading(c) {
+            return c._heading !== undefined ? c._heading : Math.atan2(c.vy || 0, c.vx || 0.001);
+        }
+
         function applyCritterAnim(c) {
+            critterMotion(c);
+            // Idle breathing + a springy walk bounce (squash & stretch synced to the gait)
+            const breath = Math.sin(c._breath) * 0.018;
+            const moveAmt = Math.min(1, (c._spdEase || 0) * 0.9);
+            const bounce = Math.sin(c._gait * 2) * 0.06 * moveAmt;
+            ctx.scale(1 + breath + bounce, 1 + breath - bounce);
+            // Lean/bank slightly into turns
+            if (c._lean) ctx.rotate(c._lean * 0.18);
             const eat = Math.max(0, 1 - (gameState.time - (c.lastEat || -1e9)) / 260);
             if (eat > 0) {
                 const s = 1 + eat * 0.22;
@@ -1410,7 +1450,7 @@
             if (kind === 'fish') return Math.round(110 * scale);
             if (kind === 'saaba') return Math.round(14 * scale);
             if (kind === 'syyba') return Math.round(28 * scale);
-            if (kind === 'sieba') return Math.round(22 * scale);
+            if (kind === 'sieba') return Math.round(13 * scale);
             return Math.round(55 * scale); // siiba
         }
 
@@ -1961,7 +2001,7 @@
                 }
 
                 // ── Direction angle for orientation ──
-                const angle = Math.atan2(this.vy, this.vx);
+                const angle = smoothHeading(this);
 
                 ctx.save();
                 ctx.translate(mx, my);
@@ -2526,7 +2566,7 @@
                 const r = this.radius;
                 // Gene expression: stealthier Siibas are fainter (harder to see)
                 ctx.globalAlpha = 1 - (this.genes.stealth ?? 0) * 0.45;
-                const angle = Math.atan2(this.vy, this.vx);
+                const angle = smoothHeading(this);
                 ctx.rotate(angle * 0.1);
                 applyGeneStretch(this);
 
@@ -2925,7 +2965,7 @@
                 ctx.save();
                 ctx.translate(this.x, this.y);
                 applyCritterAnim(this);
-                ctx.rotate(Math.atan2(this.vy, this.vx));
+                ctx.rotate(smoothHeading(this));
                 applyGeneStretch(this);
                 const tailFlick = Math.sin(this.wiggle) * 0.4;
 
@@ -3188,7 +3228,7 @@
 
             draw() {
                 const r = this.radius;
-                const angle = Math.atan2(this.vy, this.vx);
+                const angle = smoothHeading(this);
                 const inWater = isMarine(this.x, this.y);
                 ctx.save();
                 ctx.translate(this.x, this.y);
@@ -3291,8 +3331,8 @@
                 this.vx = (Math.random() - 0.5) * 2;
                 this.vy = (Math.random() - 0.5) * 2;
                 this.sex = Math.random() < 0.5 ? 'male' : 'female';
-                this.age = Math.random() * 30;
-                this.lifeSpan = 160;
+                this.age = Math.random() * 12;
+                this.lifeSpan = 190 + Math.random() * 40;
                 this.hunger = Math.random() * 40;
                 this.thirst = Math.random() * 20;
                 this.energy = 120;
@@ -3321,11 +3361,11 @@
                 this.wingPhase += dt * (this.state === 'perch' ? 3 : 22);
                 this.blinkT -= dt; if (this.blinkT < 0) this.blinkT = 2 + Math.random() * 4;
 
-                this.hunger = Math.min(this.maxStats, this.hunger + 1.7 * dt * geneHungerMult(this));
-                this.energy = Math.max(0, this.energy - 1.6 * dt * (1 + this.hunger / this.maxStats));
+                this.hunger = Math.min(this.maxStats, this.hunger + 1.45 * dt * geneHungerMult(this));
+                this.energy = Math.max(0, this.energy - 1.4 * dt * (1 + this.hunger / this.maxStats));
                 // perching/feeding recovers energy
                 if (this.state === 'perch') this.energy = Math.min(this.maxStats * 1.6, this.energy + 14 * dt);
-                updateCold(this, dt, 6);
+                updateCold(this, dt, 1); // fliers are very cold-hardy
 
                 const vision = this.genes.vision ?? 1;
 
@@ -3333,9 +3373,15 @@
                     this.altitude = Math.max(0, this.altitude - dt * 3);
                     this.perchT -= dt;
                     this.vx *= 0.8; this.vy *= 0.8;
+                    // Flee response: a perched sieba bolts when a ground predator gets close
+                    let danger = null, dBest = 78 * 78;
+                    const preds = [];
+                    if (gameState.suubas) for (const s of gameState.suubas) preds.push(s);
+                    if (gameState.siibas) for (const s of gameState.siibas) preds.push(s);
+                    for (const p of preds) { const d2 = distanceSq(p.x, p.y, this.x, this.y); if (d2 < dBest) { dBest = d2; danger = p; } }
+                    if (danger) { this.state = 'fly'; this.altitude = Math.min(1, this.altitude + 0.3); return; }
                     if (this.perchT <= 0 && this.hunger > 25) { this.state = 'fly'; }
                     else if (this.perchT <= 0) { this.perchT = 1; }
-                    // take off if hungry again
                     if (this.hunger > 55) this.state = 'fly';
                     moveAmphibious(this, dt, 0.2);
                     return;
@@ -3350,7 +3396,7 @@
                     else {
                         const dx = t.x - this.x, dy = t.y - this.y, d = Math.hypot(dx, dy) || 1;
                         this.vx = lerp(this.vx, dx / d, 0.5); this.vy = lerp(this.vy, dy / d, 0.5);
-                        this.altitude = Math.max(0.15, 1 - (1 - d / 140));
+                        this.altitude = Math.max(0.15, Math.min(1, d / 140));
                         if (d < this.radius + (t.radius || 6) + 5) {
                             const idx = gameState.fish.indexOf(t);
                             if (idx >= 0) {
@@ -3396,31 +3442,42 @@
                         this.vx = lerp(this.vx, dir.x, 0.1); this.vy = lerp(this.vy, dir.y, 0.1);
                     }
                     // reproduce when healthy
-                    const ready = this.age > 24 && this.energy > 95 && this.hunger < this.maxStats * 0.5 &&
-                        (gameState.time - (this.lastReproduction || -Infinity)) > 26000 && gameState.siebas.length < popCap('sieba');
+                    const ready = this.age > 16 && this.energy > 82 && this.hunger < this.maxStats * 0.55 &&
+                        (gameState.time - (this.lastReproduction || -Infinity)) > 22000 && gameState.siebas.length < popCap('sieba');
                     let mate = null, mBest = Infinity;
                     if (ready) {
                         for (const o of gameState.siebas) {
-                            if (o === this || o.sex === this.sex || o.age < 24 || o.energy < 70) continue;
+                            if (o === this || o.sex === this.sex || o.age < 16 || o.energy < 55) continue;
                             const d2 = distanceSq(this.x, this.y, o.x, o.y);
                             if (d2 < mBest) { mBest = d2; mate = o; }
                         }
                     }
                     if (mate) {
                         const d = Math.sqrt(mBest) || 1e-6;
-                        this.vx = lerp(this.vx, (mate.x - this.x) / d, 0.25); this.vy = lerp(this.vy, (mate.y - this.y) / d, 0.25);
-                        if (d < this.radius + mate.radius + 8) {
+                        this.vx = lerp(this.vx, (mate.x - this.x) / d, 0.4); this.vy = lerp(this.vy, (mate.y - this.y) / d, 0.4);
+                        if (d < this.radius + mate.radius + 14) {
                             const childGenes = inheritGenes(this.genes, mate.genes, GENE_RANGES.sieba);
                             const baby = new Sieba(this.x, this.y, childGenes, Math.max(this.generation, mate.generation) + 1);
                             baby.age = 0; baby.hunger = 15; baby.energy = 100;
                             gameState.siebas.push(baby);
                             recordBirth(baby, 'sieba', this, mate);
                             this.lastReproduction = gameState.time; mate.lastReproduction = gameState.time;
-                            this.energy -= 32; mate.energy -= 32;
+                            this.energy -= 30; mate.energy -= 30;
                             spawnBirthEffect(this.x, this.y, '#5fb8e0'); spawnMatingHearts((this.x + mate.x) / 2, (this.y + mate.y) / 2 - 8); Audio2.fx('birth');
                         }
                     } else {
-                        // soaring wander
+                        // Flock cohesion — drift toward the nearest other sieba so the colony
+                        // stays together (otherwise scattered birds never meet to breed)
+                        let near = null, nBest = 500 * 500;
+                        for (const o of gameState.siebas) {
+                            if (o === this) continue;
+                            const d2 = distanceSq(this.x, this.y, o.x, o.y);
+                            if (d2 < nBest && d2 > 40 * 40) { nBest = d2; near = o; }
+                        }
+                        if (near) {
+                            const d = Math.sqrt(nBest) || 1e-6;
+                            this.vx = lerp(this.vx, (near.x - this.x) / d, 0.05); this.vy = lerp(this.vy, (near.y - this.y) / d, 0.05);
+                        }
                         this.vx += (Math.random() - 0.5) * 0.06;
                         this.vy += (Math.random() - 0.5) * 0.06;
                     }
@@ -3434,7 +3491,7 @@
 
             draw() {
                 const r = this.radius;
-                const angle = Math.atan2(this.vy, this.vx);
+                const angle = smoothHeading(this);
                 const alt = this.altitude;
                 ctx.save();
                 ctx.translate(this.x, this.y);
@@ -3668,7 +3725,7 @@
                 ctx.save();
                 ctx.translate(this.x, this.y);
                 applyCritterAnim(this);
-                ctx.rotate(Math.atan2(this.vy, this.vx));
+                ctx.rotate(smoothHeading(this));
                 applyGeneStretch(this);
 
                 // Speed → sleeker body; ferocity → colour
@@ -4429,7 +4486,11 @@
                     const by = randomBetween(20, canvas.height - 20);
                     if (!isMarine(bx, by)) {
                         const p = nearestMarinePoint(bx, by);
-                        if (p && distanceSq(bx, by, p.x, p.y) < 300 * 300) gameState.siebas.push(new Sieba(bx, by));
+                        if (p && distanceSq(bx, by, p.x, p.y) < 300 * 300) {
+                            const sb = new Sieba(bx, by);
+                            sb.sex = (gameState.siebas.length % 2 === 0) ? 'male' : 'female';
+                            gameState.siebas.push(sb);
+                        }
                     }
                 }
             }
@@ -4482,6 +4543,7 @@
                 seepas: plain(gameState.seepas), suubas: plain(gameState.suubas),
                 siibas: plain(gameState.siibas), fish: plain(gameState.fish),
                 saabas: plain(gameState.saabas), syybas: plain(gameState.syybas),
+                siebas: plain(gameState.siebas),
                 bushes: gameState.bushes, trees: gameState.trees, corals: gameState.corals,
                 structures: gameState.structures, radZones: gameState.radZones,
                 popHistory: gameState.popHistory, geneHistory: gameState.geneHistory,
@@ -5402,6 +5464,8 @@
             for (const c of gameState.corals) {
                 ctx.save();
                 ctx.translate(c.x, c.y);
+                const _cb = c.radius * 0.5;
+                ctx.translate(0, _cb); ctx.rotate(plantSway(c.x, c.y, 0.06)); ctx.translate(0, -_cb);
                 // Base shadow on the seabed
                 ctx.fillStyle = 'rgba(0,20,40,0.3)';
                 ctx.beginPath();
@@ -5449,6 +5513,8 @@
             for (const bush of bushes) {
                 ctx.save();
                 ctx.translate(bush.x, bush.y);
+                const _bh = (bush.radius || 14);
+                ctx.translate(0, _bh); ctx.rotate(plantSway(bush.x, bush.y, 0.07)); ctx.translate(0, -_bh);
 
                 // Over-grazed bushes visibly wilt: shrink slightly, droop, and brown.
                 if (bush.vigor !== undefined && bush.vigor < 55) {
@@ -5678,10 +5744,21 @@
             }
         }
 
+        // Gentle layered wind — returns a small sway angle that varies per position & time
+        function plantSway(x, y, amp) {
+            const t = gameState.time / 1000;
+            const phase = x * 0.05 + y * 0.03;
+            const gust = 0.75 + 0.25 * Math.sin(t * 0.21 + x * 0.004); // slow gusting strength
+            return (Math.sin(t * 0.9 + phase) * 0.7 + Math.sin(t * 2.3 + phase * 1.7) * 0.3) * amp * gust;
+        }
+
         function drawTrees() {
             if (!gameState.trees) return;
             const winter = getSeasonName() === 'Winter';
             for (const tr of gameState.trees) {
+                ctx.save();
+                const _base = tr.y + (tr.trunkHeight || 30);
+                ctx.translate(tr.x, _base); ctx.rotate(plantSway(tr.x, tr.y, 0.05)); ctx.translate(-tr.x, -_base);
                 const trunkWidth = (tr.kind === 'pine' || tr.kind === 'spruce') ? 11 : 14;
                 const trunkHeight = tr.trunkHeight;
 
@@ -5709,7 +5786,7 @@
                         ctx.fillStyle = '#caa24a';
                         ctx.beginPath(); ctx.ellipse(ax, ay, 4, 2, 0.4, 0, Math.PI * 2); ctx.fill();
                     }
-                    continue;
+                    ctx.restore(); continue;
                 }
 
                 if (tr.kind === 'pine' || tr.kind === 'spruce') {
@@ -5792,7 +5869,7 @@
                             }
                         }
                     }
-                    continue;
+                    ctx.restore(); continue;
                 }
 
                 // Apple / other trees — textured trunk with a little taper
@@ -5866,6 +5943,7 @@
                         ctx.beginPath(); ctx.arc(ax - 2, ay - 2.2, 1.7, 0, Math.PI * 2); ctx.fill();
                     }
                 }
+                ctx.restore();
             }
         }
 
@@ -6171,7 +6249,7 @@
                 ctx.save();
                 ctx.translate(this.x, this.y);
                 applyCritterAnim(this);
-                const heading = Math.atan2(this.vy, this.vx);
+                const heading = smoothHeading(this);
                 ctx.rotate(heading);
                 applyGeneStretch(this);
 
@@ -6487,6 +6565,25 @@
                     }
                 }
             }
+            if ((gameState.siebas || []).length < 3 && gameState.settings.siebaSpawn > 0) {
+                logEvent('rescue', 'A small flock of Siebas drifts in on the wind');
+                let tries = 0, added = 0;
+                while (added < 4 && tries < 300) {
+                    tries++;
+                    const x = randomBetween(20, canvas.width - 20);
+                    const y = randomBetween(20, canvas.height - 20);
+                    if (!isMarine(x, y)) {
+                        const p = nearestMarinePoint(x, y);
+                        if (p && distanceSq(x, y, p.x, p.y) < 320 * 320) {
+                            const sb = new Sieba(x, y);
+                            sb.sex = (added % 2 === 0) ? 'male' : 'female';
+                            sb.age = 4 + Math.random() * 8;
+                            gameState.siebas.push(sb);
+                            spawnParticles(x, y, '#5fb8e0', 5, 1.2); added++;
+                        }
+                    }
+                }
+            }
         }
 
         // ---------- Main update ----------
@@ -6722,7 +6819,7 @@
                     const sb = gameState.siebas[i];
                     if (!sb.landed) continue;
                     for (const pred of groundPreds) {
-                        if ((pred.hunger || 0) < 35) continue; // only a hungry predator bothers
+                        if ((pred.hunger || 0) < 58) continue; // only a starving predator manages it
                         if (distanceSq(pred.x, pred.y, sb.x, sb.y) < (pred.radius + sb.radius + 8) ** 2) {
                             if (gameState.inspected && gameState.inspected.ref === sb) gameState.inspected = null;
                             recordDeath('sieba', sb, 'hunted');
