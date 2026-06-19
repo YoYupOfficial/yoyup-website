@@ -371,6 +371,7 @@
                     <option value="sieba">➕ Spawn Sieba (flying fish-hawk)</option>
                     <option value="soopa">➕ Spawn Soopa (burrowing forager)</option>
                     <option value="syypha">➕ Spawn Syypha (jellyfish)</option>
+                    <option value="phyypha">➕ Spawn Phyypha (drifting colony)</option>
                     <option value="food">🍎 Drop food</option>
                     <option value="smite">⚡ Smite creature</option>
                     <option value="bless">✨ Bless (heal & feed)</option>
@@ -434,6 +435,7 @@
             <div class="section-title">Weather Events</div>
             <div class="control-group">
                 <label class="toggle-row"><input type="checkbox" id="autoWeatherToggle" checked> Random weather events</label>
+                <label class="toggle-row"><input type="checkbox" id="atmosphereToggle" checked> ✨ Atmosphere &amp; lighting</label>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:6px;">
                     <button class="weather-btn" data-weather="heatwave" style="font-size:12px;padding:7px;">🔥 Heatwave</button>
                     <button class="weather-btn" data-weather="storm" style="font-size:12px;padding:7px;">⛈️ Storm</button>
@@ -463,6 +465,8 @@
                 <input type="range" id="soopaPop" min="0" max="40" step="1" value="14">
                 <div class="pop-slider-row"><span>Syypha (jellyfish)</span><strong id="syyphaPopLabel">8</strong></div>
                 <input type="range" id="syyphaPop" min="0" max="30" step="1" value="8">
+                <div class="pop-slider-row"><span>Phyypha (drifting colony)</span><strong id="phyyphaPopLabel">12</strong></div>
+                <input type="range" id="phyyphaPop" min="0" max="40" step="1" value="12">
                 <div class="hint">Applied when you press RESET</div>
             </div>
 
@@ -482,9 +486,28 @@
                     <span><span class="graph-dot" style="background:#19e0d8;"></span>Sieba</span>
                     <span><span class="graph-dot" style="background:#a8895f;"></span>Soopa</span>
                     <span><span class="graph-dot" style="background:#8fd8ff;"></span>Syypha</span>
+                    <span><span class="graph-dot" style="background:#7ec9a8;"></span>Phyypha</span>
                 </div>
                 <button class="graph-dl-btn" data-graph="pop" style="margin-top:8px;font-size:12px;padding:7px;">⬇ Download population data (CSV)</button>
                 <button id="exportCsvBtn" style="margin-top:6px;font-size:11px;padding:6px;opacity:0.85;">📊 Export everything (CSV)</button>
+            </div>
+
+            <div class="section-title">🕸️ Live Food Web</div>
+            <div class="graph-panel">
+                <canvas id="foodWebCanvas" width="260" height="240" style="width:100%;cursor:pointer;background:#161616;border-radius:6px;"></canvas>
+                <div id="foodWebHint" style="font-size:11px;opacity:0.7;margin-top:6px;line-height:1.4;">
+                    Circles are species (size = population). Arrows point predator → prey and glow when hunting happens. Tap a species to manage it.
+                </div>
+                <div id="foodWebControls" style="display:none;margin-top:8px;padding:8px;background:rgba(255,255,255,0.05);border-radius:6px;">
+                    <div id="fwSelName" style="font-weight:bold;margin-bottom:2px;">—</div>
+                    <div id="fwSelInfo" style="font-size:11px;opacity:0.75;margin-bottom:8px;line-height:1.4;">—</div>
+                    <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                        <button id="fwBoostBtn" style="flex:1;min-width:70px;font-size:12px;padding:7px;">⬆ Boost +8</button>
+                        <button id="fwCullBtn" style="flex:1;min-width:70px;font-size:12px;padding:7px;">⬇ Cull half</button>
+                        <button id="fwFreezeBtn" style="flex:1;min-width:70px;font-size:12px;padding:7px;">❄ Freeze</button>
+                    </div>
+                    <button id="fwDeselectBtn" style="width:100%;margin-top:6px;font-size:11px;padding:5px;opacity:0.7;">✕ Close</button>
+                </div>
             </div>
 
             <div id="nsPanel" style="display:none;">
@@ -520,6 +543,7 @@
                     <option value="sieba">Sieba genes</option>
                     <option value="soopa">Soopa genes</option>
                     <option value="syypha">Syypha genes</option>
+                    <option value="phyypha">Phyypha genes</option>
                 </select>
                 <canvas id="geneGraphCanvas" width="260" height="110"></canvas>
                 <div class="graph-legend" id="geneGraphLegend"></div>
@@ -563,6 +587,7 @@
                 <div class="stat-line"><span>Total Siebas:</span><strong id="siebaCount">0</strong></div>
                 <div class="stat-line"><span>Total Soopas:</span><strong id="soopaCount">0</strong></div>
                 <div class="stat-line"><span>Total Syyphas:</span><strong id="syyphaCount">0</strong></div>
+                <div class="stat-line"><span>Total Phyyphas:</span><strong id="phyyphaCount">0</strong></div>
                 <div class="stat-line" style="margin-top:4px;border-top:1px solid #333;padding-top:4px"><span style="color:#63a6ff">Seepa gen:</span><strong id="genSeepa">1</strong></div>
                 <div class="stat-line"><span style="color:#ff6b6b">Suuba gen:</span><strong id="genSuuba">1</strong></div>
                 <div class="stat-line"><span style="color:#ff9fb3">Siiba gen:</span><strong id="genSiiba">1</strong></div>
@@ -572,6 +597,7 @@
                 <div class="stat-line"><span style="color:#5fb8e0">Sieba gen:</span><strong id="genSieba">1</strong></div>
                 <div class="stat-line"><span style="color:#b58a5a">Soopa gen:</span><strong id="genSoopa">1</strong></div>
                 <div class="stat-line"><span style="color:#8fd8ff">Syypha gen:</span><strong id="genSyypha">1</strong></div>
+                <div class="stat-line"><span style="color:#9ad8c2">Phyypha gen:</span><strong id="genPhyypha">1</strong></div>
                 <span id="genLabel" style="display:none">1</span>
                 <div class="stat-line"><span>Sim Time:</span><strong id="simTime">0s</strong></div>
                 <div class="stat-line"><span>Clock:</span><strong id="dayClock">0:00</strong></div>
@@ -610,6 +636,7 @@
                 <div class="legend-item"><div class="legend-color" style="width:18px;height:13px;border-radius:50%;background:#2aa6e0;"></div><span>Sieba (flying kingfisher — soars over land &amp; sea, dives for Soobas; only catchable when perched)</span></div>
                 <div class="legend-item"><div class="legend-color" style="width:18px;height:13px;border-radius:50%;background:#a8895f;"></div><span>Soopa (burrowing forager — hides underground, surfaces to feed; only catchable above ground)</span></div>
                 <div class="legend-item"><div class="legend-color" style="width:18px;height:13px;border-radius:50%;background:#8fd8ff;"></div><span>Syypha (drifting jellyfish — pulses through the sea, stings Saabas; nibbled by Soobas)</span></div>
+                <div class="legend-item"><div class="legend-color" style="width:18px;height:13px;border-radius:50%;background:#bfe8d8;"></div><span>Phyypha (drifting filter-feeding colony — buds &amp; spreads, grazed by Soobas &amp; Saabas)</span></div>
                 <div class="legend-item"><div class="legend-color" style="background:#ff7eb0;"></div><span>Coral (Marine — fish food)</span></div>
                 <div class="legend-item"><div class="legend-color" style="background:#b5543a;"></div><span>Mushroom (Swamp) / Lichen berry (Tundra)</span></div>
                 <div class="legend-item"><div class="legend-color" style="background:#7d5630;"></div><span>🪹 Nest (Seepa-built — helps pairs nearby breed)</span></div>
@@ -875,9 +902,10 @@
             bushes: [],
             trees: [],
             particles: [],
+            corpses: [],
             weather: { type: null, drops: [] },
             popHistory: [],
-            geneHistory: { seepa: [], suuba: [], siiba: [], fish: [], saaba: [], syyba: [], sieba: [], soopa: [], syypha: [] },
+            geneHistory: { seepa: [], suuba: [], siiba: [], fish: [], saaba: [], syyba: [], sieba: [], soopa: [], syypha: [], phyypha: [] },
             diseaseHistory: [],
             weatherEvent: null,       // active weather event { type, t, dur }
             weatherCooldown: 30000,   // time until next possible random event
@@ -910,6 +938,7 @@
             siebas: [],
             soopas: [],
             syyphas: [],
+            phyyphas: [],
             corals: [],
             settings: {
                 seepaSpawn: 0,
@@ -921,6 +950,7 @@
                 siebaSpawn: 5,
                 soopaSpawn: 14,
                 syyphaSpawn: 8,
+                phyyphaSpawn: 12,
                 predatorsEnabled: true,
                 flockingEnabled: true,
                 rescueEnabled: true,
@@ -954,7 +984,149 @@
 
         // ---------- Death-cause tracking ----------
         const DEATH_CAUSES = ['starved', 'thirst', 'frozen', 'oldage', 'disease', 'hunted'];
-        const SPECIES_KEYS = ['seepa', 'suuba', 'siiba', 'fish', 'saaba', 'syyba', 'sieba', 'soopa', 'syypha'];
+        const SPECIES_KEYS = ['seepa', 'suuba', 'siiba', 'fish', 'saaba', 'syyba', 'sieba', 'soopa', 'syypha', 'phyypha'];
+        // ── Food-web definition + live predation-activity tracking + interactive eco-controls ──
+        // Directed edges: [predator, prey]. Mirrors the actual predation sites in the sim.
+        const FOOD_WEB = [
+            ['suuba', 'seepa'], ['siiba', 'suuba'], ['seepa', 'siiba'],
+            ['syyba', 'seepa'], ['syyba', 'fish'],
+            ['sieba', 'fish'], ['saaba', 'fish'],
+            ['siiba', 'fish'], ['suuba', 'fish'],
+            ['suuba', 'soopa'], ['siiba', 'soopa'],
+            ['suuba', 'sieba'], ['siiba', 'sieba'],
+            ['syypha', 'saaba'], ['fish', 'syypha'],
+            ['fish', 'phyypha'], ['saaba', 'phyypha']
+        ];
+        // Pretty display names for the diagram
+        const SPECIES_LABEL = {
+            seepa: 'Seepa', suuba: 'Suuba', siiba: 'Siiba', fish: 'Sooba', saaba: 'Saaba',
+            syyba: 'Syyba', sieba: 'Sieba', soopa: 'Soopa', syypha: 'Syypha', phyypha: 'Phyypha'
+        };
+        // Node colours (match each creature's identity)
+        const SPECIES_COLOR = {
+            seepa: '#7ec850', suuba: '#9b6bd6', siiba: '#e06b8f', fish: '#5fb8e0', saaba: '#3a8fc4',
+            syyba: '#c99a5a', sieba: '#19e0d8', soopa: '#a8895f', syypha: '#8fd8ff', phyypha: '#7ec9a8'
+        };
+
+        function ecoCtrl() {
+            if (!gameState.ecoControl) gameState.ecoControl = { frozen: {}, disabledLinks: {} };
+            return gameState.ecoControl;
+        }
+        function isFrozen(key) { return !!ecoCtrl().frozen[key]; }
+        function linkDisabled(pred, prey) {
+            const c = ecoCtrl();
+            if (c.frozen[pred] || c.frozen[prey]) return true; // frozen species neither eat nor are eaten
+            return !!c.disabledLinks[pred + '>' + prey];
+        }
+        // Record a predation event so its food-web arrow pulses
+        function notePredation(pred, prey) {
+            if (!gameState.predFlow) gameState.predFlow = {};
+            const k = pred + '>' + prey;
+            gameState.predFlow[k] = Math.min(1.6, (gameState.predFlow[k] || 0) + 0.4);
+        }
+        // Decay all predation pulses each tick
+        function decayPredFlow(dt) {
+            if (!gameState.predFlow) return;
+            const f = gameState.predFlow;
+            for (const k in f) { f[k] *= Math.max(0, 1 - 0.9 * dt); if (f[k] < 0.01) delete f[k]; }
+        }
+
+        // ════════════════ CARRION (corpses linger after natural death) ════════════════
+        function spawnCorpse(c, species) {
+            if (gameState.settings && gameState.settings.carrionEnabled === false) return;
+            if (!gameState.corpses) gameState.corpses = [];
+            const marine = isMarine(c.x, c.y);
+            const r = c.radius || 6;
+            gameState.corpses.push({
+                x: c.x, y: c.y, species, marine,
+                radius: r,
+                heading: (typeof smoothHeading === 'function' && c._heading != null) ? c._heading : Math.random() * 6.28,
+                age: 0,
+                maxAge: 34 + Math.random() * 16,      // seconds before fully decayed
+                nutrition: 30 + r * 6,                 // food value for scavengers
+                maxNutrition: 30 + r * 6,
+                seed: Math.random() * 1000
+            });
+            if (gameState.corpses.length > 220) gameState.corpses.splice(0, gameState.corpses.length - 220);
+        }
+        function updateCorpses(dt) {
+            const arr = gameState.corpses;
+            if (!arr || !arr.length) return;
+            for (let i = arr.length - 1; i >= 0; i--) {
+                const k = arr[i];
+                k.age += dt;
+                if (k.age >= k.maxAge || k.nutrition <= 0) arr.splice(i, 1);
+            }
+        }
+        // Returns the nearest available corpse to (x,y) within range (for scavengers), or null
+        function nearestCorpse(x, y, range, marine) {
+            const arr = gameState.corpses;
+            if (!arr || !arr.length) return null;
+            let best = null, bd = range * range;
+            for (const k of arr) {
+                if (marine !== undefined && k.marine !== marine) continue;
+                if (k.nutrition <= 0) continue;
+                const d2 = distanceSq(x, y, k.x, k.y);
+                if (d2 < bd) { bd = d2; best = k; }
+            }
+            return best;
+        }
+        function drawCorpses() {
+            const arr = gameState.corpses;
+            if (!arr || !arr.length) return;
+            for (const k of arr) {
+                const decay = Math.min(1, k.age / k.maxAge);     // 0 fresh → 1 gone
+                const r = k.radius;
+                ctx.save();
+                ctx.translate(k.x, k.y);
+                ctx.rotate(k.heading || 0);
+                // fade out as it decays
+                const fade = 1 - decay * 0.7;
+                // desaturated, greying carcass colour (rots from pale toward bone/grey)
+                const base = k.marine ? [150, 165, 170] : [150, 140, 125];
+                const bone = [225, 220, 205];
+                const mix = Math.min(1, decay * 1.3);
+                const rr = Math.round(base[0] + (bone[0] - base[0]) * mix);
+                const gg = Math.round(base[1] + (bone[1] - base[1]) * mix);
+                const bb = Math.round(base[2] + (bone[2] - base[2]) * mix);
+                ctx.globalAlpha = fade;
+                // body lump (deflates as it decays)
+                const squash = 1 - decay * 0.35;
+                ctx.fillStyle = `rgb(${rr},${gg},${bb})`;
+                ctx.beginPath();
+                ctx.ellipse(0, r * 0.3, r * 1.0, r * 0.62 * squash, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = 'rgba(60,50,40,0.4)'; ctx.lineWidth = 1; ctx.stroke();
+                // exposed ribs appear as it rots (decay > 0.4)
+                if (decay > 0.4) {
+                    ctx.strokeStyle = `rgba(245,240,225,${(decay - 0.4) * 1.3})`;
+                    ctx.lineWidth = Math.max(0.6, r * 0.07);
+                    for (let rib = -2; rib <= 2; rib++) {
+                        ctx.beginPath();
+                        ctx.moveTo(rib * r * 0.28, r * 0.3 - r * 0.4 * squash);
+                        ctx.lineTo(rib * r * 0.28, r * 0.3 + r * 0.4 * squash);
+                        ctx.stroke();
+                    }
+                    // spine
+                    ctx.beginPath(); ctx.moveTo(-r * 0.7, r * 0.3); ctx.lineTo(r * 0.7, r * 0.3); ctx.stroke();
+                }
+                // little flies buzzing over fresh-to-mid corpses on land
+                if (!k.marine && decay < 0.7) {
+                    ctx.globalAlpha = fade * 0.7;
+                    ctx.fillStyle = '#222';
+                    const tt = (gameState.time || 0) / 1000;
+                    for (let fI = 0; fI < 3; fI++) {
+                        const fa = tt * 6 + fI * 2.1 + k.seed;
+                        ctx.beginPath();
+                        ctx.arc(Math.cos(fa) * r * 0.9, -r * 0.3 + Math.sin(fa * 1.3) * r * 0.5, 0.8, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
+                ctx.restore();
+            }
+            ctx.globalAlpha = 1;
+        }
+
         function recordDeath(species, c, causeOverride) {
             if (!gameState.deathStats) gameState.deathStats = {};
             if (!gameState.deathStats[species]) {
@@ -969,6 +1141,8 @@
                 else cause = 'starved';
             }
             gameState.deathStats[species][cause]++;
+            // Natural deaths leave a corpse (carrion) — predation does not (the body was eaten)
+            if (cause !== 'hunted' && c.x !== undefined) spawnCorpse(c, species);
             // Per-species life stats
             const st = speciesStat(species);
             st.deaths++;
@@ -1448,6 +1622,14 @@
                 metabolism: { min: 0.5, max: 1.3, start: [0.7, 1.0], mut: 0.10, type: 'mult' },
                 sting:      { min: 0.2, max: 1.0, start: [0.4, 0.7], mut: 0.07, type: 'add'  },
                 resistance: { min: 0.0, max: 1.0, start: [0.1, 0.4], mut: 0.07, type: 'add'  }
+            },
+            phyypha: {
+                speed:      { min: 0.05, max: 0.5, start: [0.1, 0.3], mut: 0.08, type: 'mult' },
+                size:       { min: 8,    max: 20,  start: [10, 15],   mut: 0.10, type: 'mult' },
+                vision:     { min: 0.3,  max: 1.2, start: [0.5, 0.8], mut: 0.08, type: 'mult' },
+                metabolism: { min: 0.5,  max: 1.3, start: [0.7, 1.0], mut: 0.10, type: 'mult' },
+                budding:    { min: 0.2,  max: 1.0, start: [0.4, 0.7], mut: 0.07, type: 'add'  },
+                resistance: { min: 0.0,  max: 1.0, start: [0.1, 0.4], mut: 0.07, type: 'add'  }
             }
         };
 
@@ -1492,7 +1674,7 @@
         }
 
         // Backwards-compatible aliases (older call sites still reference these)
-        const GENE_RANGES = { seepa: GENE_SCHEMA.seepa, suuba: GENE_SCHEMA.suuba, siiba: GENE_SCHEMA.siiba, fish: GENE_SCHEMA.fish, saaba: GENE_SCHEMA.saaba, syyba: GENE_SCHEMA.syyba, sieba: GENE_SCHEMA.sieba, soopa: GENE_SCHEMA.soopa, syypha: GENE_SCHEMA.syypha };
+        const GENE_RANGES = { seepa: GENE_SCHEMA.seepa, suuba: GENE_SCHEMA.suuba, siiba: GENE_SCHEMA.siiba, fish: GENE_SCHEMA.fish, saaba: GENE_SCHEMA.saaba, syyba: GENE_SCHEMA.syyba, sieba: GENE_SCHEMA.sieba, soopa: GENE_SCHEMA.soopa, syypha: GENE_SCHEMA.syypha, phyypha: GENE_SCHEMA.phyypha };
         function makeRandomGenes() { return makeGenes('seepa'); }
         function makeSuubaGenes() { return makeGenes('suuba'); }
         function makeSiibaGenes() { return makeGenes('siiba'); }
@@ -1502,6 +1684,7 @@
         function makeSiebaGenes() { return makeGenes('sieba'); }
         function makeSoopaGenes() { return makeGenes('soopa'); }
         function makeSyyphaGenes() { return makeGenes('syypha'); }
+        function makePhyyphaGenes() { return makeGenes('phyypha'); }
 
         // Survival viability: a creature must be able to physically reach a resource
         // before it starves/dehydrates. Slow-gened individuals get a smaller "reach"
@@ -1523,6 +1706,7 @@
             if (kind === 'sieba') return Math.round(13 * scale);
             if (kind === 'soopa') return Math.round(60 * scale);
             if (kind === 'syypha') return Math.round(12 * scale);
+            if (kind === 'phyypha') return Math.round(22 * scale);
             return Math.round(55 * scale); // siiba
         }
 
@@ -1947,10 +2131,11 @@
                         if (siiba.hidden) continue; // safe inside a bush or tree
                         const dSq = distanceSq(this.x, this.y, siiba.x, siiba.y);
                         const minSq = (siiba.radius + this.radius) * (siiba.radius + this.radius);
-                        if (dSq < minSq) {
+                        if (dSq < minSq && !linkDisabled('seepa', 'siiba')) {
                             spawnParticles(siiba.x, siiba.y, '#ff9fb3', 10, 2);
                             if (gameState.inspected && gameState.inspected.ref === siiba) gameState.inspected = null;
                             recordDeath('siiba', siiba, 'hunted');
+                            notePredation('seepa', 'siiba');
                             gameState.siibas.splice(i, 1);
                             this.hunger = Math.max(0, this.hunger - 60);
                             return true;
@@ -2487,7 +2672,7 @@
                         // Can attack whenever hungry (not just under 25%) so they can actually feed
                         if (d < this.radius + target.radius + 8 && this.eatCooldown <= 0 && this.hunger > 30) {
                             const idx = gameState.suubas.indexOf(target);
-                            if (idx !== -1) {
+                            if (idx !== -1 && !linkDisabled('siiba', 'suuba')) {
                                 target.energy = Math.max(0, target.energy - 90);
                                 this.energy = Math.min(this.maxStats, this.energy + 40);
                                 this.hunger = Math.max(0, this.hunger - 50);
@@ -2497,6 +2682,7 @@
                                 if (target.energy <= 0) {
                                     if (gameState.inspected && gameState.inspected.ref === target) gameState.inspected = null;
                                     recordDeath('suuba', target, 'hunted');
+                                    notePredation('siiba', 'suuba');
                                     gameState.suubas.splice(idx, 1);
                                     spawnParticles(target.x, target.y, '#8a2f2f', 14, 2.4);
                                     this.energy = Math.min(this.maxStats, this.energy + 80);
@@ -3235,22 +3421,24 @@
                                     break;
                                 }
                             }
-                        } else if (targetKind === 'fish') {
+                        } else if (targetKind === 'fish' && !linkDisabled('syyba', 'fish')) {
                             const idx = gameState.fish.indexOf(target);
                             if (idx >= 0) {
                                 if (gameState.inspected && gameState.inspected.ref === target) gameState.inspected = null;
                                 recordDeath('fish', target, 'hunted');
+                                notePredation('syyba', 'fish');
                                 gameState.fish.splice(idx, 1);
                                 this.hunger = Math.max(0, this.hunger - 70);
                                 this.energy = Math.min(this.maxStats * 1.6, this.energy + 80);
                                 this.lastEat = gameState.time; Audio2.fx('hunt');
                                 spawnParticles(target.x, target.y, '#ff7a3a', 10, 2.0);
                             }
-                        } else if (targetKind === 'seepa') {
+                        } else if (targetKind === 'seepa' && !linkDisabled('syyba', 'seepa')) {
                             const idx = gameState.seepas.indexOf(target);
                             if (idx >= 0) {
                                 if (gameState.inspected && gameState.inspected.ref === target) gameState.inspected = null;
                                 recordDeath('seepa', target, 'hunted');
+                                notePredation('syyba', 'seepa');
                                 gameState.seepas.splice(idx, 1);
                                 this.hunger = Math.max(0, this.hunger - 70);
                                 this.energy = Math.min(this.maxStats * 1.6, this.energy + 80);
@@ -3470,11 +3658,12 @@
                         const dx = t.x - this.x, dy = t.y - this.y, d = Math.hypot(dx, dy) || 1;
                         this.vx = lerp(this.vx, dx / d, 0.5); this.vy = lerp(this.vy, dy / d, 0.5);
                         this.altitude = Math.max(0.15, Math.min(1, d / 140));
-                        if (d < this.radius + (t.radius || 6) + 5) {
+                        if (d < this.radius + (t.radius || 6) + 5 && !linkDisabled('sieba', 'fish')) {
                             const idx = gameState.fish.indexOf(t);
                             if (idx >= 0) {
                                 if (gameState.inspected && gameState.inspected.ref === t) gameState.inspected = null;
                                 recordDeath('fish', t, 'hunted');
+                                notePredation('sieba', 'fish');
                                 gameState.fish.splice(idx, 1);
                                 this.hunger = Math.max(0, this.hunger - 72);
                                 this.energy = Math.min(this.maxStats * 1.6, this.energy + 70);
@@ -3987,9 +4176,10 @@
                 if (this.hunger > 25 && gameState.saabas && gameState.settings.predatorsEnabled) {
                     for (let k = gameState.saabas.length - 1; k >= 0; k--) {
                         const sa = gameState.saabas[k];
-                        if (distanceSq(sa.x, sa.y, this.x, this.y) < reach * reach) {
+                        if (distanceSq(sa.x, sa.y, this.x, this.y) < reach * reach && !linkDisabled('syypha', 'saaba')) {
                             if (gameState.inspected && gameState.inspected.ref === sa) gameState.inspected = null;
                             recordDeath('saaba', sa, 'hunted');
+                            notePredation('syypha', 'saaba');
                             gameState.saabas.splice(k, 1);
                             this.hunger = Math.max(0, this.hunger - 70);
                             this.energy = Math.min(this.maxStats * 1.5, this.energy + 55);
@@ -4151,6 +4341,176 @@
             }
         }
 
+        // ---------- Phyypha (Phylactolaemata — drifting filter-feeding colony that buds & spreads) ----------
+        // A slow-drifting gelatinous colony dotted with feeding crowns (lophophores) that retract
+        // when a predator nears. It filter-feeds (self-sustaining), is eaten by fish & Saabas, and
+        // spreads by budding off new colonies over time — a renewable, regrowing food source.
+        class Phyypha {
+            constructor(x, y, genes, generation) {
+                this.x = x; this.y = y;
+                this.genes = genes || makePhyyphaGenes();
+                this.generation = generation || 1;
+                this.radius = this.genes.size;
+                this.speed = this.genes.speed;
+                this.vx = (Math.random() - 0.5) * 0.4;
+                this.vy = (Math.random() - 0.5) * 0.4;
+                this.age = Math.random() * 30;
+                this.lifeSpan = 220 + Math.random() * 80;
+                this.hunger = Math.random() * 30;
+                this.energy = 100;
+                this.cold = 0;
+                this.maxStats = 100;
+                this.health = 100;
+                this.budT = 6 + Math.random() * 10;     // time to next bud
+                this.retract = 0;                        // 0 = crowns extended, 1 = retracted
+                this.drift = Math.random() * 6.28;       // slow drift heading
+                this.sway = Math.random() * 6.28;        // animation phase
+                // fixed crown layout so the colony looks consistent frame-to-frame
+                this.crowns = [];
+                const n = 4 + Math.floor(Math.random() * 4);
+                for (let i = 0; i < n; i++) {
+                    const a = Math.random() * 6.28, rr = Math.random() * 0.62;
+                    this.crowns.push({ ox: Math.cos(a) * rr, oy: Math.sin(a) * rr, ph: Math.random() * 6.28, sz: 0.7 + Math.random() * 0.5 });
+                }
+            }
+
+            isAlive() {
+                return this.health > 0 && this.age < this.lifeSpan &&
+                       this.hunger < this.maxStats && this.cold < 100;
+            }
+
+            update(deltaTime, gameState) {
+                const dt = deltaTime / 1000;
+                if (gameState.settings.agingEnabled) this.age += dt;
+                this.sway += dt * 2.2;
+                this.health = Math.min(100, this.health + 5 * dt);
+
+                // Filter-feeder — largely self-sustaining on plankton
+                this.hunger = Math.min(this.maxStats, Math.max(0, this.hunger + 0.12 * dt * geneHungerMult(this)));
+                this.energy = Math.min(this.maxStats, this.energy + 1.0 * dt);
+                updateCold(this, dt, 1); // insulated in the water column
+
+                // Retract crowns when a predator (fish/Saaba) is close
+                let threat = false;
+                const senseR = (60 + (this.genes.vision ?? 0.6) * 50);
+                const r2 = senseR * senseR;
+                if (gameState.fish) for (const f of gameState.fish) { if (distanceSq(f.x, f.y, this.x, this.y) < r2) { threat = true; break; } }
+                if (!threat && gameState.saabas) for (const s of gameState.saabas) { if (distanceSq(s.x, s.y, this.x, this.y) < r2) { threat = true; break; } }
+                this.retract = Math.max(0, Math.min(1, this.retract + (threat ? 4 : -2) * dt));
+
+                // ── Slow drift on the current ──
+                this.drift += (Math.random() - 0.5) * 0.06;
+                this.vx = lerp(this.vx, Math.cos(this.drift) * 0.3, 0.02);
+                this.vy = lerp(this.vy, Math.sin(this.drift) * 0.3, 0.02);
+                let nx = this.x + this.vx * this.speed * dt * 60;
+                let ny = this.y + this.vy * this.speed * dt * 60;
+                if (isMarine(nx, ny)) { this.x = nx; this.y = ny; }
+                else if (isMarine(this.x - this.vx, ny)) { this.vx *= -1; this.y = ny; this.drift = Math.PI - this.drift; }
+                else if (isMarine(nx, this.y - this.vy)) { this.vy *= -1; this.x = nx; this.drift = -this.drift; }
+                else { this.vx *= -1; this.vy *= -1; this.drift += Math.PI; }
+                this.x = Math.max(this.radius, Math.min(canvas.width - this.radius, this.x));
+                this.y = Math.max(this.radius, Math.min(canvas.height - this.radius, this.y));
+
+                // ── Bud off a new colony nearby (asexual spread via statoblasts) ──
+                this.budT -= dt;
+                const bud = this.genes.budding ?? 0.5;
+                if (this.budT <= 0) {
+                    this.budT = (10 - bud * 6) + Math.random() * 5; // higher budding gene → faster spread
+                    if (this.energy > 45 && this.age > 12 && gameState.phyyphas.length < popCap('phyypha')) {
+                        // find a nearby water spot to settle the bud
+                        for (let tries = 0; tries < 8; tries++) {
+                            const ang = Math.random() * 6.28, dist = this.radius * 2 + Math.random() * 60;
+                            const bxx = this.x + Math.cos(ang) * dist, byy = this.y + Math.sin(ang) * dist;
+                            if (isMarine(bxx, byy)) {
+                                const childGenes = inheritGenes(this.genes, this.genes, GENE_RANGES.phyypha);
+                                const baby = new Phyypha(bxx, byy, childGenes, this.generation + 1);
+                                baby.age = 0; baby.energy = 70;
+                                gameState.phyyphas.push(baby);
+                                recordBirth(baby, 'phyypha', this, this);
+                                this.energy -= 24;
+                                spawnParticles(bxx, byy, '#bfe8d8', 5, 1.0);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            draw() {
+                const r = this.radius;
+                const ret = this.retract;
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                const wob = Math.sin(this.sway) * 0.03;
+                ctx.scale(1 + wob, 1 - wob);
+
+                // soft shadow on the seabed
+                ctx.fillStyle = 'rgba(0,0,0,0.10)';
+                ctx.beginPath(); ctx.ellipse(0, r * 0.5, r * 0.95, r * 0.4, 0, 0, Math.PI * 2); ctx.fill();
+
+                // ── Translucent gelatinous colony mass (lumpy blob) ──
+                const bg = ctx.createRadialGradient(-r * 0.2, -r * 0.3, r * 0.2, 0, 0, r * 1.15);
+                bg.addColorStop(0, 'rgba(200,240,225,0.55)');
+                bg.addColorStop(0.6, 'rgba(150,215,200,0.40)');
+                bg.addColorStop(1, 'rgba(110,180,170,0.22)');
+                ctx.fillStyle = bg;
+                ctx.beginPath();
+                const lobes = 9;
+                for (let i = 0; i <= lobes; i++) {
+                    const a = (i / lobes) * Math.PI * 2;
+                    const rad = r * (0.85 + 0.18 * Math.sin(a * 3 + this.sway * 0.5));
+                    const px = Math.cos(a) * rad, py = Math.sin(a) * rad;
+                    if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+                }
+                ctx.closePath(); ctx.fill();
+                ctx.strokeStyle = 'rgba(180,230,215,0.5)'; ctx.lineWidth = 1; ctx.stroke();
+
+                // inner gloss
+                ctx.fillStyle = 'rgba(255,255,255,0.22)';
+                ctx.beginPath(); ctx.ellipse(-r * 0.25, -r * 0.3, r * 0.35, r * 0.25, -0.3, 0, Math.PI * 2); ctx.fill();
+
+                // ── Feeding crowns (lophophores) — retract when threatened ──
+                const ext = 1 - ret;                      // extension factor
+                for (const c of this.crowns) {
+                    const cx = c.ox * r, cy = c.oy * r;
+                    const stalk = r * 0.5 * c.sz * ext;
+                    const flick = Math.sin(this.sway * 1.4 + c.ph) * 0.12 * ext;
+                    // stalk
+                    ctx.strokeStyle = 'rgba(150,205,190,' + (0.4 + 0.4 * ext) + ')';
+                    ctx.lineWidth = Math.max(1, r * 0.06);
+                    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + flick * r, cy - stalk); ctx.stroke();
+                    // tentacle crown at the tip
+                    if (ext > 0.15) {
+                        const tipx = cx + flick * r, tipy = cy - stalk;
+                        const tent = 6, tlen = r * 0.26 * c.sz * ext;
+                        ctx.strokeStyle = 'rgba(220,250,240,' + (0.35 + 0.4 * ext) + ')';
+                        ctx.lineWidth = 0.9;
+                        for (let t = 0; t < tent; t++) {
+                            const ta = -Math.PI * 0.5 + (t / (tent - 1) - 0.5) * Math.PI * 1.1;
+                            ctx.beginPath();
+                            ctx.moveTo(tipx, tipy);
+                            ctx.lineTo(tipx + Math.cos(ta) * tlen, tipy + Math.sin(ta) * tlen);
+                            ctx.stroke();
+                        }
+                        // little mouth dot
+                        ctx.fillStyle = 'rgba(120,180,165,0.6)';
+                        ctx.beginPath(); ctx.arc(tipx, tipy, r * 0.05, 0, Math.PI * 2); ctx.fill();
+                    }
+                }
+
+                // cold tint
+                if (this.cold > 25) {
+                    ctx.globalAlpha = Math.min(0.4, (this.cold - 25) / 130);
+                    ctx.fillStyle = '#dff7ee';
+                    ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
+                    ctx.globalAlpha = 1;
+                }
+
+                ctx.restore();
+                drawCreatureBars(this);
+            }
+        }
+
         // ---------- Saaba (marine apex predator — hunts Soobas) ----------
         class Saaba {
             constructor(x, y, genes, generation) {
@@ -4200,13 +4560,14 @@
                     this.vx = lerp(this.vx, (prey.x - this.x) / d, 0.5);
                     this.vy = lerp(this.vy, (prey.y - this.y) / d, 0.5);
                     const reach = this.radius + prey.radius + 4;
-                    if (bestD < reach * reach) {
+                    if (bestD < reach * reach && !linkDisabled('saaba', 'fish')) {
                         // Caught a Sooba
                         const idx = gameState.fish.indexOf(prey);
                         if (idx !== -1) {
                             spawnParticles(prey.x, prey.y, '#ff9b33', 9, 1.8);
                             if (gameState.inspected && gameState.inspected.ref === prey) gameState.inspected = null;
                             recordDeath('fish', prey, 'hunted');
+                            notePredation('saaba', 'fish');
                             gameState.fish.splice(idx, 1);
                         }
                         this.hunger = Math.max(0, this.hunger - 55);
@@ -4921,8 +5282,9 @@
             noiseSeed = Math.random() * 1000;
             gameState.seepas = [];
             gameState.particles = [];
+            gameState.corpses = [];
             gameState.popHistory = [];
-            gameState.geneHistory = { seepa: [], suuba: [], siiba: [], fish: [], saaba: [], syyba: [], sieba: [], soopa: [], syypha: [] };
+            gameState.geneHistory = { seepa: [], suuba: [], siiba: [], fish: [], saaba: [], syyba: [], sieba: [], soopa: [], syypha: [], phyypha: [] };
             gameState.diseaseHistory = [];
             gameState.weatherEvent = null;
             gameState.weatherCooldown = 30000 + Math.random() * 20000;
@@ -4981,6 +5343,7 @@
                 gameState.siebas = [];
                 gameState.soopas = [];
                 gameState.syyphas = [];
+                gameState.phyyphas = [];
             } else {
                 for (let i = 0; i < gameState.settings.seepaSpawn; i++) {
                     const p = landPos(20);
@@ -5077,6 +5440,18 @@
                         gameState.syyphas.push(jf);
                     }
                 }
+
+                // Phyyphas — drifting filter-feeding colonies — spawn in the sea
+                gameState.phyyphas = [];
+                let phAttempts = 0;
+                while (gameState.phyyphas.length < gameState.settings.phyyphaSpawn && phAttempts < gameState.settings.phyyphaSpawn * 80) {
+                    phAttempts++;
+                    const bx = randomBetween(20, canvas.width - 20);
+                    const by = randomBetween(20, canvas.height - 20);
+                    if (isMarine(bx, by)) {
+                        gameState.phyyphas.push(new Phyypha(bx, by));
+                    }
+                }
             }
 
             gameState.stars = createStars(80);
@@ -5101,8 +5476,8 @@
         }
 
         // ---------- Save / load worlds ----------
-        const SPECIES_CLASS = { seepa: () => Seepa, suuba: () => Suuba, siiba: () => Siiba, fish: () => Fish, saaba: () => Saaba, syyba: () => Syyba, sieba: () => Sieba, soopa: () => Soopa, syypha: () => Syypha };
-        const SPECIES_ARRAY = { seepa: 'seepas', suuba: 'suubas', siiba: 'siibas', fish: 'fish', saaba: 'saabas', syyba: 'syybas', sieba: 'siebas', soopa: 'soopas', syypha: 'syyphas' };
+        const SPECIES_CLASS = { seepa: () => Seepa, suuba: () => Suuba, siiba: () => Siiba, fish: () => Fish, saaba: () => Saaba, syyba: () => Syyba, sieba: () => Sieba, soopa: () => Soopa, syypha: () => Syypha, phyypha: () => Phyypha };
+        const SPECIES_ARRAY = { seepa: 'seepas', suuba: 'suubas', siiba: 'siibas', fish: 'fish', saaba: 'saabas', syyba: 'syybas', sieba: 'siebas', soopa: 'soopas', syypha: 'syyphas', phyypha: 'phyyphas' };
 
         function serializeState() {
             const plain = (arr) => (arr || []).map(c => {
@@ -5129,6 +5504,8 @@
                 saabas: plain(gameState.saabas), syybas: plain(gameState.syybas),
                 siebas: plain(gameState.siebas), soopas: plain(gameState.soopas),
                 syyphas: plain(gameState.syyphas),
+                corpses: gameState.corpses ? JSON.parse(JSON.stringify(gameState.corpses)) : [],
+                phyyphas: plain(gameState.phyyphas),
                 bushes: gameState.bushes, trees: gameState.trees, corals: gameState.corals,
                 structures: gameState.structures, radZones: gameState.radZones,
                 popHistory: gameState.popHistory, geneHistory: gameState.geneHistory,
@@ -5165,6 +5542,7 @@
             if (data.settings) Object.assign(gameState.settings, data.settings);
             // Terrain
             gameState.paintGrid = new Map(data.paintGrid || []);
+            gameState.corpses = Array.isArray(data.corpses) ? data.corpses : [];
             // Plants & objects
             gameState.bushes = data.bushes || [];
             gameState.trees = data.trees || [];
@@ -5177,7 +5555,7 @@
             }
             // History & stats
             gameState.popHistory = data.popHistory || [];
-            gameState.geneHistory = data.geneHistory || { seepa: [], suuba: [], siiba: [], fish: [], saaba: [], syyba: [], sieba: [], soopa: [], syypha: [] };
+            gameState.geneHistory = data.geneHistory || { seepa: [], suuba: [], siiba: [], fish: [], saaba: [], syyba: [], sieba: [], soopa: [], syypha: [], phyypha: [] };
             gameState.diseaseHistory = data.diseaseHistory || [];
             gameState.lineage = new Map(data.lineage || []);
             gameState.speciesStats = data.speciesStats || {};
@@ -5232,7 +5610,7 @@
             const zones = gameState.radZones;
             if (!zones || !zones.length) return;
             const dt = deltaTime / 1000;
-            const lists = [gameState.seepas, gameState.suubas, gameState.siibas, gameState.fish, gameState.saabas, gameState.syybas, gameState.siebas, gameState.soopas, gameState.syyphas];
+            const lists = [gameState.seepas, gameState.suubas, gameState.siibas, gameState.fish, gameState.saabas, gameState.syybas, gameState.siebas, gameState.soopas, gameState.syyphas, gameState.phyyphas];
             for (const z of zones) {
                 z.pulse = (z.pulse || 0) + dt;
                 const r2 = z.r * z.r;
@@ -5269,6 +5647,7 @@
             if (gameState.siebas && gameState.siebas.includes(c)) return 'sieba';
             if (gameState.soopas && gameState.soopas.includes(c)) return 'soopa';
             if (gameState.syyphas && gameState.syyphas.includes(c)) return 'syypha';
+            if (gameState.phyyphas && gameState.phyyphas.includes(c)) return 'phyypha';
             return 'seepa';
         }
         function drawRadZones() {
@@ -5494,6 +5873,161 @@
             }
         }
 
+        // ════════════════ ATMOSPHERE & LIGHTING ════════════════
+        // Continuous sun model derived from the day clock.
+        function sunInfo() {
+            const hour = getDayTime();                       // 0..24
+            const elev = Math.sin((hour - 6) / 12 * Math.PI); // -1..1 (peak +1 at noon, 0 at 6/18)
+            const azim = Math.max(0, Math.min(1, (hour - 6) / 12)); // 0 dawn → 1 dusk
+            const day = Math.max(0, elev);                   // 0 at/under horizon, 1 at noon
+            return { hour, elev, azim, day };
+        }
+
+        // Drifting ambient motes/plankton/fireflies — refreshed lazily, sized to the world.
+        function ensureAmbient() {
+            if (gameState.ambient && gameState.ambient.length) return;
+            gameState.ambient = [];
+            const n = 80;
+            for (let i = 0; i < n; i++) gameState.ambient.push(spawnAmbientParticle());
+        }
+        function spawnAmbientParticle(reuse) {
+            const x = Math.random() * canvas.width;
+            const y = Math.random() * canvas.height;
+            const marine = isMarine(x, y);
+            const p = reuse || {};
+            p.x = x; p.y = y;
+            p.seed = Math.random() * 1000;
+            p.phase = Math.random() * Math.PI * 2;
+            p.life = 6 + Math.random() * 10;
+            p.marine = marine;
+            p.size = marine ? 0.8 + Math.random() * 1.2 : 0.7 + Math.random() * 1.0;
+            p.vx = (Math.random() - 0.5) * 0.18;
+            p.vy = marine ? -(0.05 + Math.random() * 0.18) : (Math.random() - 0.5) * 0.12;
+            return p;
+        }
+        function updateAmbient() {
+            ensureAmbient();
+            const dt = 1 / 60; // atmosphere drifts in real time, independent of sim speed
+            const t = (gameState.time || 0) / 1000;
+            for (const p of gameState.ambient) {
+                p.life -= dt;
+                p.phase += dt * 1.5;
+                // gentle wander
+                p.x += (p.vx + Math.sin(t * 0.5 + p.seed) * 0.06) * 1.0;
+                p.y += p.vy;
+                // wrap within the world
+                if (p.x < 0) p.x += canvas.width; else if (p.x > canvas.width) p.x -= canvas.width;
+                if (p.y < 0) p.y += canvas.height; else if (p.y > canvas.height) p.y -= canvas.height;
+                if (p.life <= 0) spawnAmbientParticle(p);
+            }
+        }
+        function drawAtmosphere() {
+            if (gameState.settings && gameState.settings.atmosphereEnabled === false) return;
+            const W = canvas.width, H = canvas.height;
+            const sun = sunInfo();
+
+            // ── Continuous ambient colour wash (subtle, layered over the scene) ──
+            // Warm at midday, cool deep-blue at night, smoothly blended.
+            ctx.save();
+            if (sun.day > 0.02) {
+                // soft warm daylight glow, strongest at noon
+                ctx.globalCompositeOperation = 'soft-light';
+                const warm = ctx.createLinearGradient(0, 0, 0, H);
+                const a = 0.10 + sun.day * 0.16;
+                warm.addColorStop(0, `rgba(255,240,205,${a.toFixed(3)})`);
+                warm.addColorStop(1, `rgba(255,210,150,${(a * 0.5).toFixed(3)})`);
+                ctx.fillStyle = warm; ctx.fillRect(0, 0, W, H);
+            }
+            ctx.restore();
+
+            // ── God-rays / sunbeams ──
+            // Strongest at low sun (dawn/dusk), softer near noon, none at night.
+            const up = sun.day;
+            let rayI = up <= 0.01 ? 0 : Math.min(1, up * 7) * (0.35 + 0.45 * (1 - up));
+            if (rayI > 0.01) {
+                ctx.save();
+                ctx.globalCompositeOperation = 'lighter';
+                const t = (gameState.time || 0) / 1000;
+                // beams tilt with the sun's path: from upper-left at dawn → vertical → upper-right at dusk
+                const tilt = (sun.azim - 0.5) * 0.95;
+                // warm tint shifts orange (low sun) → pale gold (high sun)
+                const goldR = 255, goldG = Math.round(200 + up * 45), goldB = Math.round(110 + up * 90);
+                const shafts = 11;
+                const span = W * 1.5;
+                for (let i = 0; i < shafts; i++) {
+                    const f = i / (shafts - 1);
+                    const baseX = -W * 0.25 + f * span;
+                    const shimmer = Math.sin(t * 0.6 + i * 1.3) * 0.5 + 0.5; // 0..1 slow flicker
+                    const w = (28 + 26 * Math.sin(i * 2.1)) * (0.6 + 0.4 * shimmer);
+                    const alpha = rayI * (0.05 + 0.06 * shimmer);
+                    ctx.save();
+                    ctx.translate(baseX, 0);
+                    ctx.rotate(tilt);
+                    const grad = ctx.createLinearGradient(0, 0, 0, H * 1.4);
+                    grad.addColorStop(0, `rgba(${goldR},${goldG},${goldB},${alpha.toFixed(3)})`);
+                    grad.addColorStop(0.6, `rgba(${goldR},${goldG},${goldB},${(alpha * 0.4).toFixed(3)})`);
+                    grad.addColorStop(1, 'rgba(255,230,180,0)');
+                    ctx.fillStyle = grad;
+                    ctx.beginPath();
+                    ctx.moveTo(-w * 0.5, -H * 0.2);
+                    ctx.lineTo(w * 0.5, -H * 0.2);
+                    ctx.lineTo(w * 1.3, H * 1.4);
+                    ctx.lineTo(-w * 1.3, H * 1.4);
+                    ctx.closePath(); ctx.fill();
+                    ctx.restore();
+                }
+                ctx.restore();
+            }
+
+            // ── Ambient particles (dust motes / plankton / fireflies) ──
+            updateAmbient();
+            const night = sun.elev < -0.08;
+            const duskish = sun.elev < 0.12;
+            ctx.save();
+            for (const p of gameState.ambient) {
+                if (p.marine) {
+                    // drifting plankton — faint pale-cyan specks, gently glowing in the light
+                    const tw = 0.4 + 0.4 * (Math.sin(p.phase) * 0.5 + 0.5);
+                    ctx.globalAlpha = (0.18 + sun.day * 0.22) * tw;
+                    ctx.fillStyle = '#bfefff';
+                    ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
+                } else if (duskish) {
+                    // fireflies — glowing, blinking, only at dusk/night on land
+                    const blink = Math.pow(Math.sin(p.phase * 0.8) * 0.5 + 0.5, 2);
+                    const a = blink * (night ? 0.9 : 0.5 * (1 - sun.elev / 0.12));
+                    if (a > 0.02) {
+                        ctx.globalCompositeOperation = 'lighter';
+                        const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, 6 + p.size * 2);
+                        g.addColorStop(0, `rgba(200,255,140,${(a).toFixed(3)})`);
+                        g.addColorStop(1, 'rgba(160,220,80,0)');
+                        ctx.fillStyle = g;
+                        ctx.beginPath(); ctx.arc(p.x, p.y, 6 + p.size * 2, 0, Math.PI * 2); ctx.fill();
+                        ctx.globalCompositeOperation = 'source-over';
+                    }
+                } else {
+                    // dust motes / pollen — only visible in daylight, drifting in the sun
+                    ctx.globalAlpha = 0.10 + sun.day * 0.22;
+                    ctx.fillStyle = '#fff6dc';
+                    ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
+                }
+            }
+            ctx.globalAlpha = 1;
+            ctx.restore();
+        }
+
+        // Soft screen-space vignette for cinematic depth (drawn after camera restore).
+        function drawVignette() {
+            if (gameState.settings && gameState.settings.atmosphereEnabled === false) return;
+            const W = canvas.width, H = canvas.height;
+            const sun = sunInfo();
+            const strength = 0.28 + (1 - sun.day) * 0.18; // darker edges at night
+            const g = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.32, W / 2, H / 2, Math.max(W, H) * 0.72);
+            g.addColorStop(0, 'rgba(0,0,0,0)');
+            g.addColorStop(1, `rgba(4,8,16,${strength.toFixed(3)})`);
+            ctx.fillStyle = g;
+            ctx.fillRect(0, 0, W, H);
+        }
+
         // ---------- Weather (snow in winter, rain in autumn) ----------
         function updateWeather(deltaTime) {
             const season = getSeasonName();
@@ -5593,7 +6127,8 @@
                 sy: (gameState.syybas || []).length,
                 sb: (gameState.siebas || []).length,
                 sp: (gameState.soopas || []).length,
-                jf: (gameState.syyphas || []).length
+                jf: (gameState.syyphas || []).length,
+                ph: (gameState.phyyphas || []).length
             });
             if (gameState.popHistory.length > 240) gameState.popHistory.shift();
 
@@ -5636,6 +6171,7 @@
             gameState.geneHistory.sieba.push(sampleGenes(gameState.siebas || [], 'sieba'));
             gameState.geneHistory.soopa.push(sampleGenes(gameState.soopas || [], 'soopa'));
             gameState.geneHistory.syypha.push(sampleGenes(gameState.syyphas || [], 'syypha'));
+            gameState.geneHistory.phyypha.push(sampleGenes(gameState.phyyphas || [], 'phyypha'));
             for (const sp in gameState.geneHistory) {
                 if (gameState.geneHistory[sp].length > 240) gameState.geneHistory[sp].shift();
             }
@@ -5678,7 +6214,7 @@
             }
 
             let max = 10;
-            for (const h of hist) max = Math.max(max, h.se, h.su, h.si, h.fi || 0, h.sa || 0, h.sy || 0, h.sb || 0, h.sp || 0, h.jf || 0);
+            for (const h of hist) max = Math.max(max, h.se, h.su, h.si, h.fi || 0, h.sa || 0, h.sy || 0, h.sb || 0, h.sp || 0, h.jf || 0, h.ph || 0);
 
             // grid lines
             graphCtx.strokeStyle = 'rgba(255,255,255,0.07)';
@@ -5699,7 +6235,8 @@
                 { key: 'sy', color: '#8fae9c', fill: 'rgba(143,174,156,0.10)' },
                 { key: 'sb', color: '#19e0d8', fill: 'rgba(25,224,216,0.10)' },
                 { key: 'sp', color: '#a8895f', fill: 'rgba(168,137,95,0.10)' },
-                { key: 'jf', color: '#8fd8ff', fill: 'rgba(143,216,255,0.10)' }
+                { key: 'jf', color: '#8fd8ff', fill: 'rgba(143,216,255,0.10)' },
+                { key: 'ph', color: '#7ec9a8', fill: 'rgba(126,201,168,0.10)' }
             ];
 
             // Helper: compute smoothed point positions
@@ -5740,6 +6277,199 @@
             graphCtx.fillStyle = '#888';
             graphCtx.font = '9px Arial';
             graphCtx.fillText('max ' + max, 4, 10);
+        }
+
+        // ── Live interactive food-web diagram ──
+        // Fixed node layout (normalized 0..1) arranged loosely by trophic level (prey low, predators high)
+        const FW_LAYOUT = {
+            seepa:  { x: 0.16, y: 0.80 }, soopa:  { x: 0.40, y: 0.90 },
+            fish:   { x: 0.62, y: 0.82 }, phyypha:{ x: 0.86, y: 0.90 },
+            syyba:  { x: 0.28, y: 0.54 }, saaba:  { x: 0.74, y: 0.56 },
+            syypha: { x: 0.93, y: 0.40 }, suuba:  { x: 0.15, y: 0.30 },
+            siiba:  { x: 0.40, y: 0.18 }, sieba:  { x: 0.64, y: 0.22 }
+        };
+        function fwPopOf(key) {
+            const arr = gameState[SPECIES_ARRAY[key]];
+            return arr ? arr.length : 0;
+        }
+        function fwNodePositions() {
+            const cv = document.getElementById('foodWebCanvas');
+            const W = cv.width, H = cv.height, pad = 26;
+            const pos = {};
+            for (const k in FW_LAYOUT) {
+                pos[k] = { x: pad + FW_LAYOUT[k].x * (W - pad * 2), y: pad + FW_LAYOUT[k].y * (H - pad * 2) };
+            }
+            return pos;
+        }
+        function drawFoodWeb() {
+            const cv = document.getElementById('foodWebCanvas');
+            if (!cv) return;
+            const fctx = cv.getContext('2d');
+            const W = cv.width, H = cv.height;
+            fctx.clearRect(0, 0, W, H);
+            fctx.fillStyle = '#161616'; fctx.fillRect(0, 0, W, H);
+            const pos = fwNodePositions();
+            const sel = gameState.fwSelected;
+            const flow = gameState.predFlow || {};
+
+            // ── Edges (predator → prey) ──
+            for (const [pred, prey] of FOOD_WEB) {
+                const a = pos[pred], b = pos[prey];
+                if (!a || !b) continue;
+                const disabled = linkDisabled(pred, prey);
+                const intensity = Math.min(1, (flow[pred + '>' + prey] || 0));
+                const highlight = sel && (sel === pred || sel === prey);
+                // base faint line; glows with predation intensity
+                let alpha = disabled ? 0.10 : (0.16 + intensity * 0.7 + (highlight ? 0.15 : 0));
+                let width = disabled ? 1 : (1 + intensity * 3.5 + (highlight ? 0.8 : 0));
+                fctx.strokeStyle = disabled ? 'rgba(150,150,150,0.4)' : `rgba(${highlight ? '255,230,150' : '210,225,240'},${alpha})`;
+                if (disabled) fctx.setLineDash([3, 3]); else fctx.setLineDash([]);
+                fctx.lineWidth = width;
+                // slight curve so opposing arrows don't overlap
+                const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+                const dx = b.x - a.x, dy = b.y - a.y, len = Math.hypot(dx, dy) || 1;
+                const nx = -dy / len, ny = dx / len, curve = 10;
+                const cx = mx + nx * curve, cy = my + ny * curve;
+                fctx.beginPath(); fctx.moveTo(a.x, a.y); fctx.quadraticCurveTo(cx, cy, b.x, b.y); fctx.stroke();
+                // arrowhead near prey
+                if (!disabled) {
+                    const t = 0.82, ix = (1 - t) * (1 - t) * a.x + 2 * (1 - t) * t * cx + t * t * b.x;
+                    const iy = (1 - t) * (1 - t) * a.y + 2 * (1 - t) * t * cy + t * t * b.y;
+                    const ang = Math.atan2(b.y - iy, b.x - ix);
+                    const ah = 5 + intensity * 3;
+                    fctx.fillStyle = `rgba(${highlight ? '255,230,150' : '210,225,240'},${0.3 + intensity * 0.7})`;
+                    fctx.beginPath();
+                    fctx.moveTo(ix + Math.cos(ang) * ah, iy + Math.sin(ang) * ah);
+                    fctx.lineTo(ix + Math.cos(ang + 2.5) * ah, iy + Math.sin(ang + 2.5) * ah);
+                    fctx.lineTo(ix + Math.cos(ang - 2.5) * ah, iy + Math.sin(ang - 2.5) * ah);
+                    fctx.closePath(); fctx.fill();
+                }
+            }
+            fctx.setLineDash([]);
+
+            // ── Nodes ──
+            for (const k in pos) {
+                const p = pos[k], popN = fwPopOf(k);
+                const r = 5 + Math.min(16, Math.sqrt(popN) * 1.7);
+                const frozen = isFrozen(k);
+                const isSel = sel === k;
+                if (isSel) { fctx.fillStyle = 'rgba(255,230,150,0.25)'; fctx.beginPath(); fctx.arc(p.x, p.y, r + 6, 0, Math.PI * 2); fctx.fill(); }
+                fctx.fillStyle = SPECIES_COLOR[k] || '#aaa';
+                fctx.globalAlpha = popN === 0 ? 0.25 : 1;
+                fctx.beginPath(); fctx.arc(p.x, p.y, r, 0, Math.PI * 2); fctx.fill();
+                fctx.globalAlpha = 1;
+                fctx.lineWidth = isSel ? 2.5 : 1.2;
+                fctx.strokeStyle = isSel ? '#ffe66a' : 'rgba(0,0,0,0.5)';
+                fctx.stroke();
+                if (frozen) { // snowflake ring for frozen species
+                    fctx.strokeStyle = '#bfe6ff'; fctx.lineWidth = 2; fctx.setLineDash([2, 3]);
+                    fctx.beginPath(); fctx.arc(p.x, p.y, r + 3, 0, Math.PI * 2); fctx.stroke(); fctx.setLineDash([]);
+                }
+                fctx.fillStyle = '#fff'; fctx.font = 'bold 9px Arial'; fctx.textAlign = 'center';
+                fctx.fillText(SPECIES_LABEL[k] || k, p.x, p.y - r - 3);
+                fctx.fillStyle = 'rgba(255,255,255,0.65)'; fctx.font = '8px Arial';
+                fctx.fillText(popN, p.x, p.y + 3);
+            }
+            fctx.textAlign = 'left';
+        }
+
+        function fwSelect(key) {
+            gameState.fwSelected = key;
+            const ctrl = document.getElementById('foodWebControls');
+            const hint = document.getElementById('foodWebHint');
+            if (!key) { ctrl.style.display = 'none'; hint.style.display = 'block'; drawFoodWeb(); return; }
+            ctrl.style.display = 'block'; hint.style.display = 'none';
+            document.getElementById('fwSelName').textContent = SPECIES_LABEL[key] + '  —  ' + fwPopOf(key) + ' alive';
+            const eats = FOOD_WEB.filter(e => e[0] === key).map(e => SPECIES_LABEL[e[1]]);
+            const eatenBy = FOOD_WEB.filter(e => e[1] === key).map(e => SPECIES_LABEL[e[0]]);
+            document.getElementById('fwSelInfo').innerHTML =
+                (eats.length ? 'Eats: ' + eats.join(', ') : 'Eats: plants / plankton') + '<br>' +
+                (eatenBy.length ? 'Eaten by: ' + eatenBy.join(', ') : 'Eaten by: nothing') +
+                (isFrozen(key) ? '<br><span style="color:#bfe6ff">❄ frozen (paused)</span>' : '');
+            document.getElementById('fwFreezeBtn').textContent = isFrozen(key) ? '▶ Unfreeze' : '❄ Freeze';
+            drawFoodWeb();
+        }
+
+        function fwSpawnOne(key) {
+            const Cls = SPECIES_CLASS[key]();
+            const marine = (key === 'fish' || key === 'saaba' || key === 'syypha' || key === 'phyypha');
+            const amphi = (key === 'syyba');
+            for (let tries = 0; tries < 60; tries++) {
+                const x = randomBetween(20, canvas.width - 20), y = randomBetween(20, canvas.height - 20);
+                const water = isMarine(x, y);
+                if (marine && !water) continue;
+                if (!marine && !amphi && water) continue;
+                gameState[SPECIES_ARRAY[key]].push(new Cls(x, y));
+                return true;
+            }
+            return false;
+        }
+        function fwBoost(key, n) {
+            let added = 0;
+            for (let i = 0; i < n; i++) if (fwSpawnOne(key)) added++;
+            logEvent('spawn', 'Boosted ' + SPECIES_LABEL[key] + ' (+' + added + ')');
+            updateStats(); fwSelect(key);
+        }
+        function fwCull(key) {
+            const arr = gameState[SPECIES_ARRAY[key]];
+            if (!arr || !arr.length) return;
+            const removeN = Math.ceil(arr.length / 2);
+            arr.splice(0, removeN);
+            logEvent('death', 'Culled ' + removeN + ' ' + SPECIES_LABEL[key]);
+            updateStats(); fwSelect(key);
+        }
+        function fwToggleFreeze(key) {
+            const c = ecoCtrl();
+            c.frozen[key] = !c.frozen[key];
+            fwSelect(key);
+        }
+
+        function setupFoodWebUI() {
+            const cv = document.getElementById('foodWebCanvas');
+            if (!cv) return;
+            cv.addEventListener('click', (e) => {
+                const rect = cv.getBoundingClientRect();
+                const sx = (e.clientX - rect.left) * (cv.width / rect.width);
+                const sy = (e.clientY - rect.top) * (cv.height / rect.height);
+                const pos = fwNodePositions();
+                let hit = null, hd = 1e9;
+                for (const k in pos) {
+                    const d = Math.hypot(pos[k].x - sx, pos[k].y - sy);
+                    if (d < hd) { hd = d; hit = k; }
+                }
+                // also allow clicking an arrow to toggle that link
+                if (hd > 22) {
+                    const edge = fwEdgeAt(sx, sy, pos);
+                    if (edge) {
+                        const c = ecoCtrl(), kk = edge[0] + '>' + edge[1];
+                        c.disabledLinks[kk] = !c.disabledLinks[kk];
+                        logEvent('info', (c.disabledLinks[kk] ? 'Disabled' : 'Restored') + ' link: ' + SPECIES_LABEL[edge[0]] + ' → ' + SPECIES_LABEL[edge[1]]);
+                        drawFoodWeb();
+                        return;
+                    }
+                }
+                fwSelect(hd < 24 ? hit : null);
+            });
+            const bind = (id, fn) => { const el = document.getElementById(id); if (el) el.addEventListener('click', fn); };
+            bind('fwBoostBtn', () => { if (gameState.fwSelected) fwBoost(gameState.fwSelected, 8); });
+            bind('fwCullBtn', () => { if (gameState.fwSelected) fwCull(gameState.fwSelected); });
+            bind('fwFreezeBtn', () => { if (gameState.fwSelected) fwToggleFreeze(gameState.fwSelected); });
+            bind('fwDeselectBtn', () => fwSelect(null));
+        }
+        // Find a food-web edge near a clicked point (for link toggling)
+        function fwEdgeAt(sx, sy, pos) {
+            let best = null, bd = 9;
+            for (const [pred, prey] of FOOD_WEB) {
+                const a = pos[pred], b = pos[prey];
+                if (!a || !b) continue;
+                // sample along the straight line (curve is small); distance to segment
+                const dx = b.x - a.x, dy = b.y - a.y, L2 = dx * dx + dy * dy || 1;
+                let t = ((sx - a.x) * dx + (sy - a.y) * dy) / L2; t = Math.max(0, Math.min(1, t));
+                const px = a.x + t * dx, py = a.y + t * dy;
+                const d = Math.hypot(sx - px, sy - py);
+                if (d < bd) { bd = d; best = [pred, prey]; }
+            }
+            return best;
         }
 
         // Colour for each gene line (shared by graph + legend)
@@ -6770,12 +7500,13 @@
                         this.vx = lerp(this.vx, tx, 0.35);
                         this.vy = lerp(this.vy, ty, 0.35);
 
-                        if (d < this.radius + target.radius + 6 && this.eatCooldown <= 0) {
+                        if (d < this.radius + target.radius + 6 && this.eatCooldown <= 0 && !linkDisabled('suuba', 'seepa')) {
                             const idx = gameState.seepas.indexOf(target);
                             if (idx !== -1) {
                                 spawnParticles(target.x, target.y, '#ff5a5a', 12, 2.2);
                                 if (gameState.inspected && gameState.inspected.ref === target) gameState.inspected = null;
                                 recordDeath('seepa', target, 'hunted');
+                                notePredation('suuba', 'seepa');
                                 gameState.seepas.splice(idx, 1);
                                 this.energy = Math.min(this.maxStats, this.energy + 120);
                                 this.hunger = Math.max(0, this.hunger - 80);
@@ -7190,6 +7921,19 @@
                     }
                 }
             }
+            if ((gameState.phyyphas || []).length < 3 && gameState.settings.phyyphaSpawn > 0) {
+                logEvent('rescue', 'Drifting statoblasts settle into a new Phyypha colony');
+                let tries = 0, added = 0;
+                while (added < 4 && tries < 200) {
+                    tries++;
+                    const x = randomBetween(20, canvas.width - 20);
+                    const y = randomBetween(20, canvas.height - 20);
+                    if (isMarine(x, y)) {
+                        gameState.phyyphas.push(new Phyypha(x, y));
+                        spawnParticles(x, y, '#bfe8d8', 5, 1.2); added++;
+                    }
+                }
+            }
         }
 
         // ---------- Main update ----------
@@ -7198,6 +7942,8 @@
 
             gameState.time += deltaTime;
             gameState.flockingActive = isFlockingTime();
+            decayPredFlow(deltaTime / 1000);
+            updateCorpses(deltaTime / 1000);
 
             const regrowMult = seasonRegrowMultiplier();
             const season = getSeasonName();
@@ -7322,7 +8068,7 @@
 
             for (let i = gameState.seepas.length - 1; i >= 0; i--) {
                 const seepa = gameState.seepas[i];
-                seepa.update(deltaTime, gameState);
+                if (!isFrozen('seepa')) seepa.update(deltaTime, gameState);
                 if (!seepa.isAlive()) {
                     recordDeath('seepa', seepa); spawnDeathEffect(seepa.x, seepa.y, '#9fb3c4'); Audio2.fx('death');
                     if (gameState.inspected && gameState.inspected.ref === seepa) gameState.inspected = null;
@@ -7333,7 +8079,7 @@
             if (gameState.siibas) {
                 for (let i = gameState.siibas.length - 1; i >= 0; i--) {
                     const siiba = gameState.siibas[i];
-                    siiba.update(deltaTime, gameState);
+                    if (!isFrozen('siiba')) siiba.update(deltaTime, gameState);
                     if (!siiba.isAlive()) {
                         recordDeath('siiba', siiba); spawnDeathEffect(siiba.x, siiba.y, '#c9a3ad'); Audio2.fx('death');
                         if (gameState.inspected && gameState.inspected.ref === siiba) gameState.inspected = null;
@@ -7345,7 +8091,7 @@
             if (gameState.suubas) {
                 for (let i = gameState.suubas.length - 1; i >= 0; i--) {
                     const suuba = gameState.suubas[i];
-                    suuba.update(deltaTime, gameState);
+                    if (!isFrozen('suuba')) suuba.update(deltaTime, gameState);
                     if (!suuba.isAlive()) {
                         recordDeath('suuba', suuba); spawnDeathEffect(suuba.x, suuba.y, '#9a7bb0'); Audio2.fx('death');
                         if (gameState.inspected && gameState.inspected.ref === suuba) gameState.inspected = null;
@@ -7368,7 +8114,7 @@
             if (gameState.fish) {
                 for (let i = gameState.fish.length - 1; i >= 0; i--) {
                     const fish = gameState.fish[i];
-                    fish.update(deltaTime, gameState);
+                    if (!isFrozen('fish')) fish.update(deltaTime, gameState);
                     if (!fish.isAlive()) {
                         recordDeath('fish', fish); spawnDeathEffect(fish.x, fish.y, '#c89a6a'); Audio2.fx('death');
                         if (gameState.inspected && gameState.inspected.ref === fish) gameState.inspected = null;
@@ -7381,7 +8127,7 @@
             if (gameState.saabas) {
                 for (let i = gameState.saabas.length - 1; i >= 0; i--) {
                     const saaba = gameState.saabas[i];
-                    saaba.update(deltaTime, gameState);
+                    if (!isFrozen('saaba')) saaba.update(deltaTime, gameState);
                     if (!saaba.isAlive()) {
                         recordDeath('saaba', saaba); spawnDeathEffect(saaba.x, saaba.y, '#7fa0b8'); Audio2.fx('death');
                         if (gameState.inspected && gameState.inspected.ref === saaba) gameState.inspected = null;
@@ -7394,7 +8140,7 @@
             if (gameState.syybas) {
                 for (let i = gameState.syybas.length - 1; i >= 0; i--) {
                     const syyba = gameState.syybas[i];
-                    syyba.update(deltaTime, gameState);
+                    if (!isFrozen('syyba')) syyba.update(deltaTime, gameState);
                     if (!syyba.isAlive()) {
                         recordDeath('syyba', syyba); spawnDeathEffect(syyba.x, syyba.y, '#a89070'); Audio2.fx('death');
                         if (gameState.inspected && gameState.inspected.ref === syyba) gameState.inspected = null;
@@ -7407,7 +8153,7 @@
             if (gameState.siebas) {
                 for (let i = gameState.siebas.length - 1; i >= 0; i--) {
                     const sieba = gameState.siebas[i];
-                    sieba.update(deltaTime, gameState);
+                    if (!isFrozen('sieba')) sieba.update(deltaTime, gameState);
                     if (!sieba.isAlive()) {
                         recordDeath('sieba', sieba); spawnDeathEffect(sieba.x, sieba.y, '#5fb8e0'); Audio2.fx('death');
                         if (gameState.inspected && gameState.inspected.ref === sieba) gameState.inspected = null;
@@ -7426,9 +8172,11 @@
                     if (!sb.landed) continue;
                     for (const pred of groundPreds) {
                         if ((pred.hunger || 0) < 58) continue; // only a starving predator manages it
+                        if (linkDisabled(speciesOfCreature(pred), 'sieba')) continue;
                         if (distanceSq(pred.x, pred.y, sb.x, sb.y) < (pred.radius + sb.radius + 8) ** 2) {
                             if (gameState.inspected && gameState.inspected.ref === sb) gameState.inspected = null;
                             recordDeath('sieba', sb, 'hunted');
+                            notePredation(speciesOfCreature(pred), 'sieba');
                             spawnDeathEffect(sb.x, sb.y, '#5fb8e0'); Audio2.fx('hunt');
                             pred.hunger = Math.max(0, pred.hunger - 55);
                             if (pred.energy !== undefined) pred.energy = Math.min(pred.maxStats * 1.5, pred.energy + 60);
@@ -7443,7 +8191,7 @@
             if (gameState.soopas) {
                 for (let i = gameState.soopas.length - 1; i >= 0; i--) {
                     const soopa = gameState.soopas[i];
-                    soopa.update(deltaTime, gameState);
+                    if (!isFrozen('soopa')) soopa.update(deltaTime, gameState);
                     if (!soopa.isAlive()) {
                         recordDeath('soopa', soopa); spawnDeathEffect(soopa.x, soopa.y, '#a8895f'); Audio2.fx('death');
                         if (gameState.inspected && gameState.inspected.ref === soopa) gameState.inspected = null;
@@ -7462,9 +8210,11 @@
                     if (sp.hidden || sp.submerge > 0.4) continue; // safely underground
                     for (const pred of groundPreds2) {
                         if ((pred.hunger || 0) < 45) continue;
+                        if (linkDisabled(speciesOfCreature(pred), 'soopa')) continue;
                         if (distanceSq(pred.x, pred.y, sp.x, sp.y) < (pred.radius + sp.radius + 8) ** 2) {
                             if (gameState.inspected && gameState.inspected.ref === sp) gameState.inspected = null;
                             recordDeath('soopa', sp, 'hunted');
+                            notePredation(speciesOfCreature(pred), 'soopa');
                             spawnDeathEffect(sp.x, sp.y, '#a8895f'); Audio2.fx('hunt');
                             pred.hunger = Math.max(0, pred.hunger - 50);
                             if (pred.energy !== undefined) pred.energy = Math.min(pred.maxStats * 1.5, pred.energy + 55);
@@ -7482,7 +8232,7 @@
             if (gameState.syyphas) {
                 for (let i = gameState.syyphas.length - 1; i >= 0; i--) {
                     const jf = gameState.syyphas[i];
-                    jf.update(deltaTime, gameState);
+                    if (!isFrozen('syypha')) jf.update(deltaTime, gameState);
                     if (!jf.isAlive()) {
                         recordDeath('syypha', jf); spawnDeathEffect(jf.x, jf.y, '#8fd8ff'); Audio2.fx('death');
                         if (gameState.inspected && gameState.inspected.ref === jf) gameState.inspected = null;
@@ -7498,8 +8248,9 @@
                     let nibbled = false;
                     for (const f of gameState.fish) {
                         if ((f.hunger || 0) < 50) continue; // only quite-hungry fish bother
-                        if (distanceSq(f.x, f.y, jf.x, jf.y) < (jf.radius + (f.radius || 5) + 6) ** 2) {
+                        if (distanceSq(f.x, f.y, jf.x, jf.y) < (jf.radius + (f.radius || 5) + 6) ** 2 && !linkDisabled('fish', 'syypha')) {
                             jf.health -= 4.5 * (deltaTime / 1000); // slow attrition; a mob is needed
+                            notePredation('fish', 'syypha');
                             f.hunger = Math.max(0, f.hunger - 9 * (deltaTime / 1000));
                             f.lastEat = gameState.time;
                             nibbled = true;
@@ -7511,6 +8262,47 @@
                         recordDeath('syypha', jf, 'hunted');
                         spawnDeathEffect(jf.x, jf.y, '#8fd8ff'); Audio2.fx('hunt');
                         gameState.syyphas.splice(i, 1);
+                    }
+                }
+            }
+
+            // Phyyphas (drifting filter-feeding colonies)
+            if (gameState.phyyphas) {
+                for (let i = gameState.phyyphas.length - 1; i >= 0; i--) {
+                    const ph = gameState.phyyphas[i];
+                    if (!isFrozen('phyypha')) ph.update(deltaTime, gameState);
+                    if (!ph.isAlive()) {
+                        recordDeath('phyypha', ph); spawnDeathEffect(ph.x, ph.y, '#bfe8d8'); Audio2.fx('death');
+                        if (gameState.inspected && gameState.inspected.ref === ph) gameState.inspected = null;
+                        gameState.phyyphas.splice(i, 1);
+                    }
+                }
+            }
+
+            // Fish & Saabas graze on the colonies (eaten); the colony regrows/buds to replace
+            if (gameState.phyyphas && gameState.phyyphas.length && gameState.settings.predatorsEnabled) {
+                const grazers = [];
+                if (gameState.fish) for (const f of gameState.fish) grazers.push({ c: f, bite: 3.5, feed: 13, thr: 52 });
+                if (gameState.saabas) for (const s of gameState.saabas) grazers.push({ c: s, bite: 8, feed: 26, thr: 48 });
+                for (let i = gameState.phyyphas.length - 1; i >= 0; i--) {
+                    const ph = gameState.phyyphas[i];
+                    let bitten = false;
+                    for (const g of grazers) {
+                        if ((g.c.hunger || 0) < g.thr || linkDisabled(speciesOfCreature(g.c), 'phyypha')) continue;
+                        if (distanceSq(g.c.x, g.c.y, ph.x, ph.y) < (ph.radius + (g.c.radius || 6) + 6) ** 2) {
+                            ph.health -= g.bite * (deltaTime / 1000);
+                            notePredation(speciesOfCreature(g.c), 'phyypha');
+                            g.c.hunger = Math.max(0, g.c.hunger - g.feed * (deltaTime / 1000));
+                            g.c.lastEat = gameState.time;
+                            bitten = true;
+                        }
+                    }
+                    if (bitten && Math.random() < 0.18) spawnParticles(ph.x, ph.y, '#bfe8d8', 3, 1.0);
+                    if (ph.health <= 0) {
+                        if (gameState.inspected && gameState.inspected.ref === ph) gameState.inspected = null;
+                        recordDeath('phyypha', ph, 'hunted');
+                        spawnDeathEffect(ph.x, ph.y, '#bfe8d8'); Audio2.fx('hunt');
+                        gameState.phyyphas.splice(i, 1);
                     }
                 }
             }
@@ -7560,25 +8352,30 @@
                 let eaten = false;
                 // Siibas catch fish at the shore
                 for (const s of gameState.siibas) {
+                    if (linkDisabled('siiba', 'fish')) break;
                     const reach = f.radius + s.radius + 6;
                     if (distanceSq(f.x, f.y, s.x, s.y) < reach * reach) {
                         s.hunger = Math.max(0, s.hunger - 55);
                         s.energy = Math.min(s.maxStats, s.energy + 45);
+                        notePredation('siiba', 'fish');
                         eaten = true; break;
                     }
                 }
                 // Suubas hunt fish too
                 if (!eaten) for (const s of gameState.suubas) {
+                    if (linkDisabled('suuba', 'fish')) break;
                     const reach = f.radius + s.radius + 6;
                     if (distanceSq(f.x, f.y, s.x, s.y) < reach * reach) {
                         s.hunger = Math.max(0, s.hunger - 60);
                         s.energy = Math.min(s.maxStats, s.energy + 50);
+                        notePredation('suuba', 'fish');
                         eaten = true; break;
                     }
                 }
                 if (eaten) {
                     spawnParticles(f.x, f.y, '#ff9b33', 8, 1.6);
                     if (gameState.inspected && gameState.inspected.ref === f) gameState.inspected = null;
+                    recordDeath('fish', f, 'hunted');
                     gameState.fish.splice(i, 1);
                 }
             }
@@ -7984,6 +8781,8 @@
             drawSpeedBlurs();
             drawAnimatedPondRipples();
             drawCorals();
+            drawCorpses();
+            if (gameState.phyyphas) for (const ph of gameState.phyyphas) ph.draw();
             if (gameState.fish) for (const fish of gameState.fish) fish.draw();
             if (gameState.saabas) for (const saaba of gameState.saabas) saaba.draw();
             if (gameState.syyphas) for (const jf of gameState.syyphas) jf.draw();
@@ -8001,6 +8800,7 @@
             if (gameState.soopas) for (const soopa of gameState.soopas) soopa.draw();
             if (gameState.siebas) for (const sieba of gameState.siebas) sieba.draw();
 
+            drawAtmosphere();
             drawParticles();
             drawWeather();
             drawSeasonAtmosphere();
@@ -8008,7 +8808,7 @@
             drawGodModeEffects();
             // Sickness markers — a sickly green haze + spots over infected creatures
             if (gameState.settings.diseaseEnabled) {
-                const groups = [gameState.seepas, gameState.suubas, gameState.siibas, gameState.fish, gameState.saabas, gameState.syybas, gameState.siebas, gameState.soopas, gameState.syyphas];
+                const groups = [gameState.seepas, gameState.suubas, gameState.siibas, gameState.fish, gameState.saabas, gameState.syybas, gameState.siebas, gameState.soopas, gameState.syyphas, gameState.phyyphas];
                 for (const list of groups) {
                     if (!list) continue;
                     for (const c of list) {
@@ -8085,6 +8885,8 @@
             // ── Back to screen space for HUD & minimap ──
             ctx.restore();
 
+            drawVignette();
+
             ctx.fillStyle = '#fff';
             ctx.font = '12px Arial';
             ctx.fillText(`Time: ${(gameState.time / 1000).toFixed(1)}s`, 10, 20);
@@ -8097,6 +8899,7 @@
             ctx.fillText(`Siebas: ${gameState.siebas ? gameState.siebas.length : 0}`, 10, 125);
             ctx.fillText(`Soopas: ${gameState.soopas ? gameState.soopas.length : 0}`, 10, 140);
             ctx.fillText(`Syyphas: ${gameState.syyphas ? gameState.syyphas.length : 0}`, 10, 155);
+            ctx.fillText(`Phyyphas: ${gameState.phyyphas ? gameState.phyyphas.length : 0}`, 10, 170);
 
             if (gameState.paused) {
                 ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
@@ -8161,6 +8964,7 @@
             render();
             drawClockWidgets();
             drawGraph();
+            drawFoodWeb();
             drawGeneGraph();
             drawNsGraph();
             drawDiseaseGraph();
@@ -8232,6 +9036,7 @@
             document.getElementById('siebaCount').textContent = (gameState.siebas || []).length;
             document.getElementById('soopaCount').textContent = (gameState.soopas || []).length;
             document.getElementById('syyphaCount').textContent = (gameState.syyphas || []).length;
+            document.getElementById('phyyphaCount').textContent = (gameState.phyyphas || []).length;
             document.getElementById('simTime').textContent = (gameState.time / 1000).toFixed(1) + 's';
             document.getElementById('dayClock').textContent = formatClock(getDayTime());
             document.getElementById('dayPhase').textContent = getDayPhase();
@@ -8248,6 +9053,7 @@
             document.getElementById('genSieba').textContent = maxGenFor(gameState.siebas || []);
             document.getElementById('genSoopa').textContent = maxGenFor(gameState.soopas || []);
             document.getElementById('genSyypha').textContent = maxGenFor(gameState.syyphas || []);
+            document.getElementById('genPhyypha').textContent = maxGenFor(gameState.phyyphas || []);
 
             // Keep legacy genLabel in sync (used by older code paths)
             let maxGen = Math.max(maxGenFor(gameState.seepas), maxGenFor(gameState.suubas), maxGenFor(gameState.siibas || []), maxGenFor(gameState.fish || []));
@@ -8576,10 +9382,12 @@
             setVal('siebaPop', s.siebaSpawn); setLbl('siebaPopLabel', s.siebaSpawn);
             setVal('soopaPop', s.soopaSpawn); setLbl('soopaPopLabel', s.soopaSpawn);
             setVal('syyphaPop', s.syyphaSpawn); setLbl('syyphaPopLabel', s.syyphaSpawn);
+            setVal('phyyphaPop', s.phyyphaSpawn); setLbl('phyyphaPopLabel', s.phyyphaSpawn);
             const dt = document.getElementById('diseaseToggle'); if (dt) dt.checked = s.diseaseEnabled;
             const st = document.getElementById('structuresToggle'); if (st) st.checked = s.structuresEnabled;
             const pt = document.getElementById('predToggle'); if (pt) pt.checked = s.predatorsEnabled;
             const awt = document.getElementById('autoWeatherToggle'); if (awt) awt.checked = gameState.autoWeather;
+            const att = document.getElementById('atmosphereToggle'); if (att) att.checked = gameState.settings.atmosphereEnabled !== false;
         }
 
         document.getElementById('scenarioSelect').addEventListener('change', (e) => {
@@ -8706,6 +9514,9 @@
         document.getElementById('autoWeatherToggle').addEventListener('change', (e) => {
             gameState.autoWeather = e.target.checked;
         });
+        document.getElementById('atmosphereToggle').addEventListener('change', (e) => {
+            gameState.settings.atmosphereEnabled = e.target.checked;
+        });
         document.querySelectorAll('.weather-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 Audio2.start();
@@ -8720,7 +9531,7 @@
             gameState.settings.diseaseEnabled = e.target.checked;
             if (!e.target.checked) {
                 // Clear all active infections when disease is switched off
-                const all = [gameState.seepas, gameState.suubas, gameState.siibas, gameState.fish, gameState.saabas, gameState.syybas, gameState.siebas, gameState.soopas, gameState.syyphas];
+                const all = [gameState.seepas, gameState.suubas, gameState.siibas, gameState.fish, gameState.saabas, gameState.syybas, gameState.siebas, gameState.soopas, gameState.syyphas, gameState.phyyphas];
                 for (const list of all) if (list) for (const c of list) c.disease = 0;
             } else {
                 logEvent('disease', 'Disease enabled — an outbreak may begin');
@@ -8735,6 +9546,7 @@
                 gameState.settings[key] = parseInt(slider.value, 10);
             });
         }
+        setupFoodWebUI();
         bindPopSlider('seepaPop', 'seepaPopLabel', 'seepaSpawn');
         bindPopSlider('suubaPop', 'suubaPopLabel', 'suubaSpawn');
         bindPopSlider('fishPop', 'fishPopLabel', 'fishSpawn');
@@ -8742,6 +9554,7 @@
         bindPopSlider('siebaPop', 'siebaPopLabel', 'siebaSpawn');
         bindPopSlider('soopaPop', 'soopaPopLabel', 'soopaSpawn');
         bindPopSlider('syyphaPop', 'syyphaPopLabel', 'syyphaSpawn');
+        bindPopSlider('phyyphaPop', 'phyyphaPopLabel', 'phyyphaSpawn');
         bindPopSlider('syybaPop', 'syybaPopLabel', 'syybaSpawn');
         bindPopSlider('siibaPop', 'siibaPopLabel', 'siibaSpawn');
 
@@ -8850,6 +9663,7 @@
                 consider(gameState.siebas, 'Sieba', 10);
                 consider(gameState.soopas, 'Soopa', 10);
                 consider(gameState.syyphas, 'Syypha', 12);
+                consider(gameState.phyyphas, 'Phyypha', 14);
                 gameState.inspected = best ? { type: bestType, ref: best } : null;
                 updateInspector();
             } else if (mode === 'seepa') {
@@ -8890,6 +9704,9 @@
                 else { spawnParticles(x, y, '#888', 5, 1.0); }
             } else if (mode === 'syypha') {
                 if (isMarine(x, y)) { gameState.syyphas.push(new Syypha(x, y)); spawnParticles(x, y, '#8fd8ff', 8, 1.6); }
+                else { spawnParticles(x, y, '#888', 5, 1.0); }
+            } else if (mode === 'phyypha') {
+                if (isMarine(x, y)) { gameState.phyyphas.push(new Phyypha(x, y)); spawnParticles(x, y, '#bfe8d8', 8, 1.6); }
                 else { spawnParticles(x, y, '#888', 5, 1.0); }
             } else if (mode === 'food') {
                 // Drop a fresh, full bush of food on land
@@ -8943,7 +9760,7 @@
                 // Wipe out everything in a blast radius
                 gameState.meteor = { x, y, t: 0, radius: 130 };
                 const blastSq = 130 * 130;
-                const lists2 = [gameState.seepas, gameState.suubas, gameState.siibas, gameState.fish, gameState.saabas, gameState.syybas, gameState.siebas, gameState.soopas, gameState.syyphas];
+                const lists2 = [gameState.seepas, gameState.suubas, gameState.siibas, gameState.fish, gameState.saabas, gameState.syybas, gameState.siebas, gameState.soopas, gameState.syyphas, gameState.phyyphas];
                 for (const list of lists2) {
                     for (let i = list.length - 1; i >= 0; i--) {
                         if (distanceSq(x, y, list[i].x, list[i].y) < blastSq) {
@@ -9070,6 +9887,7 @@
             dot(gameState.siebas, '#2aa6e0');
             dot(gameState.soopas, '#a8895f');
             dot(gameState.syyphas, '#8fd8ff');
+            dot(gameState.phyyphas, '#bfe8d8');
             // current view rectangle
             const vw = canvas.width / cam.zoom, vh = canvas.height / cam.zoom;
             ctx.strokeStyle = '#ffe27a'; ctx.lineWidth = 1.5;
