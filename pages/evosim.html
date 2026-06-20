@@ -18,6 +18,20 @@
         .canvas-wrapper { position: relative; z-index: 1; flex: 1 1 600px; max-width: 1200px; }
         canvas#canvas { display: block; width: 100%; height: auto; cursor: crosshair; }
         .controls { width: 300px; flex: 0 0 300px; position: relative; z-index: 10; max-height: 92vh; overflow-y: auto; padding: 20px; }
+        /* Cinematic / watch mode */
+        body.cinematic .controls { display: none !important; }
+        body.cinematic .canvas-wrapper { max-width: none; flex: 1 1 100%; }
+        body.cinematic .container { padding: 0; margin: 0; max-width: none; }
+        body.cinematic canvas#canvas { cursor: none; border-radius: 0; box-shadow: none; }
+        #cinematicExitBtn {
+            display: none; position: fixed; top: 14px; right: 14px; z-index: 9999;
+            background: rgba(20,20,24,0.6); color: #fff; border: 1px solid rgba(255,255,255,0.25);
+            padding: 8px 14px; border-radius: 20px; font-size: 13px; cursor: pointer; backdrop-filter: blur(4px);
+            transition: opacity 0.4s; opacity: 0.25;
+        }
+        #cinematicExitBtn:hover { opacity: 1; }
+        body.cinematic #cinematicExitBtn { display: block; }
+        body.cinematic #helpBtn { display: none; }
         .speed-control { display: flex; gap: 10px; align-items: center; }
         input[type="range"] { flex: 1; }
         .toggle-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; cursor: pointer; }
@@ -48,6 +62,96 @@
             padding-bottom: 4px; margin: 18px 0 10px 0;
         }
         body .section-title:first-child { margin-top: 0; }
+        /* Collapsible sections */
+        body .section-title.collapsible { cursor: pointer; user-select: none; display: flex; align-items: center; gap: 6px; transition: color 0.15s; }
+        body .section-title.collapsible:hover { color: #b9d6f5; }
+        body .section-title.collapsible::before {
+            content: '▾'; font-size: 10px; line-height: 1; transition: transform 0.2s; opacity: 0.7; display: inline-block;
+        }
+        body .section-title.collapsible.collapsed::before { transform: rotate(-90deg); }
+        body .section-body { overflow: hidden; transition: max-height 0.28s ease, opacity 0.2s ease; }
+        body .section-body.collapsed { opacity: 0; pointer-events: none; }
+        /* Custom collapsible dropdown (for grouped option lists) */
+        .cdd { position: relative; width: 100%; }
+        .cdd-btn {
+            width: 100%; text-align: left; padding: 8px 28px 8px 10px; border-radius: 5px;
+            background: #1a1a22; color: #eee; border: 1px solid #444; cursor: pointer; font-size: 13px;
+            position: relative; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .cdd-btn::after { content: '▾'; position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 10px; opacity: 0.7; transition: transform 0.2s; }
+        .cdd.open .cdd-btn::after { transform: translateY(-50%) rotate(180deg); }
+        .cdd-btn:hover { border-color: #6a86b0; }
+        .cdd-panel {
+            display: none; position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 50;
+            background: #14141b; border: 1px solid #4a4a55; border-radius: 6px; padding: 4px;
+            max-height: 320px; overflow-y: auto; box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+        }
+        .cdd.open .cdd-panel { display: block; }
+        .cdd-group { margin: 1px 0; }
+        .cdd-group-head {
+            display: flex; align-items: center; gap: 6px; padding: 6px 8px; cursor: pointer; user-select: none;
+            font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: #8fb3d9;
+            border-radius: 4px; font-weight: 600;
+        }
+        .cdd-group-head:hover { background: rgba(255,255,255,0.05); }
+        .cdd-group-head::before { content: '▾'; font-size: 9px; opacity: 0.7; transition: transform 0.2s; display: inline-block; }
+        .cdd-group.collapsed .cdd-group-head::before { transform: rotate(-90deg); }
+        .cdd-group.collapsed .cdd-items { display: none; }
+        .cdd-item { padding: 7px 10px 7px 18px; border-radius: 4px; cursor: pointer; font-size: 13px; color: #e6e6e6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .cdd-item:hover { background: rgba(110,150,230,0.18); }
+        .cdd-item.selected { background: rgba(110,150,230,0.28); color: #fff; }
+        .cdd-item.ungrouped { padding-left: 10px; }
+        body.light-theme .cdd-btn { background: #fff; color: #222; border-color: #bbb; }
+        body.light-theme .cdd-panel { background: #fff; border-color: #ccc; }
+        body.light-theme .cdd-item { color: #222; }
+        body.light-theme .cdd-group-head { color: #3a7a2a; }
+        /* ───────── Onboarding / tutorial ───────── */
+        #helpBtn {
+            position: fixed; bottom: 16px; right: 16px; z-index: 8000;
+            width: 42px; height: 42px; border-radius: 50%; padding: 0;
+            background: linear-gradient(135deg,#3a6ea5,#27496d); color: #fff;
+            border: 1px solid rgba(255,255,255,0.25); font-size: 20px; font-weight: bold;
+            cursor: pointer; box-shadow: 0 4px 14px rgba(0,0,0,0.4); width: 42px;
+            display: flex; align-items: center; justify-content: center; line-height: 1;
+        }
+        #helpBtn:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0,0,0,0.5); }
+        .onb-overlay {
+            position: fixed; inset: 0; z-index: 9100; display: none;
+            align-items: center; justify-content: center; background: rgba(8,10,14,0.72);
+            backdrop-filter: blur(3px); padding: 20px;
+        }
+        .onb-overlay.show { display: flex; }
+        .onb-card {
+            background: linear-gradient(160deg,#1c2230,#141822); color: #e9eef5;
+            border: 1px solid #3a4658; border-radius: 16px; padding: 26px 28px; max-width: 440px;
+            box-shadow: 0 18px 50px rgba(0,0,0,0.6); text-align: center; animation: onbPop 0.3s ease;
+        }
+        @keyframes onbPop { from { transform: scale(0.94); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .onb-card h2 { margin: 0 0 6px; font-size: 22px; }
+        .onb-card .onb-sub { font-size: 14px; line-height: 1.55; opacity: 0.88; margin-bottom: 20px; }
+        .onb-card .onb-actions { display: flex; gap: 10px; justify-content: center; }
+        .onb-card button { width: auto; padding: 11px 20px; border-radius: 8px; font-size: 14px; }
+        .onb-btn-primary { background: linear-gradient(135deg,#4a8bd0,#2f6aa8); color: #fff; border: none; }
+        .onb-btn-ghost { background: transparent; color: #9fb2c8; border: 1px solid #3a4658; }
+        /* Spotlight tour */
+        #onbSpot { position: fixed; z-index: 9200; border-radius: 10px; pointer-events: none;
+            box-shadow: 0 0 0 9999px rgba(8,10,14,0.74); border: 2px solid #5fa8e8; transition: all 0.32s cubic-bezier(.4,0,.2,1); display: none; }
+        #onbSpot.show { display: block; }
+        #onbTip {
+            position: fixed; z-index: 9300; max-width: 290px; background: linear-gradient(160deg,#1c2230,#141822);
+            color: #e9eef5; border: 1px solid #3a4658; border-radius: 12px; padding: 16px 18px;
+            box-shadow: 0 12px 36px rgba(0,0,0,0.55); display: none; transition: top 0.3s, left 0.3s;
+        }
+        #onbTip.show { display: block; }
+        #onbTip .onb-step-count { font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: #6fa3d8; margin-bottom: 5px; }
+        #onbTip h3 { margin: 0 0 6px; font-size: 16px; }
+        #onbTip p { margin: 0 0 14px; font-size: 13px; line-height: 1.5; opacity: 0.9; }
+        #onbTip .onb-nav { display: flex; gap: 8px; align-items: center; }
+        #onbTip .onb-nav button { width: auto; padding: 8px 14px; border-radius: 7px; font-size: 13px; }
+        #onbTip .onb-skip { margin-left: auto; background: transparent; color: #8195aa; border: none; font-size: 12px; padding: 8px 4px; }
+        #onbTip .onb-dots { display: flex; gap: 4px; justify-content: center; margin-top: 10px; }
+        #onbTip .onb-dot { width: 6px; height: 6px; border-radius: 50%; background: #3a4658; }
+        #onbTip .onb-dot.active { background: #5fa8e8; }
         body .control-group label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 13px; }
         body button {
             background: #0066cc; color: white; border: none;
@@ -280,10 +384,12 @@
     <div class="container">
         <div class="canvas-wrapper">
             <canvas id="canvas" width="1200" height="800"></canvas>
+            <button id="cinematicExitBtn">✕ Exit cinematic (Esc)</button>
         </div>
 
         <div class="controls">
             <button id="themeToggleBtn">🎨 Nature Theme</button>
+            <button id="cinematicBtn" style="background:linear-gradient(135deg,#2a2a3a,#1a1a28);border:1px solid #444;">🎬 Cinematic Mode</button>
             <div class="control-group" style="display:flex;align-items:center;gap:6px;">
                 <button id="muteBtn" title="Mute all audio" style="width:auto;flex:0 0 auto;padding:6px 10px;font-size:13px;">🔊</button>
                 <button id="sfxBtn" title="Toggle sound effects" style="width:auto;flex:0 0 auto;padding:6px 10px;font-size:13px;">🐾</button>
@@ -326,12 +432,22 @@
             <div class="section-title">Scenarios</div>
             <div class="control-group">
                 <select id="scenarioSelect">
+                    <optgroup label="── Challenges (goal-based) ──">
                     <option value="sandbox">🌍 Sandbox (free play)</option>
                     <option value="iceage">❄️ Ice Age</option>
                     <option value="predator">🦁 Predator Pressure</option>
                     <option value="plague">🦠 Plague Outbreak</option>
                     <option value="founders">🏝️ Lonely Founders</option>
                     <option value="speedrun">⚡ Speed Run</option>
+                    </optgroup>
+                    <optgroup label="── Watch & Spectacle ──">
+                    <option value="eden">🕊️ Peaceful Eden</option>
+                    <option value="ocean">🌊 Ocean World</option>
+                    <option value="predboom">🐺 Predator Boom</option>
+                    <option value="greatplague">☣️ The Great Plague</option>
+                    <option value="extinction">☄️ Mass Extinction</option>
+                    <option value="tundra">🦊 Frozen Tundra</option>
+                    </optgroup>
                 </select>
                 <div id="scenarioDesc" class="hint" style="margin-top:6px;min-height:30px;">Free play — no goal. Experiment however you like.</div>
                 <button id="startScenarioBtn" style="margin-top:6px;width:100%;">▶ Start Scenario</button>
@@ -347,6 +463,7 @@
                 </div>
                 <div id="scenarioResult" style="display:none;margin-top:8px;font-size:13px;padding:9px;border-radius:5px;background:rgba(232,196,106,0.15);border:1px solid #e8c46a;color:#ffe27a;text-align:center;"></div>
             </div>
+            <div class="section-title">Map View</div>
             <div class="control-group">
                 <label>Map view:</label>
                 <select id="viewSelect">
@@ -358,10 +475,12 @@
                 </select>
                 <div class="hint">Changing this rebuilds the world at a new size</div>
             </div>
+            <div class="section-title">Click Action</div>
             <div class="control-group">
                 <label>Click Action:</label>
                 <select id="clickModeSelect">
                     <option value="inspect">🔍 Inspect creature</option>
+                    <optgroup label="── Spawn Creatures ──">
                     <option value="seepa">➕ Spawn Seepa</option>
                     <option value="suuba">➕ Spawn Suuba</option>
                     <option value="siiba">➕ Spawn Siiba</option>
@@ -373,11 +492,16 @@
                     <option value="syypha">➕ Spawn Syypha (jellyfish)</option>
                     <option value="phyypha">➕ Spawn Phyypha (drifting colony)</option>
                     <option value="scuuba">➕ Spawn Scuuba (scavenger crab)</option>
+                    <option value="smeeba">➕ Spawn Smeeba (tundra lemming)</option>
+                    <option value="snaava">➕ Spawn Snaava (arctic fox)</option>
+                    </optgroup>
+                    <optgroup label="── God Tools ──">
                     <option value="food">🍎 Drop food</option>
                     <option value="smite">⚡ Smite creature</option>
                     <option value="bless">✨ Bless (heal & feed)</option>
                     <option value="meteor">☄️ Meteor strike</option>
                     <option value="radiation">☢️ Place radiation zone</option>
+                    </optgroup>
                 </select>
             </div>
 
@@ -470,6 +594,10 @@
                 <input type="range" id="phyyphaPop" min="0" max="40" step="1" value="12">
                 <div class="pop-slider-row"><span>Scuuba (scavenger crab)</span><strong id="scuubaPopLabel">10</strong></div>
                 <input type="range" id="scuubaPop" min="0" max="40" step="1" value="10">
+                <div class="pop-slider-row"><span>Smeeba (tundra lemming)</span><strong id="smeebaPopLabel">30</strong></div>
+                <input type="range" id="smeebaPop" min="0" max="80" step="1" value="30">
+                <div class="pop-slider-row"><span>Snaava (arctic fox)</span><strong id="snaavaPopLabel">6</strong></div>
+                <input type="range" id="snaavaPop" min="0" max="30" step="1" value="6">
                 <div class="hint">Applied when you press RESET</div>
             </div>
 
@@ -491,6 +619,8 @@
                     <span><span class="graph-dot" style="background:#8fd8ff;"></span>Syypha</span>
                     <span><span class="graph-dot" style="background:#7ec9a8;"></span>Phyypha</span>
                     <span><span class="graph-dot" style="background:#e08a4c;"></span>Scuuba</span>
+                    <span><span class="graph-dot" style="background:#d9cdb8;"></span>Smeeba</span>
+                    <span><span class="graph-dot" style="background:#e8eef2;"></span>Snaava</span>
                 </div>
                 <button class="graph-dl-btn" data-graph="pop" style="margin-top:8px;font-size:12px;padding:7px;">⬇ Download population data (CSV)</button>
                 <button id="exportCsvBtn" style="margin-top:6px;font-size:11px;padding:6px;opacity:0.85;">📊 Export everything (CSV)</button>
@@ -549,6 +679,8 @@
                     <option value="syypha">Syypha genes</option>
                     <option value="phyypha">Phyypha genes</option>
                     <option value="scuuba">Scuuba genes</option>
+                    <option value="smeeba">Smeeba genes</option>
+                    <option value="snaava">Snaava genes</option>
                 </select>
                 <canvas id="geneGraphCanvas" width="260" height="110"></canvas>
                 <div class="graph-legend" id="geneGraphLegend"></div>
@@ -594,6 +726,8 @@
                 <div class="stat-line"><span>Total Syyphas:</span><strong id="syyphaCount">0</strong></div>
                 <div class="stat-line"><span>Total Phyyphas:</span><strong id="phyyphaCount">0</strong></div>
                 <div class="stat-line"><span>Total Scuubas:</span><strong id="scuubaCount">0</strong></div>
+                <div class="stat-line"><span>Total Smeebas:</span><strong id="smeebaCount">0</strong></div>
+                <div class="stat-line"><span>Total Snaavas:</span><strong id="snaavaCount">0</strong></div>
                 <div class="stat-line" style="margin-top:4px;border-top:1px solid #333;padding-top:4px"><span style="color:#63a6ff">Seepa gen:</span><strong id="genSeepa">1</strong></div>
                 <div class="stat-line"><span style="color:#ff6b6b">Suuba gen:</span><strong id="genSuuba">1</strong></div>
                 <div class="stat-line"><span style="color:#ff9fb3">Siiba gen:</span><strong id="genSiiba">1</strong></div>
@@ -605,6 +739,8 @@
                 <div class="stat-line"><span style="color:#8fd8ff">Syypha gen:</span><strong id="genSyypha">1</strong></div>
                 <div class="stat-line"><span style="color:#9ad8c2">Phyypha gen:</span><strong id="genPhyypha">1</strong></div>
                 <div class="stat-line"><span style="color:#e08a4c">Scuuba gen:</span><strong id="genScuuba">1</strong></div>
+                <div class="stat-line"><span style="color:#d9cdb8">Smeeba gen:</span><strong id="genSmeeba">1</strong></div>
+                <div class="stat-line"><span style="color:#cfd8e0">Snaava gen:</span><strong id="genSnaava">1</strong></div>
                 <span id="genLabel" style="display:none">1</span>
                 <div class="stat-line"><span>Sim Time:</span><strong id="simTime">0s</strong></div>
                 <div class="stat-line"><span>Clock:</span><strong id="dayClock">0:00</strong></div>
@@ -627,7 +763,7 @@
 
             <div class="section-title">Legend</div>
             <div class="legend">
-                <div class="legend-item"><div class="legend-color" style="background: #4488ff;"></div><span>Seepa (adult male blue / female pink)</span></div>
+                <div class="legend-item"><div class="legend-color" style="background: #7ec850;"></div><span>Seepa (grazing prey — adult males blue, females pink, elders green)</span></div>
                 <div class="legend-item"><div class="legend-color" style="background: #ffd84d;"></div><span>Juvenile / Baby</span></div>
                 <div class="legend-item"><div class="legend-color" style="background: #93e07b;"></div><span>Elder Seepa</span></div>
                 <div class="legend-item"><div class="legend-color" style="background: #10518a;"></div><span>Sea (marine — drink at the shore; only Soobas can enter)</span></div>
@@ -635,16 +771,18 @@
                 <div class="legend-item"><div class="legend-color" style="background: #d24132;"></div><span>Apple (Tree — grassland)</span></div>
                 <div class="legend-item"><div class="legend-color" style="background: #ff7ab0;"></div><span>Cactus flower (Desert)</span></div>
                 <div class="legend-item"><div class="legend-color" style="background: #6b4423;"></div><span>Pine cone (Forest)</span></div>
-                <div class="legend-item"><div class="legend-color" style="width:20px;height:20px;border-radius:6px;background:#7a3fa8;box-shadow:0 0 6px rgba(122,63,168,0.6);"></div><span>Suuba (Predator — hunts Seepas)</span></div>
-                <div class="legend-item"><div class="legend-color" style="width:16px;height:16px;background:#ffd2d9;"></div><span>Siiba (hunts Suubas &amp; Soobas, eaten by Seepas)</span></div>
+                <div class="legend-item"><div class="legend-color" style="width:20px;height:20px;border-radius:6px;background:#9b6bd6;box-shadow:0 0 6px rgba(155,107,214,0.6);"></div><span>Suuba (Predator — hunts Seepas)</span></div>
+                <div class="legend-item"><div class="legend-color" style="width:16px;height:16px;background:#e06b8f;"></div><span>Siiba (hunts Suubas &amp; Soobas, eaten by Seepas)</span></div>
                 <div class="legend-item"><div class="legend-color" style="width:18px;height:12px;border-radius:40%;background:#ff9b33;"></div><span>Sooba (marine — eats coral, eaten by Siibas &amp; Suubas)</span></div>
                 <div class="legend-item"><div class="legend-color" style="width:20px;height:11px;border-radius:45%;background:#3a8fc4;"></div><span>Saaba (marine predator — hunts Soobas)</span></div>
-                <div class="legend-item"><div class="legend-color" style="width:18px;height:13px;border-radius:50%;background:#a8835a;"></div><span>Syyba (amphibious omnivore — crosses land &amp; water; grazes coral/plants, hunts when starving)</span></div>
-                <div class="legend-item"><div class="legend-color" style="width:18px;height:13px;border-radius:50%;background:#2aa6e0;"></div><span>Sieba (flying kingfisher — soars over land &amp; sea, dives for Soobas; only catchable when perched)</span></div>
+                <div class="legend-item"><div class="legend-color" style="width:18px;height:13px;border-radius:50%;background:#c99a5a;"></div><span>Syyba (amphibious omnivore — crosses land &amp; water; grazes coral/plants, hunts when starving)</span></div>
+                <div class="legend-item"><div class="legend-color" style="width:18px;height:13px;border-radius:50%;background:#19e0d8;"></div><span>Sieba (flying kingfisher — soars over land &amp; sea, dives for Soobas; only catchable when perched)</span></div>
                 <div class="legend-item"><div class="legend-color" style="width:18px;height:13px;border-radius:50%;background:#a8895f;"></div><span>Soopa (burrowing forager — hides underground, surfaces to feed; only catchable above ground)</span></div>
                 <div class="legend-item"><div class="legend-color" style="width:18px;height:13px;border-radius:50%;background:#8fd8ff;"></div><span>Syypha (drifting jellyfish — pulses through the sea, stings Saabas; nibbled by Soobas)</span></div>
-                <div class="legend-item"><div class="legend-color" style="width:18px;height:13px;border-radius:50%;background:#bfe8d8;"></div><span>Phyypha (drifting filter-feeding colony — buds &amp; spreads, grazed by Soobas &amp; Saabas)</span></div>
+                <div class="legend-item"><div class="legend-color" style="width:18px;height:13px;border-radius:50%;background:#7ec9a8;"></div><span>Phyypha (drifting filter-feeding colony — buds &amp; spreads, grazed by Soobas &amp; Saabas)</span></div>
                 <div class="legend-item"><div class="legend-color" style="width:18px;height:13px;border-radius:50%;background:#e08a4c;"></div><span>Scuuba (scavenger crab — scuttles land &amp; shore eating corpses, cleaning up the dead)</span></div>
+                <div class="legend-item"><div class="legend-color" style="width:18px;height:13px;border-radius:50%;background:#d9cdb8;"></div><span>Smeeba (tundra lemming — cold-loving grazer that breeds in booms; the fox's staple prey)</span></div>
+                <div class="legend-item"><div class="legend-color" style="width:18px;height:13px;border-radius:50%;background:#e8eef2;"></div><span>Snaava (arctic fox — nimble tundra hunter with a seasonal white coat; preys on lemmings &amp; Seepas)</span></div>
                 <div class="legend-item"><div class="legend-color" style="background:#ff7eb0;"></div><span>Coral (Marine — fish food)</span></div>
                 <div class="legend-item"><div class="legend-color" style="background:#b5543a;"></div><span>Mushroom (Swamp) / Lichen berry (Tundra)</span></div>
                 <div class="legend-item"><div class="legend-color" style="background:#7d5630;"></div><span>🪹 Nest (Seepa-built — helps pairs nearby breed)</span></div>
@@ -674,6 +812,30 @@
         </div>
     </div>
 
+    <!-- Onboarding / tutorial -->
+    <button id="helpBtn" title="Help & tour">?</button>
+    <div class="onb-overlay" id="onbWelcome">
+        <div class="onb-card">
+            <h2>🌍 Welcome to the Evolution Simulator</h2>
+            <div class="onb-sub">Watch a living world of 13 species hunt, breed, and <strong>evolve in real time</strong> — with genetics, weather, disease and a full food web. New here? Take a 30-second tour of the controls.</div>
+            <div class="onb-actions">
+                <button class="onb-btn-primary" id="onbStartTour">Take the tour</button>
+                <button class="onb-btn-ghost" id="onbSkipWelcome">Skip — just explore</button>
+            </div>
+        </div>
+    </div>
+    <div id="onbSpot"></div>
+    <div id="onbTip">
+        <div class="onb-step-count" id="onbStepCount"></div>
+        <h3 id="onbTipTitle"></h3>
+        <p id="onbTipBody"></p>
+        <div class="onb-nav">
+            <button class="onb-btn-ghost" id="onbBack">Back</button>
+            <button class="onb-btn-primary" id="onbNext">Next</button>
+            <button class="onb-skip" id="onbEndTour">Skip tour</button>
+        </div>
+        <div class="onb-dots" id="onbDots"></div>
+    </div>
     <script>
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
@@ -698,6 +860,127 @@
             clampCam();
         }
         function resetView() { cam.x = 0; cam.y = 0; cam.zoom = 1; }
+
+        // ════════════════ CINEMATIC / WATCH MODE ════════════════
+        const cinema = {
+            active: false, shotT: 0, target: { x: 0, y: 0, zoom: 1.4 },
+            followRef: null, caption: '', captionA: 0, barA: 0, vx: 0, vy: 0, shotLen: 10
+        };
+        function allCreaturesFlat() {
+            const out = [];
+            for (const key of SPECIES_KEYS) {
+                const arr = gameState[SPECIES_ARRAY[key]];
+                if (arr) for (const c of arr) out.push(c);
+            }
+            return out;
+        }
+        function pickCinematicShot() {
+            cinema.shotLen = 9 + Math.random() * 6;
+            cinema.shotT = cinema.shotLen;
+            cinema.captionA = 0;
+            const crowd = allCreaturesFlat();
+            const roll = Math.random();
+            if (crowd.length && roll < 0.55) {
+                // Follow a creature
+                const c = crowd[Math.floor(Math.random() * crowd.length)];
+                cinema.followRef = c;
+                cinema.target.zoom = 3 + Math.random() * 1.3;
+                const sp = speciesOfCreature(c);
+                const label = (SPECIES_LABEL && SPECIES_LABEL[sp]) || 'creature';
+                const stage = (c.age !== undefined && c.lifeSpan) ? (c.age < c.lifeSpan * 0.18 ? 'young ' : c.age > c.lifeSpan * 0.7 ? 'elder ' : '') : '';
+                cinema.caption = (c.name ? c.name + ' the ' + label : 'A ' + stage + label) +
+                    ((c.genes && c.genes.resistance > 0.7) ? ' · hardy bloodline' : '');
+            } else if (crowd.length && roll < 0.85) {
+                // Pan across a populated area
+                const c = crowd[Math.floor(Math.random() * crowd.length)];
+                cinema.followRef = null;
+                cinema.target.x = c.x; cinema.target.y = c.y;
+                cinema.target.zoom = 1.9 + Math.random() * 0.9;
+                const ang = Math.random() * Math.PI * 2;
+                cinema.vx = Math.cos(ang) * 14; cinema.vy = Math.sin(ang) * 14;
+                const b = (typeof biomeAt === 'function') ? biomeAt(c.x, c.y) : '';
+                cinema.caption = isMarine(c.x, c.y) ? 'The open water' : (b ? ('The ' + b) : 'The wilds');
+            } else {
+                // Wide establishing shot
+                cinema.followRef = null;
+                cinema.target.x = canvas.width * (0.3 + Math.random() * 0.4);
+                cinema.target.y = canvas.height * (0.3 + Math.random() * 0.4);
+                cinema.target.zoom = 1 + Math.random() * 0.5;
+                const tod = (typeof getDayPhase === 'function') ? getDayPhase() : '';
+                const season = (typeof getSeasonName === 'function') ? getSeasonName() : '';
+                cinema.caption = [season, tod].filter(Boolean).join(' · ');
+            }
+        }
+        function enterCinematic() {
+            cinema.active = true;
+            document.body.classList.add('cinematic');
+            // start from current view, then begin composing shots
+            cinema.target.x = cam.x + (canvas.width / cam.zoom) / 2;
+            cinema.target.y = cam.y + (canvas.height / cam.zoom) / 2;
+            cinema.target.zoom = cam.zoom;
+            pickCinematicShot();
+            logEvent('info', '🎬 Cinematic mode — sit back and watch');
+        }
+        function exitCinematic() {
+            cinema.active = false;
+            cinema.followRef = null;
+            document.body.classList.remove('cinematic');
+        }
+        function updateCinematic() {
+            const dt = 1 / 60; // real-time glide, independent of sim speed
+            cinema.barA += ((cinema.active ? 1 : 0) - cinema.barA) * 0.08;
+            if (!cinema.active) return;
+            cinema.shotT -= dt;
+            // caption fades in at the start of a shot, out near the end
+            const into = cinema.shotLen - cinema.shotT;
+            const wantCap = (into > 0.6 && cinema.shotT > 1.4) ? 1 : 0;
+            cinema.captionA += (wantCap - cinema.captionA) * 0.06;
+            if (cinema.shotT <= 0) pickCinematicShot();
+
+            // resolve target
+            if (cinema.followRef) {
+                const c = cinema.followRef;
+                const alive = allCreaturesFlat().indexOf(c) >= 0;
+                if (!alive) { pickCinematicShot(); }
+                else {
+                    cinema.target.x = c.x + (c.vx || 0) * 10; // lead slightly
+                    cinema.target.y = c.y + (c.vy || 0) * 10;
+                }
+            } else {
+                // gentle drifting pan, bounce within the world
+                cinema.target.x += cinema.vx * dt;
+                cinema.target.y += cinema.vy * dt;
+                if (cinema.target.x < 100 || cinema.target.x > canvas.width - 100) cinema.vx *= -1;
+                if (cinema.target.y < 100 || cinema.target.y > canvas.height - 100) cinema.vy *= -1;
+            }
+            // ease the camera toward the framed target
+            cam.zoom += (cinema.target.zoom - cam.zoom) * 0.03;
+            const viewW = canvas.width / cam.zoom, viewH = canvas.height / cam.zoom;
+            const desiredX = cinema.target.x - viewW / 2, desiredY = cinema.target.y - viewH / 2;
+            cam.x += (desiredX - cam.x) * 0.035;
+            cam.y += (desiredY - cam.y) * 0.035;
+            clampCam();
+        }
+        function drawCinematicOverlay() {
+            if (cinema.barA < 0.01) return;
+            const W = canvas.width, H = canvas.height;
+            const barH = H * 0.09 * cinema.barA;
+            ctx.save();
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, W, barH);
+            ctx.fillRect(0, H - barH, W, barH);
+            // caption in the lower bar
+            if (cinema.caption && cinema.captionA > 0.02 && cinema.active) {
+                ctx.globalAlpha = Math.min(1, cinema.captionA) * Math.min(1, cinema.barA);
+                ctx.fillStyle = 'rgba(255,255,255,0.92)';
+                ctx.font = '600 ' + Math.round(Math.max(14, H * 0.022)) + 'px Georgia, serif';
+                ctx.textAlign = 'center';
+                ctx.fillText(cinema.caption, W / 2, H - barH * 0.4);
+                ctx.textAlign = 'left';
+            }
+            ctx.restore();
+        }
+
 
         const backgroundCanvas = document.createElement('canvas');
         backgroundCanvas.width = canvas.width;
@@ -913,7 +1196,7 @@
             corpses: [],
             weather: { type: null, drops: [] },
             popHistory: [],
-            geneHistory: { seepa: [], suuba: [], siiba: [], fish: [], saaba: [], syyba: [], sieba: [], soopa: [], syypha: [], phyypha: [], scuuba: [] },
+            geneHistory: { seepa: [], suuba: [], siiba: [], fish: [], saaba: [], syyba: [], sieba: [], soopa: [], syypha: [], phyypha: [], scuuba: [], smeeba: [], snaava: [] },
             diseaseHistory: [],
             weatherEvent: null,       // active weather event { type, t, dur }
             weatherCooldown: 30000,   // time until next possible random event
@@ -948,6 +1231,8 @@
             syyphas: [],
             phyyphas: [],
             scuubas: [],
+            smeebas: [],
+            snaavas: [],
             corals: [],
             settings: {
                 seepaSpawn: 0,
@@ -961,6 +1246,8 @@
                 syyphaSpawn: 8,
                 phyyphaSpawn: 12,
                 scuubaSpawn: 10,
+                smeebaSpawn: 30,
+                snaavaSpawn: 6,
                 predatorsEnabled: true,
                 flockingEnabled: true,
                 rescueEnabled: true,
@@ -994,7 +1281,7 @@
 
         // ---------- Death-cause tracking ----------
         const DEATH_CAUSES = ['starved', 'thirst', 'frozen', 'oldage', 'disease', 'hunted'];
-        const SPECIES_KEYS = ['seepa', 'suuba', 'siiba', 'fish', 'saaba', 'syyba', 'sieba', 'soopa', 'syypha', 'phyypha', 'scuuba'];
+        const SPECIES_KEYS = ['seepa', 'suuba', 'siiba', 'fish', 'saaba', 'syyba', 'sieba', 'soopa', 'syypha', 'phyypha', 'scuuba', 'smeeba', 'snaava'];
         // ── Food-web definition + live predation-activity tracking + interactive eco-controls ──
         // Directed edges: [predator, prey]. Mirrors the actual predation sites in the sim.
         const FOOD_WEB = [
@@ -1005,17 +1292,20 @@
             ['suuba', 'soopa'], ['siiba', 'soopa'],
             ['suuba', 'sieba'], ['siiba', 'sieba'],
             ['syypha', 'saaba'], ['fish', 'syypha'],
-            ['fish', 'phyypha'], ['saaba', 'phyypha']
+            ['fish', 'phyypha'], ['saaba', 'phyypha'],
+            ['snaava', 'smeeba'], ['snaava', 'seepa']
         ];
         // Pretty display names for the diagram
         const SPECIES_LABEL = {
             seepa: 'Seepa', suuba: 'Suuba', siiba: 'Siiba', fish: 'Sooba', saaba: 'Saaba',
-            syyba: 'Syyba', sieba: 'Sieba', soopa: 'Soopa', syypha: 'Syypha', phyypha: 'Phyypha'
+            syyba: 'Syyba', sieba: 'Sieba', soopa: 'Soopa', syypha: 'Syypha', phyypha: 'Phyypha',
+            scuuba: 'Scuuba', smeeba: 'Smeeba', snaava: 'Snaava'
         };
         // Node colours (match each creature's identity)
         const SPECIES_COLOR = {
-            seepa: '#7ec850', suuba: '#9b6bd6', siiba: '#e06b8f', fish: '#5fb8e0', saaba: '#3a8fc4',
-            syyba: '#c99a5a', sieba: '#19e0d8', soopa: '#a8895f', syypha: '#8fd8ff', phyypha: '#7ec9a8'
+            seepa: '#7ec850', suuba: '#9b6bd6', siiba: '#e06b8f', fish: '#ff9b33', saaba: '#3a8fc4',
+            syyba: '#c99a5a', sieba: '#19e0d8', soopa: '#a8895f', syypha: '#8fd8ff', phyypha: '#7ec9a8',
+            scuuba: '#e08a4c', smeeba: '#d9cdb8', snaava: '#e8eef2'
         };
 
         function ecoCtrl() {
@@ -1648,6 +1938,24 @@
                 metabolism: { min: 0.6, max: 1.5, start: [0.8, 1.1], mut: 0.10, type: 'mult' },
                 scavenging: { min: 0.2, max: 1.0, start: [0.5, 0.8], mut: 0.07, type: 'add'  },
                 resistance: { min: 0.0, max: 1.0, start: [0.1, 0.4], mut: 0.07, type: 'add'  }
+            },
+            smeeba: {
+                speed:      { min: 0.8, max: 3.0, start: [1.4, 2.0], mut: 0.12, type: 'mult' },
+                size:       { min: 2.5, max: 6,   start: [3, 4.5],   mut: 0.10, type: 'mult' },
+                vision:     { min: 0.8, max: 2.6, start: [1.2, 1.8], mut: 0.10, type: 'mult' },
+                metabolism: { min: 0.6, max: 1.6, start: [0.9, 1.3], mut: 0.10, type: 'mult' },
+                fecundity:  { min: 0.3, max: 1.0, start: [0.6, 0.9], mut: 0.08, type: 'add'  },
+                insulation: { min: 0.2, max: 1.0, start: [0.5, 0.8], mut: 0.07, type: 'add'  },
+                resistance: { min: 0.0, max: 1.0, start: [0.1, 0.4], mut: 0.07, type: 'add'  }
+            },
+            snaava: {
+                speed:      { min: 0.9, max: 3.2, start: [1.6, 2.3], mut: 0.10, type: 'mult' },
+                size:       { min: 5,   max: 11,  start: [6, 8.5],   mut: 0.10, type: 'mult' },
+                vision:     { min: 1.0, max: 3.0, start: [1.6, 2.4], mut: 0.10, type: 'mult' },
+                metabolism: { min: 0.6, max: 1.5, start: [0.8, 1.1], mut: 0.10, type: 'mult' },
+                hunting:    { min: 0.3, max: 1.0, start: [0.5, 0.8], mut: 0.08, type: 'add'  },
+                insulation: { min: 0.2, max: 1.0, start: [0.5, 0.8], mut: 0.07, type: 'add'  },
+                resistance: { min: 0.0, max: 1.0, start: [0.1, 0.4], mut: 0.07, type: 'add'  }
             }
         };
 
@@ -1704,6 +2012,8 @@
         function makeSyyphaGenes() { return makeGenes('syypha'); }
         function makePhyyphaGenes() { return makeGenes('phyypha'); }
         function makeScuubaGenes() { return makeGenes('scuuba'); }
+        function makeSmeebaGenes() { return makeGenes('smeeba'); }
+        function makeSnaavaGenes() { return makeGenes('snaava'); }
 
         // Survival viability: a creature must be able to physically reach a resource
         // before it starves/dehydrates. Slow-gened individuals get a smaller "reach"
@@ -1727,6 +2037,8 @@
             if (kind === 'syypha') return Math.round(12 * scale);
             if (kind === 'phyypha') return Math.round(22 * scale);
             if (kind === 'scuuba') return Math.round(30 * scale);
+            if (kind === 'smeeba') return Math.round(70 * scale);
+            if (kind === 'snaava') return Math.round(16 * scale);
             return Math.round(55 * scale); // siiba
         }
 
@@ -4732,6 +5044,339 @@
             }
         }
 
+        // ---------- Smeeba (tundra lemming — tiny prey, boom-and-bust) ----------
+        // A cold-loving grazer that breeds in bursts. Foxes feast when lemmings boom,
+        // then the lemmings crash and the foxes follow — the classic Arctic cycle.
+        class Smeeba {
+            constructor(x, y, genes, generation) {
+                this.x = x; this.y = y;
+                this.genes = genes || makeSmeebaGenes();
+                this.generation = generation || 1;
+                this.radius = this.genes.size;
+                this.speed = this.genes.speed;
+                this.vx = (Math.random() - 0.5) * 2; this.vy = (Math.random() - 0.5) * 2;
+                this.sex = Math.random() < 0.5 ? 'male' : 'female';
+                this.age = Math.random() * 12;
+                this.lifeSpan = 55 + Math.random() * 35;   // short-lived
+                this.hunger = Math.random() * 30;
+                this.thirst = Math.random() * 25;
+                this.energy = 100; this.cold = 0; this.maxStats = 100;
+                this.lastReproduction = -Infinity;
+                this.gait = Math.random() * 6.28;
+            }
+            isAlive() {
+                return this.energy > 0 && this.age < this.lifeSpan &&
+                       this.hunger < this.maxStats && this.thirst < this.maxStats && this.cold < 100;
+            }
+            update(deltaTime, gameState) {
+                const dt = deltaTime / 1000;
+                if (gameState.settings.agingEnabled) this.age += dt;
+                const moving = Math.hypot(this.vx, this.vy);
+                this.gait += dt * (6 + moving * 4);
+                const insul = this.genes.insulation ?? 0.6;
+
+                this.hunger = Math.min(this.maxStats, this.hunger + 1.0 * dt * geneHungerMult(this));
+                this.thirst = Math.min(this.maxStats, this.thirst + 0.8 * dt * seasonThirstMultiplier() * geneThirstMult(this));
+                this.energy = Math.max(0, this.energy - 0.7 * dt);
+                const inWater = isMarine(this.x, this.y);
+                if (!inWater) updateCold(this, dt, Math.max(0.4, 2.2 - insul * 1.4)); // insulated
+
+                // Graze on the ground (best in cold/vegetated biomes)
+                if (!inWater) {
+                    const b = (typeof biomeAt === 'function') ? biomeAt(this.x, this.y) : 'grassland';
+                    const rich = (b === 'tundra' || b === 'taiga') ? 1.3 : (b === 'grassland' || b === 'forest' || b === 'wetland') ? 1.0 : 0.5;
+                    this.hunger = Math.max(0, this.hunger - 7 * dt * rich);
+                    this.energy = Math.min(this.maxStats, this.energy + 1.2 * dt * rich);
+                }
+
+                // Drink at the shore
+                if (this.thirst > 55) {
+                    const shore = nearestMarinePoint(this.x, this.y);
+                    if (shore) {
+                        const d = Math.hypot(shore.x - this.x, shore.y - this.y);
+                        if (d < this.radius + 22) this.thirst = Math.max(0, this.thirst - 55);
+                        else { this.vx = lerp(this.vx, (shore.x - this.x) / d, 0.06); this.vy = lerp(this.vy, (shore.y - this.y) / d, 0.06); }
+                    }
+                }
+
+                // Flee from nearby foxes
+                if (gameState.snaavas && gameState.snaavas.length) {
+                    let fox = null, fd = (90 + (this.genes.vision ?? 1) * 60); fd *= fd;
+                    for (const f of gameState.snaavas) {
+                        const d2 = distanceSq(this.x, this.y, f.x, f.y);
+                        if (d2 < fd) { fd = d2; fox = f; }
+                    }
+                    if (fox) {
+                        const d = Math.sqrt(distanceSq(this.x, this.y, fox.x, fox.y)) || 1e-6;
+                        this.vx = lerp(this.vx, -(fox.x - this.x) / d, 0.3);
+                        this.vy = lerp(this.vy, -(fox.y - this.y) / d, 0.3);
+                    }
+                } else {
+                    this.vx += (Math.random() - 0.5) * 0.14; this.vy += (Math.random() - 0.5) * 0.14;
+                }
+
+                // Boom breeding — fast and prolific when fed
+                const fec = this.genes.fecundity ?? 0.6;
+                const ready = this.age > 8 && this.energy > 45 && this.hunger < this.maxStats * 0.6 &&
+                    (gameState.time - (this.lastReproduction || -Infinity)) > (9000 - fec * 5000) &&
+                    gameState.smeebas.length < popCap('smeeba');
+                if (ready) {
+                    let mate = null, mB = Infinity;
+                    for (const o of gameState.smeebas) {
+                        if (o === this || o.sex === this.sex || o.age < 8 || o.energy < 35) continue;
+                        const d2 = distanceSq(this.x, this.y, o.x, o.y);
+                        if (d2 < mB) { mB = d2; mate = o; }
+                    }
+                    if (mate) {
+                        const d = Math.sqrt(mB) || 1e-6;
+                        this.vx = lerp(this.vx, (mate.x - this.x) / d, 0.14); this.vy = lerp(this.vy, (mate.y - this.y) / d, 0.14);
+                        if (d < this.radius + mate.radius + 7) {
+                            const litter = 1 + Math.floor(fec * 2 + Math.random() * 1.5); // boom: 1-3 pups
+                            for (let k = 0; k < litter && gameState.smeebas.length < popCap('smeeba'); k++) {
+                                const childGenes = inheritGenes(this.genes, mate.genes, GENE_RANGES.smeeba);
+                                const baby = new Smeeba(this.x, this.y, childGenes, Math.max(this.generation, mate.generation) + 1);
+                                baby.age = 0; baby.hunger = 18; baby.energy = 85;
+                                gameState.smeebas.push(baby);
+                                recordBirth(baby, 'smeeba', this, mate);
+                            }
+                            this.lastReproduction = gameState.time; mate.lastReproduction = gameState.time;
+                            this.energy -= 20; mate.energy -= 20;
+                            spawnBirthEffect(this.x, this.y, '#d9cdb8'); Audio2.fx('birth');
+                        }
+                    }
+                }
+
+                const vmag = Math.hypot(this.vx, this.vy);
+                if (vmag > 1.7) { this.vx = this.vx / vmag * 1.7; this.vy = this.vy / vmag * 1.7; }
+                moveAmphibious(this, dt, 1);
+            }
+            draw() {
+                const r = this.radius;
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(smoothHeading(this));
+                const winter = (typeof getSeasonName === 'function') && getSeasonName() === 'Winter';
+                let fur = winter ? '#eceae3' : '#c9bda2';
+                let furD = winter ? '#cfccc2' : '#9c8e72';
+                if (this.age < 8) { fur = winter ? '#f4f2ec' : '#d8cdb5'; }
+                // shadow
+                ctx.fillStyle = 'rgba(0,0,0,0.12)';
+                ctx.beginPath(); ctx.ellipse(0, r * 0.2, r * 1.2, r * 0.7, 0, 0, Math.PI * 2); ctx.fill();
+                // little scurrying feet
+                ctx.strokeStyle = furD; ctx.lineWidth = Math.max(0.8, r * 0.18); ctx.lineCap = 'round';
+                for (const side of [-1, 1]) {
+                    for (let l = 0; l < 2; l++) {
+                        const sw = Math.sin(this.gait + l * 2.4 + (side > 0 ? 1.2 : 0)) * r * 0.4;
+                        const bx = (l === 0 ? -r * 0.4 : r * 0.4);
+                        ctx.beginPath(); ctx.moveTo(bx, side * r * 0.4); ctx.lineTo(bx + sw, side * r * 0.8); ctx.stroke();
+                    }
+                }
+                ctx.lineCap = 'butt';
+                // stubby tail
+                ctx.strokeStyle = fur; ctx.lineWidth = r * 0.5; ctx.lineCap = 'round';
+                ctx.beginPath(); ctx.moveTo(-r * 0.8, 0); ctx.lineTo(-r * 1.2, 0); ctx.stroke();
+                ctx.lineCap = 'butt';
+                // round body
+                const bg = ctx.createRadialGradient(-r * 0.2, -r * 0.3, r * 0.2, 0, 0, r * 1.1);
+                bg.addColorStop(0, fur); bg.addColorStop(1, furD);
+                ctx.fillStyle = bg;
+                ctx.beginPath(); ctx.ellipse(0, 0, r * 1.05, r * 0.85, 0, 0, Math.PI * 2); ctx.fill();
+                // head
+                ctx.fillStyle = fur;
+                ctx.beginPath(); ctx.ellipse(r * 0.75, 0, r * 0.5, r * 0.45, 0, 0, Math.PI * 2); ctx.fill();
+                // tiny ears
+                ctx.fillStyle = furD;
+                for (const side of [-1, 1]) { ctx.beginPath(); ctx.arc(r * 0.7, side * r * 0.35, r * 0.18, 0, Math.PI * 2); ctx.fill(); }
+                // eye + nose
+                ctx.fillStyle = '#1a1414';
+                ctx.beginPath(); ctx.arc(r * 0.95, -r * 0.18, r * 0.1, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.arc(r * 1.2, 0, r * 0.08, 0, Math.PI * 2); ctx.fill();
+                if (this.cold > 25) {
+                    ctx.globalAlpha = Math.min(0.5, (this.cold - 25) / 120); ctx.fillStyle = '#bfe6ff';
+                    ctx.beginPath(); ctx.ellipse(0, 0, r * 1.05, r * 0.85, 0, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
+                }
+                ctx.restore();
+                drawCreatureBars(this);
+            }
+        }
+
+        // ---------- Snaava (arctic fox — tundra predator, hunts lemmings & Seepas) ----------
+        class Snaava {
+            constructor(x, y, genes, generation) {
+                this.x = x; this.y = y;
+                this.genes = genes || makeSnaavaGenes();
+                this.generation = generation || 1;
+                this.radius = this.genes.size;
+                this.speed = this.genes.speed;
+                this.vx = (Math.random() - 0.5) * 2; this.vy = (Math.random() - 0.5) * 2;
+                this.sex = Math.random() < 0.5 ? 'male' : 'female';
+                this.age = Math.random() * 20;
+                this.lifeSpan = 150 + Math.random() * 50;
+                this.hunger = Math.random() * 40;
+                this.thirst = Math.random() * 25;
+                this.energy = 100; this.cold = 0; this.maxStats = 100;
+                this.lastReproduction = -Infinity; this.lastEat = -Infinity; this.eatCooldown = 0;
+                this.gait = Math.random() * 6.28;
+            }
+            isAlive() {
+                return this.energy > 0 && this.age < this.lifeSpan &&
+                       this.hunger < this.maxStats && this.thirst < this.maxStats && this.cold < 100;
+            }
+            update(deltaTime, gameState) {
+                const dt = deltaTime / 1000;
+                if (gameState.settings.agingEnabled) this.age += dt;
+                const moving = Math.hypot(this.vx, this.vy);
+                this.gait += dt * (5 + moving * 4);
+                if (this.eatCooldown > 0) this.eatCooldown -= dt;
+                const insul = this.genes.insulation ?? 0.6;
+                const hunt = this.genes.hunting ?? 0.6;
+
+                this.hunger = Math.min(this.maxStats, this.hunger + 0.9 * dt * geneHungerMult(this));
+                this.thirst = Math.min(this.maxStats, this.thirst + 0.8 * dt * seasonThirstMultiplier() * geneThirstMult(this));
+                this.energy = Math.max(0, this.energy - 0.9 * dt);
+                const inWater = isMarine(this.x, this.y);
+                if (!inWater) updateCold(this, dt, Math.max(0.4, 2.2 - insul * 1.4));
+
+                if (this.thirst > 58) {
+                    const shore = nearestMarinePoint(this.x, this.y);
+                    if (shore) {
+                        const d = Math.hypot(shore.x - this.x, shore.y - this.y);
+                        if (d < this.radius + 24) this.thirst = Math.max(0, this.thirst - 55);
+                        else if (this.hunger < 55) { this.vx = lerp(this.vx, (shore.x - this.x) / d, 0.06); this.vy = lerp(this.vy, (shore.y - this.y) / d, 0.06); }
+                    }
+                }
+
+                const needFood = this.hunger > 35;
+                const vis = (180 + hunt * 160) * (this.genes.vision ?? 1);
+                let target = null, targetArr = null, targetKey = null, bestD = vis * vis;
+                if (needFood && gameState.settings.predatorsEnabled) {
+                    // prefer lemmings, then Seepas
+                    if (gameState.smeebas) for (const s of gameState.smeebas) {
+                        const d2 = distanceSq(this.x, this.y, s.x, s.y);
+                        if (d2 < bestD) { bestD = d2; target = s; targetArr = gameState.smeebas; targetKey = 'smeeba'; }
+                    }
+                    if (!target && gameState.seepas) {
+                        let bd2 = vis * vis;
+                        for (const s of gameState.seepas) {
+                            const camo = gameState.nsMode ? 1 : (1 - (s.genes.camouflage ?? 0) * 0.5);
+                            const d2 = distanceSq(this.x, this.y, s.x, s.y) / (camo * camo);
+                            if (d2 < bd2) { bd2 = d2; target = s; targetArr = gameState.seepas; targetKey = 'seepa'; }
+                        }
+                    }
+                }
+                if (target) {
+                    const d = Math.sqrt(distanceSq(this.x, this.y, target.x, target.y)) || 1e-6;
+                    this.vx = lerp(this.vx, (target.x - this.x) / d, 0.32);
+                    this.vy = lerp(this.vy, (target.y - this.y) / d, 0.32);
+                    if (d < this.radius + target.radius + 5 && this.eatCooldown <= 0 && !linkDisabled('snaava', targetKey)) {
+                        const idx = targetArr.indexOf(target);
+                        if (idx !== -1) {
+                            spawnParticles(target.x, target.y, '#ff6a6a', 10, 2);
+                            if (gameState.inspected && gameState.inspected.ref === target) gameState.inspected = null;
+                            recordDeath(targetKey, target, 'hunted');
+                            notePredation('snaava', targetKey);
+                            targetArr.splice(idx, 1);
+                            this.energy = Math.min(this.maxStats, this.energy + 95);
+                            this.hunger = Math.max(0, this.hunger - 70);
+                            this.lastEat = gameState.time; this.eatCooldown = 2.2; Audio2.fx('hunt');
+                        }
+                    }
+                } else {
+                    this.vx += (Math.random() - 0.5) * 0.08; this.vy += (Math.random() - 0.5) * 0.08;
+                }
+
+                const ready = this.age > 20 && this.energy > 60 && this.hunger < this.maxStats * 0.45 && this.thirst < this.maxStats * 0.6 &&
+                    (gameState.time - (this.lastReproduction || -Infinity)) > 17000 && gameState.snaavas.length < popCap('snaava');
+                if (ready) {
+                    let mate = null, mB = Infinity;
+                    for (const o of gameState.snaavas) {
+                        if (o === this || o.sex === this.sex || o.age < 20 || o.energy < 50) continue;
+                        const d2 = distanceSq(this.x, this.y, o.x, o.y);
+                        if (d2 < mB) { mB = d2; mate = o; }
+                    }
+                    if (mate) {
+                        const d = Math.sqrt(mB) || 1e-6;
+                        this.vx = lerp(this.vx, (mate.x - this.x) / d, 0.16); this.vy = lerp(this.vy, (mate.y - this.y) / d, 0.16);
+                        if (d < this.radius + mate.radius + 8) {
+                            const childGenes = inheritGenes(this.genes, mate.genes, GENE_RANGES.snaava);
+                            const baby = new Snaava(this.x, this.y, childGenes, Math.max(this.generation, mate.generation) + 1);
+                            baby.age = 0; baby.hunger = 25; baby.energy = 90;
+                            gameState.snaavas.push(baby);
+                            recordBirth(baby, 'snaava', this, mate);
+                            this.lastReproduction = gameState.time; mate.lastReproduction = gameState.time;
+                            this.energy -= 30; mate.energy -= 30;
+                            spawnBirthEffect(this.x, this.y, '#e8eef2'); spawnMatingHearts((this.x + mate.x) / 2, (this.y + mate.y) / 2 - 8); Audio2.fx('birth');
+                        }
+                    }
+                }
+
+                const vmag = Math.hypot(this.vx, this.vy);
+                if (vmag > 1.9) { this.vx = this.vx / vmag * 1.9; this.vy = this.vy / vmag * 1.9; }
+                moveAmphibious(this, dt, 1);
+            }
+            draw() {
+                const r = this.radius;
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(smoothHeading(this));
+                // Seasonal coat: white in winter, tan in summer, blending between
+                const season = (typeof getSeasonName === 'function') ? getSeasonName() : 'Summer';
+                let coat, coatD, coatL;
+                if (season === 'Winter') { coat = '#eef2f6'; coatD = '#c4cdd6'; coatL = '#ffffff'; }
+                else if (season === 'Autumn' || season === 'Spring') { coat = '#cbb79a'; coatD = '#9c8463'; coatL = '#e3d5bd'; }
+                else { coat = '#b6915f'; coatD = '#866333'; coatL = '#d3b483'; }
+                // shadow
+                ctx.fillStyle = 'rgba(0,0,0,0.14)';
+                ctx.beginPath(); ctx.ellipse(0, r * 0.2, r * 1.5, r * 0.8, 0, 0, Math.PI * 2); ctx.fill();
+                // bushy tail
+                const tg = ctx.createLinearGradient(-r * 2, 0, -r * 0.6, 0);
+                tg.addColorStop(0, coatL); tg.addColorStop(1, coat);
+                ctx.fillStyle = tg;
+                const tsw = Math.sin(this.gait * 0.6) * r * 0.3;
+                ctx.beginPath(); ctx.ellipse(-r * 1.35, tsw, r * 0.85, r * 0.5, 0, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = coatL;
+                ctx.beginPath(); ctx.ellipse(-r * 1.9, tsw, r * 0.35, r * 0.3, 0, 0, Math.PI * 2); ctx.fill(); // white tip
+                // legs (trot)
+                ctx.strokeStyle = coatD; ctx.lineWidth = Math.max(1, r * 0.18); ctx.lineCap = 'round';
+                for (const side of [-1, 1]) {
+                    for (let l = 0; l < 2; l++) {
+                        const sw = Math.sin(this.gait + l * 2.6 + (side > 0 ? Math.PI : 0)) * r * 0.5;
+                        const bx = (l === 0 ? r * 0.45 : -r * 0.35);
+                        ctx.beginPath(); ctx.moveTo(bx, side * r * 0.35); ctx.lineTo(bx + sw, side * r * 0.9); ctx.stroke();
+                    }
+                }
+                ctx.lineCap = 'butt';
+                // body
+                const bg = ctx.createRadialGradient(-r * 0.1, -r * 0.3, r * 0.2, 0, 0, r * 1.4);
+                bg.addColorStop(0, coatL); bg.addColorStop(0.6, coat); bg.addColorStop(1, coatD);
+                ctx.fillStyle = bg;
+                ctx.beginPath(); ctx.ellipse(0, 0, r * 1.25, r * 0.7, 0, 0, Math.PI * 2); ctx.fill();
+                // head (pointed snout)
+                ctx.fillStyle = coat;
+                ctx.beginPath(); ctx.ellipse(r * 1.05, 0, r * 0.55, r * 0.45, 0, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.moveTo(r * 1.4, -r * 0.22); ctx.lineTo(r * 1.85, 0); ctx.lineTo(r * 1.4, r * 0.22); ctx.closePath(); ctx.fill(); // snout
+                // ears (triangular)
+                ctx.fillStyle = coatD;
+                for (const side of [-1, 1]) {
+                    ctx.beginPath();
+                    ctx.moveTo(r * 0.85, side * r * 0.3);
+                    ctx.lineTo(r * 0.7, side * r * 0.75);
+                    ctx.lineTo(r * 1.15, side * r * 0.45);
+                    ctx.closePath(); ctx.fill();
+                }
+                // eyes + nose
+                ctx.fillStyle = '#1a1414';
+                for (const side of [-1, 1]) { ctx.beginPath(); ctx.arc(r * 1.05, side * r * 0.18, r * 0.09, 0, Math.PI * 2); ctx.fill(); }
+                ctx.beginPath(); ctx.arc(r * 1.85, 0, r * 0.1, 0, Math.PI * 2); ctx.fill();
+                if (this.cold > 25) {
+                    ctx.globalAlpha = Math.min(0.45, (this.cold - 25) / 130); ctx.fillStyle = '#bfe6ff';
+                    ctx.beginPath(); ctx.ellipse(0, 0, r * 1.25, r * 0.7, 0, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
+                }
+                ctx.restore();
+                drawCreatureBars(this);
+            }
+        }
+
         // ---------- Saaba (marine apex predator — hunts Soobas) ----------
         class Saaba {
             constructor(x, y, genes, generation) {
@@ -5005,22 +5650,36 @@
         // ── Challenge / scenario modes ──
         // Each preset configures the starting world and defines a victory goal.
         // Goals are victory-only (no failure) — the scenario simply runs until achieved.
+        // Default "full ecosystem" spawn template — scenarios override what they need
+        function ecoSpawns(s, o) {
+            const d = { seepaSpawn: 60, suubaSpawn: 8, siibaSpawn: 12, fishSpawn: 24, saabaSpawn: 4,
+                syybaSpawn: 3, siebaSpawn: 5, soopaSpawn: 14, syyphaSpawn: 8, phyyphaSpawn: 12, scuubaSpawn: 10,
+                smeebaSpawn: 24, snaavaSpawn: 5 };
+            Object.assign(s, d, o || {});
+        }
+        function seedPlague(frac) {
+            for (const key of SPECIES_KEYS) {
+                const arr = gameState[SPECIES_ARRAY[key]];
+                if (!arr) continue;
+                for (const c of arr) { if (Math.random() < frac) c.disease = 28 + Math.random() * 22; }
+            }
+        }
         const SCENARIOS = {
             sandbox: {
                 name: 'Sandbox', icon: '🌍',
-                desc: 'Free play — no goal. Experiment however you like.',
-                setup: (s) => {},
+                desc: 'Free play — no goal. The full, balanced ecosystem to experiment with.',
+                setup: (s) => { ecoSpawns(s); s.predatorsEnabled = true; s.diseaseEnabled = false; s.rescueEnabled = true; },
                 goal: null
             },
             iceage: {
                 name: 'Ice Age', icon: '❄️',
                 desc: 'Eternal winter with blizzards — Seepas are the only creatures left. Grow them to 25. Tip: planting groves gives both food and shelter from the cold.',
                 setup: (s) => {
-                    s.seepaSpawn = 15; s.suubaSpawn = 0; s.siibaSpawn = 0; s.fishSpawn = 0; s.saabaSpawn = 0;
-                    s.diseaseEnabled = false;
-                    s.predatorsEnabled = false;
-                    gameState.autoWeather = true;
-                    gameState.weatherCooldown = 14000;
+                    ecoSpawns(s, { seepaSpawn: 15, suubaSpawn: 0, siibaSpawn: 0, fishSpawn: 0, saabaSpawn: 0,
+                        syybaSpawn: 0, siebaSpawn: 0, soopaSpawn: 0, syyphaSpawn: 0, phyyphaSpawn: 0, scuubaSpawn: 0,
+                        smeebaSpawn: 0, snaavaSpawn: 0 });
+                    s.diseaseEnabled = false; s.predatorsEnabled = false;
+                    gameState.climateTemp = -3; gameState.autoWeather = true; gameState.weatherCooldown = 14000;
                 },
                 objective: 'Reach 25 Seepas',
                 goal: () => gameState.seepas.length >= 25
@@ -5029,7 +5688,8 @@
                 name: 'Predator Pressure', icon: '🦁',
                 desc: 'Swarming predators, scarce prey. Survive and rebuild the Seepa population to 80.',
                 setup: (s) => {
-                    s.seepaSpawn = 30; s.suubaSpawn = 18; s.siibaSpawn = 24; s.fishSpawn = 30; s.saabaSpawn = 8;
+                    ecoSpawns(s, { seepaSpawn: 30, suubaSpawn: 18, siibaSpawn: 24, fishSpawn: 30, saabaSpawn: 8,
+                        siebaSpawn: 8, syyphaSpawn: 4, phyyphaSpawn: 8 });
                     s.predatorsEnabled = true;
                 },
                 objective: 'Reach 80 Seepas',
@@ -5039,9 +5699,10 @@
                 name: 'Plague Outbreak', icon: '🦠',
                 desc: 'A disease ravages the land. Help the population evolve average resistance above 75%.',
                 setup: (s) => {
-                    s.seepaSpawn = 90; s.suubaSpawn = 3; s.siibaSpawn = 6; s.fishSpawn = 24; s.saabaSpawn = 2;
+                    ecoSpawns(s, { seepaSpawn: 90, suubaSpawn: 3, siibaSpawn: 6, fishSpawn: 24, saabaSpawn: 2 });
                     s.diseaseEnabled = true;
                 },
+                post: () => seedPlague(0.25),
                 objective: 'Evolve 75% avg resistance',
                 goal: () => {
                     const all = [...gameState.seepas, ...gameState.suubas, ...gameState.siibas, ...gameState.fish, ...gameState.saabas, ...gameState.syybas];
@@ -5054,7 +5715,8 @@
                 name: 'Lonely Founders', icon: '🏝️',
                 desc: 'Just two Seepas to start. Grow the colony to a thriving population of 120.',
                 setup: (s) => {
-                    s.seepaSpawn = 2; s.suubaSpawn = 0; s.siibaSpawn = 0; s.fishSpawn = 10; s.saabaSpawn = 0;
+                    ecoSpawns(s, { seepaSpawn: 2, suubaSpawn: 0, siibaSpawn: 0, fishSpawn: 10, saabaSpawn: 0,
+                        syybaSpawn: 0, siebaSpawn: 0, soopaSpawn: 0, syyphaSpawn: 0, phyyphaSpawn: 0, scuubaSpawn: 0 });
                 },
                 objective: 'Reach 120 Seepas',
                 goal: () => gameState.seepas.length >= 120
@@ -5063,7 +5725,7 @@
                 name: 'Speed Run', icon: '⚡',
                 desc: 'Apply selection pressure to evolve faster Seepas — get their average speed gene above 2.2.',
                 setup: (s) => {
-                    s.seepaSpawn = 70; s.suubaSpawn = 6; s.siibaSpawn = 10; s.fishSpawn = 20; s.saabaSpawn = 3;
+                    ecoSpawns(s, { seepaSpawn: 70, suubaSpawn: 6, siibaSpawn: 10, fishSpawn: 20, saabaSpawn: 3 });
                 },
                 objective: 'Evolve avg Seepa speed > 2.2',
                 goal: () => {
@@ -5071,6 +5733,67 @@
                     let s = 0; for (const c of gameState.seepas) s += c.genes.speed;
                     return (s / gameState.seepas.length) >= 2.2;
                 }
+            },
+            eden: {
+                name: 'Peaceful Eden', icon: '🕊️',
+                desc: 'No predators, no plague — a calm, teeming garden. Perfect with Cinematic Mode.',
+                setup: (s) => {
+                    ecoSpawns(s, { seepaSpawn: 80, suubaSpawn: 0, siibaSpawn: 0, saabaSpawn: 0, siebaSpawn: 0,
+                        fishSpawn: 30, syybaSpawn: 5, soopaSpawn: 20, syyphaSpawn: 6, phyyphaSpawn: 16, scuubaSpawn: 12 });
+                    s.predatorsEnabled = false; s.diseaseEnabled = false; gameState.climateTemp = 1;
+                },
+                goal: null
+            },
+            ocean: {
+                name: 'Ocean World', icon: '🌊',
+                desc: 'A sea-dominated world teeming with marine life — fish, jellies, colonies and crabs.',
+                setup: (s) => {
+                    ecoSpawns(s, { seepaSpawn: 28, suubaSpawn: 4, siibaSpawn: 6, soopaSpawn: 8, siebaSpawn: 9,
+                        fishSpawn: 55, saabaSpawn: 9, syybaSpawn: 7, syyphaSpawn: 14, phyyphaSpawn: 22, scuubaSpawn: 12 });
+                    s.predatorsEnabled = true;
+                },
+                goal: null
+            },
+            predboom: {
+                name: 'Predator Boom', icon: '🐺',
+                desc: 'Every hunter at once — a spectacle of the chase. Watch the food web swing.',
+                setup: (s) => {
+                    ecoSpawns(s, { seepaSpawn: 80, suubaSpawn: 18, siibaSpawn: 22, fishSpawn: 34, saabaSpawn: 10,
+                        siebaSpawn: 10, syybaSpawn: 6, syyphaSpawn: 10, scuubaSpawn: 12 });
+                    s.predatorsEnabled = true;
+                },
+                goal: null
+            },
+            greatplague: {
+                name: 'The Great Plague', icon: '☣️',
+                desc: 'A dense world struck by an outbreak across every species. Watch resistance evolve.',
+                setup: (s) => {
+                    ecoSpawns(s, { seepaSpawn: 95, fishSpawn: 34, soopaSpawn: 18 });
+                    s.diseaseEnabled = true; s.predatorsEnabled = true;
+                },
+                post: () => seedPlague(0.3),
+                goal: null
+            },
+            extinction: {
+                name: 'Mass Extinction', icon: '☄️',
+                desc: 'Life clings on by a thread. Watch it claw its way back from near-collapse.',
+                setup: (s) => {
+                    ecoSpawns(s, { seepaSpawn: 10, suubaSpawn: 2, siibaSpawn: 2, fishSpawn: 6, saabaSpawn: 1,
+                        syybaSpawn: 1, siebaSpawn: 2, soopaSpawn: 3, syyphaSpawn: 2, phyyphaSpawn: 3, scuubaSpawn: 2 });
+                    s.predatorsEnabled = true; gameState.climateTemp = -1;
+                },
+                goal: null
+            },
+            tundra: {
+                name: 'Frozen Tundra', icon: '🦊',
+                desc: 'A frigid world of lemmings and arctic foxes — watch the boom-and-bust cycle of the cold.',
+                setup: (s) => {
+                    ecoSpawns(s, { seepaSpawn: 22, suubaSpawn: 0, siibaSpawn: 0, fishSpawn: 10, saabaSpawn: 0,
+                        syybaSpawn: 0, siebaSpawn: 0, soopaSpawn: 6, syyphaSpawn: 0, phyyphaSpawn: 4, scuubaSpawn: 4,
+                        smeebaSpawn: 45, snaavaSpawn: 10 });
+                    s.predatorsEnabled = true; gameState.climateTemp = -3;
+                },
+                goal: null
             }
         };
 
@@ -5505,7 +6228,7 @@
             gameState.particles = [];
             gameState.corpses = [];
             gameState.popHistory = [];
-            gameState.geneHistory = { seepa: [], suuba: [], siiba: [], fish: [], saaba: [], syyba: [], sieba: [], soopa: [], syypha: [], phyypha: [], scuuba: [] };
+            gameState.geneHistory = { seepa: [], suuba: [], siiba: [], fish: [], saaba: [], syyba: [], sieba: [], soopa: [], syypha: [], phyypha: [], scuuba: [], smeeba: [], snaava: [] };
             gameState.diseaseHistory = [];
             gameState.weatherEvent = null;
             gameState.weatherCooldown = 30000 + Math.random() * 20000;
@@ -5566,6 +6289,8 @@
                 gameState.syyphas = [];
                 gameState.phyyphas = [];
                 gameState.scuubas = [];
+                gameState.smeebas = [];
+                gameState.snaavas = [];
             } else {
                 for (let i = 0; i < gameState.settings.seepaSpawn; i++) {
                     const p = landPos(20);
@@ -5688,6 +6413,39 @@
                         gameState.scuubas.push(cr);
                     }
                 }
+
+                // Smeebas (lemmings) — prefer cold biomes
+                gameState.smeebas = [];
+                let smAttempts = 0;
+                while (gameState.smeebas.length < gameState.settings.smeebaSpawn && smAttempts < gameState.settings.smeebaSpawn * 120) {
+                    smAttempts++;
+                    const bx = randomBetween(20, canvas.width - 20);
+                    const by = randomBetween(20, canvas.height - 20);
+                    if (isMarine(bx, by)) continue;
+                    const b = biomeAt(bx, by);
+                    const cold = (b === 'tundra' || b === 'taiga');
+                    // strongly prefer cold biomes, but allow a few elsewhere
+                    if (!cold && smAttempts < gameState.settings.smeebaSpawn * 80 && Math.random() < 0.85) continue;
+                    const m = new Smeeba(bx, by);
+                    m.sex = (gameState.smeebas.length % 2 === 0) ? 'male' : 'female';
+                    gameState.smeebas.push(m);
+                }
+
+                // Snaavas (arctic foxes) — prefer cold biomes
+                gameState.snaavas = [];
+                let snAttempts = 0;
+                while (gameState.snaavas.length < gameState.settings.snaavaSpawn && snAttempts < gameState.settings.snaavaSpawn * 120) {
+                    snAttempts++;
+                    const bx = randomBetween(20, canvas.width - 20);
+                    const by = randomBetween(20, canvas.height - 20);
+                    if (isMarine(bx, by)) continue;
+                    const b = biomeAt(bx, by);
+                    const cold = (b === 'tundra' || b === 'taiga');
+                    if (!cold && snAttempts < gameState.settings.snaavaSpawn * 80 && Math.random() < 0.85) continue;
+                    const f = new Snaava(bx, by);
+                    f.sex = (gameState.snaavas.length % 2 === 0) ? 'male' : 'female';
+                    gameState.snaavas.push(f);
+                }
             }
 
             gameState.stars = createStars(80);
@@ -5712,8 +6470,8 @@
         }
 
         // ---------- Save / load worlds ----------
-        const SPECIES_CLASS = { seepa: () => Seepa, suuba: () => Suuba, siiba: () => Siiba, fish: () => Fish, saaba: () => Saaba, syyba: () => Syyba, sieba: () => Sieba, soopa: () => Soopa, syypha: () => Syypha, phyypha: () => Phyypha, scuuba: () => Scuuba };
-        const SPECIES_ARRAY = { seepa: 'seepas', suuba: 'suubas', siiba: 'siibas', fish: 'fish', saaba: 'saabas', syyba: 'syybas', sieba: 'siebas', soopa: 'soopas', syypha: 'syyphas', phyypha: 'phyyphas', scuuba: 'scuubas' };
+        const SPECIES_CLASS = { seepa: () => Seepa, suuba: () => Suuba, siiba: () => Siiba, fish: () => Fish, saaba: () => Saaba, syyba: () => Syyba, sieba: () => Sieba, soopa: () => Soopa, syypha: () => Syypha, phyypha: () => Phyypha, scuuba: () => Scuuba, smeeba: () => Smeeba, snaava: () => Snaava };
+        const SPECIES_ARRAY = { seepa: 'seepas', suuba: 'suubas', siiba: 'siibas', fish: 'fish', saaba: 'saabas', syyba: 'syybas', sieba: 'siebas', soopa: 'soopas', syypha: 'syyphas', phyypha: 'phyyphas', scuuba: 'scuubas', smeeba: 'smeebas', snaava: 'snaavas' };
 
         function serializeState() {
             const plain = (arr) => (arr || []).map(c => {
@@ -5743,6 +6501,8 @@
                 corpses: gameState.corpses ? JSON.parse(JSON.stringify(gameState.corpses)) : [],
                 phyyphas: plain(gameState.phyyphas),
                 scuubas: plain(gameState.scuubas),
+                smeebas: plain(gameState.smeebas),
+                snaavas: plain(gameState.snaavas),
                 bushes: gameState.bushes, trees: gameState.trees, corals: gameState.corals,
                 structures: gameState.structures, radZones: gameState.radZones,
                 popHistory: gameState.popHistory, geneHistory: gameState.geneHistory,
@@ -5792,7 +6552,7 @@
             }
             // History & stats
             gameState.popHistory = data.popHistory || [];
-            gameState.geneHistory = data.geneHistory || { seepa: [], suuba: [], siiba: [], fish: [], saaba: [], syyba: [], sieba: [], soopa: [], syypha: [], phyypha: [], scuuba: [] };
+            gameState.geneHistory = data.geneHistory || { seepa: [], suuba: [], siiba: [], fish: [], saaba: [], syyba: [], sieba: [], soopa: [], syypha: [], phyypha: [], scuuba: [], smeeba: [], snaava: [] };
             gameState.diseaseHistory = data.diseaseHistory || [];
             gameState.lineage = new Map(data.lineage || []);
             gameState.speciesStats = data.speciesStats || {};
@@ -5847,7 +6607,7 @@
             const zones = gameState.radZones;
             if (!zones || !zones.length) return;
             const dt = deltaTime / 1000;
-            const lists = [gameState.seepas, gameState.suubas, gameState.siibas, gameState.fish, gameState.saabas, gameState.syybas, gameState.siebas, gameState.soopas, gameState.syyphas, gameState.phyyphas, gameState.scuubas];
+            const lists = [gameState.seepas, gameState.suubas, gameState.siibas, gameState.fish, gameState.saabas, gameState.syybas, gameState.siebas, gameState.soopas, gameState.syyphas, gameState.phyyphas, gameState.scuubas, gameState.smeebas, gameState.snaavas];
             for (const z of zones) {
                 z.pulse = (z.pulse || 0) + dt;
                 const r2 = z.r * z.r;
@@ -5886,6 +6646,8 @@
             if (gameState.syyphas && gameState.syyphas.includes(c)) return 'syypha';
             if (gameState.phyyphas && gameState.phyyphas.includes(c)) return 'phyypha';
             if (gameState.scuubas && gameState.scuubas.includes(c)) return 'scuuba';
+            if (gameState.smeebas && gameState.smeebas.includes(c)) return 'smeeba';
+            if (gameState.snaavas && gameState.snaavas.includes(c)) return 'snaava';
             return 'seepa';
         }
         function drawRadZones() {
@@ -6367,7 +7129,9 @@
                 sp: (gameState.soopas || []).length,
                 jf: (gameState.syyphas || []).length,
                 ph: (gameState.phyyphas || []).length,
-                cr: (gameState.scuubas || []).length
+                cr: (gameState.scuubas || []).length,
+                me: (gameState.smeebas || []).length,
+                fx: (gameState.snaavas || []).length
             });
             if (gameState.popHistory.length > 240) gameState.popHistory.shift();
 
@@ -6412,6 +7176,8 @@
             gameState.geneHistory.syypha.push(sampleGenes(gameState.syyphas || [], 'syypha'));
             gameState.geneHistory.phyypha.push(sampleGenes(gameState.phyyphas || [], 'phyypha'));
             gameState.geneHistory.scuuba.push(sampleGenes(gameState.scuubas || [], 'scuuba'));
+            gameState.geneHistory.smeeba.push(sampleGenes(gameState.smeebas || [], 'smeeba'));
+            gameState.geneHistory.snaava.push(sampleGenes(gameState.snaavas || [], 'snaava'));
             for (const sp in gameState.geneHistory) {
                 if (gameState.geneHistory[sp].length > 240) gameState.geneHistory[sp].shift();
             }
@@ -6454,7 +7220,7 @@
             }
 
             let max = 10;
-            for (const h of hist) max = Math.max(max, h.se, h.su, h.si, h.fi || 0, h.sa || 0, h.sy || 0, h.sb || 0, h.sp || 0, h.jf || 0, h.ph || 0, h.cr || 0);
+            for (const h of hist) max = Math.max(max, h.se, h.su, h.si, h.fi || 0, h.sa || 0, h.sy || 0, h.sb || 0, h.sp || 0, h.jf || 0, h.ph || 0, h.cr || 0, h.me || 0, h.fx || 0);
 
             // grid lines
             graphCtx.strokeStyle = 'rgba(255,255,255,0.07)';
@@ -6467,17 +7233,19 @@
             }
 
             const series = [
-                { key: 'se', color: '#63a6ff', fill: 'rgba(99,166,255,0.13)' },
-                { key: 'su', color: '#ff6b6b', fill: 'rgba(255,107,107,0.11)' },
-                { key: 'si', color: '#ff9fb3', fill: 'rgba(255,159,179,0.10)' },
+                { key: 'se', color: '#7ec850', fill: 'rgba(126,200,80,0.13)' },
+                { key: 'su', color: '#9b6bd6', fill: 'rgba(155,107,214,0.11)' },
+                { key: 'si', color: '#e06b8f', fill: 'rgba(224,107,143,0.10)' },
                 { key: 'fi', color: '#ff9b33', fill: 'rgba(255,155,51,0.10)' },
                 { key: 'sa', color: '#3a8fc4', fill: 'rgba(58,143,196,0.10)' },
-                { key: 'sy', color: '#8fae9c', fill: 'rgba(143,174,156,0.10)' },
+                { key: 'sy', color: '#c99a5a', fill: 'rgba(201,154,90,0.10)' },
                 { key: 'sb', color: '#19e0d8', fill: 'rgba(25,224,216,0.10)' },
                 { key: 'sp', color: '#a8895f', fill: 'rgba(168,137,95,0.10)' },
                 { key: 'jf', color: '#8fd8ff', fill: 'rgba(143,216,255,0.10)' },
                 { key: 'ph', color: '#7ec9a8', fill: 'rgba(126,201,168,0.10)' },
-                { key: 'cr', color: '#e08a4c', fill: 'rgba(224,138,76,0.10)' }
+                { key: 'cr', color: '#e08a4c', fill: 'rgba(224,138,76,0.10)' },
+                { key: 'me', color: '#d9cdb8', fill: 'rgba(217,205,184,0.10)' },
+                { key: 'fx', color: '#e8eef2', fill: 'rgba(232,238,242,0.10)' }
             ];
 
             // Helper: compute smoothed point positions
@@ -6528,7 +7296,8 @@
             syyba:  { x: 0.28, y: 0.54 }, saaba:  { x: 0.74, y: 0.56 },
             syypha: { x: 0.93, y: 0.40 }, suuba:  { x: 0.15, y: 0.30 },
             siiba:  { x: 0.40, y: 0.18 }, sieba:  { x: 0.64, y: 0.22 },
-            scuuba: { x: 0.55, y: 0.62 }
+            scuuba: { x: 0.55, y: 0.62 },
+            smeeba: { x: 0.16, y: 0.80 }, snaava: { x: 0.28, y: 0.60 }
         };
         function fwPopOf(key) {
             const arr = gameState[SPECIES_ARRAY[key]];
@@ -8005,59 +8774,71 @@
             if (!gameState.settings.diseaseEnabled) return;
             const dt = deltaTime / 1000;
             const groups = [
-                ['seepa', gameState.seepas],
-                ['suuba', gameState.suubas],
-                ['siiba', gameState.siibas],
-                ['fish', gameState.fish],
-                ['saaba', gameState.saabas],
-                ['syyba', gameState.syybas]
+                ['seepa', gameState.seepas], ['suuba', gameState.suubas], ['siiba', gameState.siibas],
+                ['fish', gameState.fish], ['saaba', gameState.saabas], ['syyba', gameState.syybas],
+                ['sieba', gameState.siebas], ['soopa', gameState.soopas], ['syypha', gameState.syyphas],
+                ['phyypha', gameState.phyyphas], ['scuuba', gameState.scuubas],
+                ['smeeba', gameState.smeebas], ['snaava', gameState.snaavas]
             ];
+
+            // Global infection pressure — drives cross-species jumps during a real outbreak
+            let totalAlive = 0, totalInfected = 0;
+            for (const [, list] of groups) { if (!list) continue; totalAlive += list.length; for (const c of list) if (c.disease > 1) totalInfected++; }
+            const outbreak = totalAlive > 0 ? totalInfected / totalAlive : 0; // 0..1
+
             for (const [kind, list] of groups) {
                 if (!list || list.length === 0) continue;
                 for (const c of list) {
                     if (c.disease === undefined) c.disease = 0;
+                    if (c.immune === undefined) c.immune = 0;
                     const resist = (c.genes && c.genes.resistance) || 0;
 
-                    // Spontaneous infection — rare, and rarer for resistant creatures
+                    // Acquired immunity wanes over time (acquired, not inherited)
+                    if (c.immune > 0) c.immune = Math.max(0, c.immune - dt);
+
                     if (c.disease <= 0) {
-                        const baseChance = 0.0006 * dt * 60; // per ~frame-second
+                        if (c.immune > 0) continue; // currently immune — can't catch it
+                        // Spontaneous infection: a low baseline, lifted during an active outbreak
+                        // (this is the cross-species jump — a raging plague seeds new species).
+                        const baseChance = (0.0004 + outbreak * 0.010) * dt * 60;
                         if (Math.random() < baseChance * (1 - resist * 0.7)) {
-                            c.disease = 18 + Math.random() * 12;
+                            c.disease = 16 + Math.random() * 12;
                             logEvent('disease', 'A ' + kind + ' fell ill');
                         }
                         continue;
                     }
 
-                    // Progression: resistant creatures fight it off; others worsen
-                    const fightOff = resist * 9;       // recovery power
-                    const worsen = 5 * (1 - resist * 0.5); // illness growth
+                    // Progression: resistant creatures throw it off; the vulnerable worsen
+                    const fightOff = 3 + resist * 11;          // recovery power (resistance decisive)
+                    const worsen = 6 * (1 - resist * 0.55);    // illness growth
                     c.disease += (worsen - fightOff) * dt;
 
-                    // Symptoms: drains energy/hunger faster, so illness has a real cost
-                    if (c.energy !== undefined) c.energy = Math.max(0, c.energy - 3 * dt * (c.disease / 50));
-                    c.hunger = Math.min(c.maxStats, c.hunger + 1.5 * dt * (c.disease / 50));
+                    // Symptoms cost energy & appetite, so illness is genuinely dangerous
+                    if (c.energy !== undefined) c.energy = Math.max(0, c.energy - 3.2 * dt * (c.disease / 50));
+                    c.hunger = Math.min(c.maxStats, c.hunger + 1.6 * dt * (c.disease / 50));
 
                     if (c.disease <= 0) {
-                        c.disease = 0; // recovered
+                        c.disease = 0;
+                        // Survivors gain temporary immunity — resistant ones hold it longer
+                        c.immune = 25 + resist * 45 + Math.random() * 15;
                     } else if (c.disease > 100) {
-                        // Died of illness — mark via hunger so the normal death path removes it
-                        c.hunger = c.maxStats + 1;
+                        c.hunger = c.maxStats + 1; // dies via the normal path; recordDeath tags cause 'disease'
                         c.disease = 100;
                     }
                 }
 
-                // Spread: infected creatures infect nearby same-species neighbours
+                // Contagion: infected creatures infect nearby same-species neighbours
                 for (let i = 0; i < list.length; i++) {
                     const a = list[i];
-                    if (!a.disease || a.disease < 12) continue;
+                    if (!a.disease || a.disease < 10) continue;
                     for (let j = i + 1; j < list.length; j++) {
                         const b = list[j];
-                        if (b.disease > 0) continue;
-                        const range = (a.radius + b.radius + 14);
+                        if (b.disease > 0 || b.immune > 0) continue; // already sick or immune
+                        const range = (a.radius + b.radius + 16);
                         if (distanceSq(a.x, a.y, b.x, b.y) < range * range) {
                             const bResist = (b.genes && b.genes.resistance) || 0;
-                            if (Math.random() < 0.04 * (1 - bResist * 0.8)) {
-                                b.disease = 14 + Math.random() * 10;
+                            if (Math.random() < 0.06 * (1 - bResist * 0.8)) {
+                                b.disease = 13 + Math.random() * 10;
                             }
                         }
                     }
@@ -8188,6 +8969,40 @@
                         cr.sex = (added % 2 === 0) ? 'male' : 'female';
                         gameState.scuubas.push(cr);
                         spawnParticles(x, y, '#e08a4c', 5, 1.2); added++;
+                    }
+                }
+            }
+            if ((gameState.smeebas || []).length < 4 && gameState.settings.smeebaSpawn > 0) {
+                logEvent('rescue', 'A scurry of Smeebas arrives from the tundra');
+                let tries = 0, added = 0;
+                while (added < 6 && tries < 260) {
+                    tries++;
+                    const x = randomBetween(20, canvas.width - 20);
+                    const y = randomBetween(20, canvas.height - 20);
+                    if (isMarine(x, y)) continue;
+                    const b = biomeAt(x, y);
+                    if ((b === 'tundra' || b === 'taiga') || tries > 160) {
+                        const m = new Smeeba(x, y);
+                        m.sex = (added % 2 === 0) ? 'male' : 'female';
+                        gameState.smeebas.push(m);
+                        spawnParticles(x, y, '#d9cdb8', 5, 1.2); added++;
+                    }
+                }
+            }
+            if ((gameState.snaavas || []).length < 2 && gameState.settings.snaavaSpawn > 0) {
+                logEvent('rescue', 'A pair of Snaavas pads in across the frost');
+                let tries = 0, added = 0;
+                while (added < 3 && tries < 260) {
+                    tries++;
+                    const x = randomBetween(20, canvas.width - 20);
+                    const y = randomBetween(20, canvas.height - 20);
+                    if (isMarine(x, y)) continue;
+                    const b = biomeAt(x, y);
+                    if ((b === 'tundra' || b === 'taiga') || tries > 160) {
+                        const f = new Snaava(x, y);
+                        f.sex = (added % 2 === 0) ? 'male' : 'female';
+                        gameState.snaavas.push(f);
+                        spawnParticles(x, y, '#e8eef2', 5, 1.2); added++;
                     }
                 }
             }
@@ -8532,6 +9347,32 @@
                         recordDeath('scuuba', cr); spawnDeathEffect(cr.x, cr.y, '#e08a4c'); Audio2.fx('death');
                         if (gameState.inspected && gameState.inspected.ref === cr) gameState.inspected = null;
                         gameState.scuubas.splice(i, 1);
+                    }
+                }
+            }
+
+            // Smeebas (tundra lemmings)
+            if (gameState.smeebas) {
+                for (let i = gameState.smeebas.length - 1; i >= 0; i--) {
+                    const m = gameState.smeebas[i];
+                    if (!isFrozen('smeeba')) m.update(deltaTime, gameState);
+                    if (!m.isAlive()) {
+                        recordDeath('smeeba', m); spawnDeathEffect(m.x, m.y, '#d9cdb8'); Audio2.fx('death');
+                        if (gameState.inspected && gameState.inspected.ref === m) gameState.inspected = null;
+                        gameState.smeebas.splice(i, 1);
+                    }
+                }
+            }
+
+            // Snaavas (arctic foxes)
+            if (gameState.snaavas) {
+                for (let i = gameState.snaavas.length - 1; i >= 0; i--) {
+                    const f = gameState.snaavas[i];
+                    if (!isFrozen('snaava')) f.update(deltaTime, gameState);
+                    if (!f.isAlive()) {
+                        recordDeath('snaava', f); spawnDeathEffect(f.x, f.y, '#e8eef2'); Audio2.fx('death');
+                        if (gameState.inspected && gameState.inspected.ref === f) gameState.inspected = null;
+                        gameState.snaavas.splice(i, 1);
                     }
                 }
             }
@@ -9041,6 +9882,7 @@
         }
 
         function render() {
+            updateCinematic();
             // Screen-space clear + letterbox, then enter camera (world) space
             ctx.setTransform(1, 0, 0, 1, 0, 0);
             ctx.fillStyle = '#080b08';
@@ -9069,6 +9911,8 @@
             if (gameState.syybas) for (const syyba of gameState.syybas) syyba.draw();
             if (gameState.soopas) for (const soopa of gameState.soopas) soopa.draw();
             if (gameState.scuubas) for (const cr of gameState.scuubas) cr.draw();
+            if (gameState.smeebas) for (const m of gameState.smeebas) m.draw();
+            if (gameState.snaavas) for (const f of gameState.snaavas) f.draw();
             if (gameState.siebas) for (const sieba of gameState.siebas) sieba.draw();
 
             drawAtmosphere();
@@ -9079,7 +9923,7 @@
             drawGodModeEffects();
             // Sickness markers — a sickly green haze + spots over infected creatures
             if (gameState.settings.diseaseEnabled) {
-                const groups = [gameState.seepas, gameState.suubas, gameState.siibas, gameState.fish, gameState.saabas, gameState.syybas, gameState.siebas, gameState.soopas, gameState.syyphas, gameState.phyyphas, gameState.scuubas];
+                const groups = [gameState.seepas, gameState.suubas, gameState.siibas, gameState.fish, gameState.saabas, gameState.syybas, gameState.siebas, gameState.soopas, gameState.syyphas, gameState.phyyphas, gameState.scuubas, gameState.smeebas, gameState.snaavas];
                 for (const list of groups) {
                     if (!list) continue;
                     for (const c of list) {
@@ -9103,6 +9947,21 @@
                             ctx.arc(c.x + Math.cos(ang) * (c.radius + 4), c.y + Math.sin(ang) * (c.radius + 4), 1.6, 0, Math.PI * 2);
                             ctx.fill();
                         }
+                        ctx.restore();
+                    }
+                }
+                // Immune (recovered) creatures — a faint protective blue ring
+                for (const list of groups) {
+                    if (!list) continue;
+                    for (const c of list) {
+                        if (!(c.immune > 0) || (c.disease && c.disease >= 8)) continue;
+                        ctx.save();
+                        ctx.globalAlpha = 0.28 * Math.min(1, c.immune / 20);
+                        ctx.strokeStyle = '#7fd0ff';
+                        ctx.lineWidth = 1.4;
+                        ctx.setLineDash([2, 3]);
+                        ctx.beginPath(); ctx.arc(c.x, c.y, c.radius + 4, 0, Math.PI * 2); ctx.stroke();
+                        ctx.setLineDash([]);
                         ctx.restore();
                     }
                 }
@@ -9158,6 +10017,7 @@
 
             drawVignette();
 
+            if (!cinema.active) {
             ctx.fillStyle = '#fff';
             ctx.font = '12px Arial';
             ctx.fillText(`Time: ${(gameState.time / 1000).toFixed(1)}s`, 10, 20);
@@ -9172,6 +10032,9 @@
             ctx.fillText(`Syyphas: ${gameState.syyphas ? gameState.syyphas.length : 0}`, 10, 155);
             ctx.fillText(`Phyyphas: ${gameState.phyyphas ? gameState.phyyphas.length : 0}`, 10, 170);
             ctx.fillText(`Scuubas: ${gameState.scuubas ? gameState.scuubas.length : 0}`, 10, 185);
+            ctx.fillText(`Smeebas: ${gameState.smeebas ? gameState.smeebas.length : 0}`, 10, 200);
+            ctx.fillText(`Snaavas: ${gameState.snaavas ? gameState.snaavas.length : 0}`, 10, 215);
+            }
 
             if (gameState.paused) {
                 ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
@@ -9183,7 +10046,8 @@
                 ctx.textAlign = 'left';
             }
 
-            drawMinimap();
+            if (!cinema.active) drawMinimap();
+            drawCinematicOverlay();
         }
 
         // ---------- Game loop ----------
@@ -9310,6 +10174,8 @@
             document.getElementById('syyphaCount').textContent = (gameState.syyphas || []).length;
             document.getElementById('phyyphaCount').textContent = (gameState.phyyphas || []).length;
             document.getElementById('scuubaCount').textContent = (gameState.scuubas || []).length;
+            document.getElementById('smeebaCount').textContent = (gameState.smeebas || []).length;
+            document.getElementById('snaavaCount').textContent = (gameState.snaavas || []).length;
             document.getElementById('simTime').textContent = (gameState.time / 1000).toFixed(1) + 's';
             document.getElementById('dayClock').textContent = formatClock(getDayTime());
             document.getElementById('dayPhase').textContent = getDayPhase();
@@ -9328,6 +10194,8 @@
             document.getElementById('genSyypha').textContent = maxGenFor(gameState.syyphas || []);
             document.getElementById('genPhyypha').textContent = maxGenFor(gameState.phyyphas || []);
             document.getElementById('genScuuba').textContent = maxGenFor(gameState.scuubas || []);
+            document.getElementById('genSmeeba').textContent = maxGenFor(gameState.smeebas || []);
+            document.getElementById('genSnaava').textContent = maxGenFor(gameState.snaavas || []);
 
             // Keep legacy genLabel in sync (used by older code paths)
             let maxGen = Math.max(maxGenFor(gameState.seepas), maxGenFor(gameState.suubas), maxGenFor(gameState.siibas || []), maxGenFor(gameState.fish || []));
@@ -9357,6 +10225,7 @@
             if (typeof c.cold === 'number' && c.cold > 1) html += '<br>Cold: ' + Math.round(c.cold) + '%';
             if (c.hidden) html += '<br><em>🌙 Hiding in shelter</em>';
             if (typeof c.disease === 'number' && c.disease > 1) html += '<br><span style="color:#9bd34a;">🦠 Infected: ' + Math.round(c.disease) + '%</span>';
+            else if (typeof c.immune === 'number' && c.immune > 0) html += '<br><span style="color:#7fd0ff;">🛡️ Immune (' + Math.round(c.immune) + 's)</span>';
             if (c.genes) {
                 const g = c.genes;
                 html += '<br><strong>Genes</strong>';
@@ -9402,7 +10271,10 @@
                 e.preventDefault();
                 document.getElementById('pausePlayBtn').click();
             }
+            if (e.key === 'Escape' && cinema.active) { e.preventDefault(); exitCinematic(); }
         });
+        document.getElementById('cinematicBtn').addEventListener('click', () => { if (cinema.active) exitCinematic(); else enterCinematic(); });
+        document.getElementById('cinematicExitBtn').addEventListener('click', exitCinematic);
 
         function setSimSpeed(v) {
             v = Math.max(0.1, Math.min(2000, v || 1));
@@ -9658,11 +10530,19 @@
             setVal('syyphaPop', s.syyphaSpawn); setLbl('syyphaPopLabel', s.syyphaSpawn);
             setVal('phyyphaPop', s.phyyphaSpawn); setLbl('phyyphaPopLabel', s.phyyphaSpawn);
             setVal('scuubaPop', s.scuubaSpawn); setLbl('scuubaPopLabel', s.scuubaSpawn);
+            setVal('smeebaPop', s.smeebaSpawn); setLbl('smeebaPopLabel', s.smeebaSpawn);
+            setVal('snaavaPop', s.snaavaSpawn); setLbl('snaavaPopLabel', s.snaavaSpawn);
             const dt = document.getElementById('diseaseToggle'); if (dt) dt.checked = s.diseaseEnabled;
             const st = document.getElementById('structuresToggle'); if (st) st.checked = s.structuresEnabled;
             const pt = document.getElementById('predToggle'); if (pt) pt.checked = s.predatorsEnabled;
             const awt = document.getElementById('autoWeatherToggle'); if (awt) awt.checked = gameState.autoWeather;
             const att = document.getElementById('atmosphereToggle'); if (att) att.checked = gameState.settings.atmosphereEnabled !== false;
+            const cts = document.getElementById('climateTempSlider');
+            if (cts) {
+                cts.value = gameState.climateTemp || 0;
+                const cl = { '-3': 'Frigid', '-2': 'Cold', '-1': 'Cool', '0': 'Normal', '1': 'Warm', '2': 'Hot', '3': 'Scorching' };
+                const clbl = document.getElementById('climateTempLabel'); if (clbl) clbl.textContent = cl[String(gameState.climateTemp || 0)] || 'Normal';
+            }
         }
 
         document.getElementById('scenarioSelect').addEventListener('change', (e) => {
@@ -9684,9 +10564,12 @@
             gameState.helpUsed = 0;
             pendingIntervention = null;
             // Apply the scenario's preset configuration, then start fresh
+            gameState.climateTemp = 0;
+            gameState.seasonDuration = 12000;
             sc.setup(gameState.settings);
             syncControlsToSettings();
             init();
+            if (sc.post) sc.post();
             gameState.paused = false;
             document.getElementById('pausePlayBtn').textContent = '⏸ PAUSE';
             lastTime = Date.now();
@@ -9806,7 +10689,7 @@
             gameState.settings.diseaseEnabled = e.target.checked;
             if (!e.target.checked) {
                 // Clear all active infections when disease is switched off
-                const all = [gameState.seepas, gameState.suubas, gameState.siibas, gameState.fish, gameState.saabas, gameState.syybas, gameState.siebas, gameState.soopas, gameState.syyphas, gameState.phyyphas, gameState.scuubas];
+                const all = [gameState.seepas, gameState.suubas, gameState.siibas, gameState.fish, gameState.saabas, gameState.syybas, gameState.siebas, gameState.soopas, gameState.syyphas, gameState.phyyphas, gameState.scuubas, gameState.smeebas, gameState.snaavas];
                 for (const list of all) if (list) for (const c of list) c.disease = 0;
             } else {
                 logEvent('disease', 'Disease enabled — an outbreak may begin');
@@ -9831,11 +10714,14 @@
         bindPopSlider('syyphaPop', 'syyphaPopLabel', 'syyphaSpawn');
         bindPopSlider('phyyphaPop', 'phyyphaPopLabel', 'phyyphaSpawn');
         bindPopSlider('scuubaPop', 'scuubaPopLabel', 'scuubaSpawn');
+        bindPopSlider('smeebaPop', 'smeebaPopLabel', 'smeebaSpawn');
+        bindPopSlider('snaavaPop', 'snaavaPopLabel', 'snaavaSpawn');
         bindPopSlider('syybaPop', 'syybaPopLabel', 'syybaSpawn');
         bindPopSlider('siibaPop', 'siibaPopLabel', 'siibaSpawn');
 
         // Canvas clicks: inspect or spawn (with scaling for responsive canvas)
         canvas.addEventListener('click', (e) => {
+            if (cinema.active) { exitCinematic(); return; } // click exits watch mode
             if (gameState.terrainEditMode) return; // painting is handled by pointer events
             const rect = canvas.getBoundingClientRect();
             const sx = (e.clientX - rect.left) * (canvas.width / rect.width);
@@ -9941,6 +10827,8 @@
                 consider(gameState.syyphas, 'Syypha', 12);
                 consider(gameState.phyyphas, 'Phyypha', 14);
                 consider(gameState.scuubas, 'Scuuba', 10);
+                consider(gameState.smeebas, 'Smeeba', 4);
+                consider(gameState.snaavas, 'Snaava', 8);
                 gameState.inspected = best ? { type: bestType, ref: best } : null;
                 updateInspector();
             } else if (mode === 'seepa') {
@@ -9987,6 +10875,10 @@
                 else { spawnParticles(x, y, '#888', 5, 1.0); }
             } else if (mode === 'scuuba') {
                 gameState.scuubas.push(new Scuuba(x, y)); spawnParticles(x, y, '#e08a4c', 8, 1.6);
+            } else if (mode === 'smeeba') {
+                gameState.smeebas.push(new Smeeba(x, y)); spawnParticles(x, y, '#d9cdb8', 8, 1.6);
+            } else if (mode === 'snaava') {
+                gameState.snaavas.push(new Snaava(x, y)); spawnParticles(x, y, '#e8eef2', 8, 1.6);
             } else if (mode === 'food') {
                 // Drop a fresh, full bush of food on land
                 if (!isMarine(x, y)) {
@@ -10039,7 +10931,7 @@
                 // Wipe out everything in a blast radius
                 gameState.meteor = { x, y, t: 0, radius: 130 };
                 const blastSq = 130 * 130;
-                const lists2 = [gameState.seepas, gameState.suubas, gameState.siibas, gameState.fish, gameState.saabas, gameState.syybas, gameState.siebas, gameState.soopas, gameState.syyphas, gameState.phyyphas, gameState.scuubas];
+                const lists2 = [gameState.seepas, gameState.suubas, gameState.siibas, gameState.fish, gameState.saabas, gameState.syybas, gameState.siebas, gameState.soopas, gameState.syyphas, gameState.phyyphas, gameState.scuubas, gameState.smeebas, gameState.snaavas];
                 for (const list of lists2) {
                     for (let i = list.length - 1; i >= 0; i--) {
                         if (distanceSq(x, y, list[i].x, list[i].y) < blastSq) {
@@ -10100,6 +10992,7 @@
 
         // ── Camera input: wheel zoom, right-drag pan, WASD/arrows ──
         canvas.addEventListener('wheel', (e) => {
+            if (cinema.active) return;
             e.preventDefault();
             const rect = canvas.getBoundingClientRect();
             const sx = (e.clientX - rect.left) * (canvas.width / rect.width);
@@ -10109,6 +11002,7 @@
 
         let panning = false, panStart = null;
         canvas.addEventListener('pointerdown', (e) => {
+            if (cinema.active) return;
             if (e.button === 2 || e.button === 1) { // right/middle drag pans
                 panning = true;
                 panStart = { sx: e.clientX, sy: e.clientY, cx: cam.x, cy: cam.y };
@@ -10160,14 +11054,16 @@
                 ctx.fillStyle = color;
                 for (const c of list) ctx.fillRect(m.x + c.x * sx - 0.5, m.y + c.y * sy - 0.5, 1.6, 1.6);
             };
-            dot(gameState.fish, '#ffae5c'); dot(gameState.saabas, '#3a8fc4');
-            dot(gameState.syybas, '#a8835a'); dot(gameState.siibas, '#d98fae');
-            dot(gameState.suubas, '#9a6fb0'); dot(gameState.seepas, '#6ca9ff');
-            dot(gameState.siebas, '#2aa6e0');
+            dot(gameState.fish, '#ff9b33'); dot(gameState.saabas, '#3a8fc4');
+            dot(gameState.syybas, '#c99a5a'); dot(gameState.siibas, '#e06b8f');
+            dot(gameState.suubas, '#9b6bd6'); dot(gameState.seepas, '#7ec850');
+            dot(gameState.siebas, '#19e0d8');
             dot(gameState.soopas, '#a8895f');
             dot(gameState.syyphas, '#8fd8ff');
-            dot(gameState.phyyphas, '#bfe8d8');
+            dot(gameState.phyyphas, '#7ec9a8');
             dot(gameState.scuubas, '#e08a4c');
+            dot(gameState.smeebas, '#d9cdb8');
+            dot(gameState.snaavas, '#e8eef2');
             // current view rectangle
             const vw = canvas.width / cam.zoom, vh = canvas.height / cam.zoom;
             ctx.strokeStyle = '#ffe27a'; ctx.lineWidth = 1.5;
@@ -10241,7 +11137,337 @@
             }, 300);
         });
 
+        // ════════════════ Collapsible control sections ════════════════
+        // Wraps each "section-title" + its following content into a toggle-able panel.
+        // Touches no logic or IDs — purely a presentation layer over the existing markup.
+        function makeSectionsCollapsible() {
+            const panel = document.querySelector('.controls');
+            if (!panel) return;
+            // Sections that start collapsed to cut down the initial scroll (secondary panels)
+            const COLLAPSED_BY_DEFAULT = new Set([
+                'Terrain Editor', 'View (Zoom & Pan)', 'Weather Events', 'Population History',
+                'Gene Evolution', 'Event Log', 'Milestones', 'Deaths by Cause', 'Species Stats',
+                'Clocks', 'Legend', 'How it works', '🧪 Natural Selection'
+            ]);
+            let saved = {};
+            try { saved = JSON.parse(localStorage.getItem('yoyup_sections') || '{}'); } catch (e) { saved = {}; }
+
+            const titles = Array.from(panel.querySelectorAll('.section-title'));
+            titles.forEach(title => {
+                if (title.dataset.collapsibleDone) return;
+                const key = (title.textContent || '').trim();
+                // Gather siblings until the next section-title into a body wrapper
+                const body = document.createElement('div');
+                body.className = 'section-body';
+                let node = title.nextSibling;
+                const toMove = [];
+                while (node) {
+                    if (node.nodeType === 1 && node.classList && node.classList.contains('section-title')) break;
+                    toMove.push(node); node = node.nextSibling;
+                }
+                title.parentNode.insertBefore(body, title.nextSibling);
+                toMove.forEach(n => body.appendChild(n));
+                title.classList.add('collapsible');
+                title.dataset.collapsibleDone = '1';
+
+                const startCollapsed = (key in saved) ? saved[key] : COLLAPSED_BY_DEFAULT.has(key);
+                applyState(title, body, !startCollapsed, false);
+
+                title.addEventListener('click', () => {
+                    const nowCollapsed = !body.classList.contains('collapsed');
+                    applyState(title, body, !nowCollapsed, true);
+                    try {
+                        saved[key] = nowCollapsed;
+                        localStorage.setItem('yoyup_sections', JSON.stringify(saved));
+                    } catch (e) { /* private mode / sandbox — fine, just don't persist */ }
+                });
+            });
+
+            function applyState(title, body, expanded, animate) {
+                if (expanded) {
+                    title.classList.remove('collapsed');
+                    body.classList.remove('collapsed');
+                    if (animate) {
+                        body.style.overflow = 'hidden';
+                        body.style.maxHeight = body.scrollHeight + 'px';
+                        const done = () => { body.style.maxHeight = 'none'; body.style.overflow = 'visible'; body.removeEventListener('transitionend', done); };
+                        body.addEventListener('transitionend', done);
+                    } else {
+                        body.style.maxHeight = 'none';
+                        body.style.overflow = 'visible'; // let dropdown popups escape the panel
+                    }
+                } else {
+                    body.style.overflow = 'hidden';
+                    if (animate && body.style.maxHeight === 'none') {
+                        body.style.maxHeight = body.scrollHeight + 'px';
+                        void body.offsetHeight; // force reflow so the next change animates
+                    }
+                    body.style.maxHeight = '0px';
+                    title.classList.add('collapsed');
+                    body.classList.add('collapsed');
+                }
+            }
+        }
+
+        // Turns a native <select> (with <optgroup>s) into a custom dropdown whose category
+        // groups can be collapsed/expanded. The native <select> is kept (hidden) so every
+        // existing .value read and 'change' listener keeps working — we just mirror state to it.
+        function makeCollapsibleSelect(selectId) {
+            const sel = document.getElementById(selectId);
+            if (!sel || sel.dataset.cddDone) return;
+            sel.dataset.cddDone = '1';
+            sel.style.display = 'none';
+
+            const cdd = document.createElement('div');
+            cdd.className = 'cdd';
+            const btn = document.createElement('button');
+            btn.type = 'button'; btn.className = 'cdd-btn';
+            const panel = document.createElement('div');
+            panel.className = 'cdd-panel';
+            cdd.appendChild(btn); cdd.appendChild(panel);
+            sel.parentNode.insertBefore(cdd, sel.nextSibling);
+
+            const labelFor = (val) => {
+                const o = Array.from(sel.options).find(op => op.value === val);
+                return o ? o.textContent : '';
+            };
+            const refreshBtn = () => { btn.textContent = labelFor(sel.value) || 'Select…'; };
+
+            function choose(val) {
+                sel.value = val;
+                sel.dispatchEvent(new Event('change', { bubbles: true }));
+                refreshBtn();
+                panel.querySelectorAll('.cdd-item').forEach(it => it.classList.toggle('selected', it.dataset.value === val));
+                cdd.classList.remove('open');
+            }
+
+            const mkItem = (opt, ungrouped) => {
+                const it = document.createElement('div');
+                it.className = 'cdd-item' + (ungrouped ? ' ungrouped' : '');
+                it.dataset.value = opt.value;
+                it.textContent = opt.textContent;
+                if (opt.value === sel.value) it.classList.add('selected');
+                it.addEventListener('click', (e) => { e.stopPropagation(); choose(opt.value); });
+                return it;
+            };
+
+            // Build items, mirroring the select's structure (ungrouped options + optgroups)
+            Array.from(sel.children).forEach(child => {
+                if (child.tagName === 'OPTION') {
+                    panel.appendChild(mkItem(child, true));
+                } else if (child.tagName === 'OPTGROUP') {
+                    const group = document.createElement('div');
+                    group.className = 'cdd-group';
+                    const head = document.createElement('div');
+                    head.className = 'cdd-group-head';
+                    head.textContent = child.label.replace(/[─\s]+/g, ' ').trim();
+                    const items = document.createElement('div');
+                    items.className = 'cdd-items';
+                    let hasSelected = false;
+                    Array.from(child.children).forEach(opt => {
+                        if (opt.value === sel.value) hasSelected = true;
+                        items.appendChild(mkItem(opt, false));
+                    });
+                    group.appendChild(head); group.appendChild(items);
+                    // Groups start expanded so every option is visible; click a header to fold it
+                    head.addEventListener('click', (e) => { e.stopPropagation(); group.classList.toggle('collapsed'); });
+                    panel.appendChild(group);
+                }
+            });
+
+            refreshBtn();
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                // close any other open dropdowns
+                document.querySelectorAll('.cdd.open').forEach(o => { if (o !== cdd) o.classList.remove('open'); });
+                cdd.classList.toggle('open');
+            });
+            document.addEventListener('click', (e) => { if (!cdd.contains(e.target)) cdd.classList.remove('open'); });
+        }
+
+        // ════════════════ Onboarding / guided tour ════════════════
+        const TOUR_STEPS = [
+            { el: () => document.getElementById('canvas'), title: 'Your living world',
+              body: 'This is your world — creatures hunt, breed, age and evolve here in real time. Drag to pan, scroll to zoom. Everything you do happens on this canvas.' },
+            { sec: 'Controls', title: 'Control time',
+              body: 'Pause or play, and set the speed. Type any multiplier or tap a preset — crank it to 100×+ to watch generations fly by and evolution unfold fast.' },
+            { el: () => document.getElementById('resetBtn'), title: 'Reset & snapshot',
+              body: 'RESET rebuilds the world from your current settings. The 📷 button saves a PNG snapshot of the canvas to keep or share.' },
+            { el: () => document.getElementById('saveWorldBtn'), title: 'Save & load worlds',
+              body: 'Save World exports your entire world — every creature, gene, family tree and painted tile — to a file. Load World brings it all back later.' },
+            { el: () => document.getElementById('nsModeBtn'), title: 'Natural Selection Mode',
+              body: 'A built-in experiment: 25 safe creatures versus 100 hunted by a predator, split by uncrossable water. Watch the two groups\\u2019 genes diverge — natural selection in its purest form.' },
+            { sec: 'Scenarios', title: 'One-click worlds',
+              body: 'Drop into a ready-made situation — Ice Age, Predator Boom, Plague — or a just-watch spectacle like Frozen Tundra. Some are challenges with goals; others are pure spectacle.' },
+            { sec: 'Map View', title: 'Resize the world',
+              body: 'Choose the world\\u2019s shape and size — desktop, tablet or mobile aspect ratios. A bigger map supports bigger populations.' },
+            { sec: 'Click Action', title: 'Your click, your power',
+              body: 'Choose what a click does: inspect a creature, spawn any of 13 species, or wield god-tools like meteors, blessings, food drops and radiation zones.' },
+            { sec: 'Inspector', title: 'Inspect anything',
+              body: 'With Inspect chosen, click any creature to read its genes, age, hunger, health and family lineage — and even rename it or follow it with the camera.' },
+            { sec: 'Terrain Editor', title: 'Paint the land',
+              body: 'Sculpt the world by hand — paint grassland, forest, desert, tundra, water and more. Each biome has its own food, climate and creatures that thrive there.' },
+            { sec: 'View (Zoom & Pan)', title: 'Camera controls',
+              body: 'Zoom in and out, recentre, or fit the whole world on screen. Handy when you\\u2019ve zoomed in to follow one creature and want the big picture back.' },
+            { sec: 'Climate & Time', title: 'Shape the climate',
+              body: 'Shift the global temperature from frigid to scorching, and set how long days and seasons last. Cold worlds favour the cold-hardy; heat punishes them.' },
+            { sec: 'Weather Events', title: 'Unleash the weather',
+              body: 'Trigger heatwaves, storms, blizzards and tornadoes — or let them roll in automatically — and watch which creatures adapt and which perish.' },
+            { sec: 'Starting Populations', title: 'Build your own recipe',
+              body: 'Set how many of each species start out, from Seepas to arctic foxes. Tweak the mix, hit RESET, and see what kind of ecosystem emerges.' },
+            { sec: '🕸️ Live Food Web', title: 'See who eats whom',
+              body: 'A live diagram that pulses as predators strike. Tap a species to boost, cull or freeze it — a control panel for the whole ecosystem.' },
+            { sec: 'Population History', title: 'Track the rise & fall',
+              body: 'A running graph of every species\\u2019 numbers over time. Watch predator-prey cycles, booms and crashes play out as coloured lines.' },
+            { sec: 'Gene Evolution', title: 'Watch evolution happen',
+              body: 'Charts the average of each gene — speed, size, vision, resistance and more — drifting over generations. This is evolution made visible.' },
+            { sec: '🦠 Disease', title: 'Plagues & immunity',
+              body: 'Switch on disease to unleash contagion that spreads on contact. Survivors gain immunity, and over time the resistance gene evolves to fight it off.' },
+            { sec: 'Event Log', title: 'Keep score of it all',
+              body: 'The Event Log narrates births, deaths and disasters, while Milestones, Deaths by Cause and Species Stats below keep detailed tallies of your world\\u2019s story.' },
+            { el: () => document.getElementById('cinematicBtn'), title: 'Sit back & watch',
+              body: 'Cinematic Mode hides the interface and drifts the camera like a nature documentary. And that wraps the tour — now go build a world and watch it evolve!' }
+        ];
+        let onbIndex = 0;
+
+        function onbFindSectionTitle(text) {
+            const titles = document.querySelectorAll('.controls .section-title');
+            for (const t of titles) if ((t.textContent || '').trim() === text) return t;
+            return null;
+        }
+        function onbResolve(step) {
+            // Returns { rect, expanded } for the step's target
+            if (step.sec) {
+                const title = onbFindSectionTitle(step.sec);
+                if (!title) return null;
+                const body = title.nextElementSibling;
+                let expanded = false;
+                if (body && body.classList.contains('section-body') && body.classList.contains('collapsed')) {
+                    title.click(); expanded = true; // expand it so the user sees the content
+                }
+                title.scrollIntoView({ block: 'center' });
+                return { els: [title, body], expanded };
+            }
+            const el = step.el && step.el();
+            if (!el) return null;
+            el.scrollIntoView({ block: 'center' });
+            return { els: [el], expanded: false };
+        }
+        function onbUnionRect(els) {
+            let x1 = Infinity, y1 = Infinity, x2 = -Infinity, y2 = -Infinity;
+            for (const el of els) {
+                if (!el) continue;
+                const r = el.getBoundingClientRect();
+                if (r.width === 0 && r.height === 0) continue;
+                x1 = Math.min(x1, r.left); y1 = Math.min(y1, r.top);
+                x2 = Math.max(x2, r.right); y2 = Math.max(y2, r.bottom);
+            }
+            if (x1 === Infinity) return null;
+            return { left: x1, top: y1, width: x2 - x1, height: y2 - y1 };
+        }
+        function onbPlace(els) {
+            const spot = document.getElementById('onbSpot');
+            const tip = document.getElementById('onbTip');
+            const r = onbUnionRect(els);
+            if (!r) return;
+            const pad = 6;
+            const vw = window.innerWidth, vh = window.innerHeight;
+            const top = Math.max(4, r.top - pad), left = Math.max(4, r.left - pad);
+            const w = Math.min(vw - left - 4, r.width + pad * 2), h = Math.min(vh - top - 4, r.height + pad * 2);
+            spot.style.top = top + 'px'; spot.style.left = left + 'px';
+            spot.style.width = w + 'px'; spot.style.height = h + 'px';
+            spot.classList.add('show');
+
+            // Place the tooltip beside the spotlight, flipping to wherever there's room
+            tip.classList.add('show');
+            const tw = tip.offsetWidth || 290, th = tip.offsetHeight || 160;
+            let tLeft, tTop;
+            const spotCenterX = left + w / 2;
+            if (left > tw + 24) {                 // room on the left
+                tLeft = left - tw - 16; tTop = top;
+            } else if (vw - (left + w) > tw + 24) { // room on the right
+                tLeft = left + w + 16; tTop = top;
+            } else if (top > th + 24) {            // above
+                tLeft = Math.min(Math.max(8, spotCenterX - tw / 2), vw - tw - 8); tTop = top - th - 14;
+            } else {                               // below
+                tLeft = Math.min(Math.max(8, spotCenterX - tw / 2), vw - tw - 8); tTop = top + h + 14;
+            }
+            tTop = Math.min(Math.max(8, tTop), vh - th - 8);
+            tip.style.left = tLeft + 'px'; tip.style.top = tTop + 'px';
+        }
+        function onbShowStep(i) {
+            onbIndex = Math.max(0, Math.min(TOUR_STEPS.length - 1, i));
+            const step = TOUR_STEPS[onbIndex];
+            const res = onbResolve(step);
+            document.getElementById('onbStepCount').textContent = 'Step ' + (onbIndex + 1) + ' of ' + TOUR_STEPS.length;
+            document.getElementById('onbTipTitle').textContent = step.title;
+            document.getElementById('onbTipBody').textContent = step.body;
+            document.getElementById('onbBack').style.visibility = onbIndex === 0 ? 'hidden' : 'visible';
+            document.getElementById('onbNext').textContent = onbIndex === TOUR_STEPS.length - 1 ? 'Finish' : 'Next';
+            // dots
+            const dots = document.getElementById('onbDots');
+            dots.innerHTML = '';
+            for (let d = 0; d < TOUR_STEPS.length; d++) {
+                const dot = document.createElement('div');
+                dot.className = 'onb-dot' + (d === onbIndex ? ' active' : '');
+                dots.appendChild(dot);
+            }
+            if (res) {
+                requestAnimationFrame(() => onbPlace(res.els));
+                if (res.expanded) setTimeout(() => onbPlace(res.els), 340); // after the expand animation
+            }
+        }
+        function onbStartTour() {
+            document.getElementById('onbWelcome').classList.remove('show');
+            onbMarkSeen();
+            onbShowStep(0);
+        }
+        function onbEndTour() {
+            document.getElementById('onbSpot').classList.remove('show');
+            document.getElementById('onbTip').classList.remove('show');
+        }
+        function onbShowWelcome() {
+            document.getElementById('onbWelcome').classList.add('show');
+        }
+        function onbMarkSeen() {
+            try { localStorage.setItem('yoyup_onboarded', '1'); } catch (e) {}
+        }
+        function onbHasSeen() {
+            try { return localStorage.getItem('yoyup_onboarded') === '1'; } catch (e) { return false; }
+        }
+        function setupOnboarding() {
+            document.getElementById('helpBtn').addEventListener('click', onbShowWelcome);
+            document.getElementById('onbStartTour').addEventListener('click', onbStartTour);
+            document.getElementById('onbSkipWelcome').addEventListener('click', () => {
+                document.getElementById('onbWelcome').classList.remove('show'); onbMarkSeen();
+            });
+            document.getElementById('onbNext').addEventListener('click', () => {
+                if (onbIndex === TOUR_STEPS.length - 1) onbEndTour();
+                else onbShowStep(onbIndex + 1);
+            });
+            document.getElementById('onbBack').addEventListener('click', () => onbShowStep(onbIndex - 1));
+            document.getElementById('onbEndTour').addEventListener('click', onbEndTour);
+            document.addEventListener('keydown', (e) => {
+                if (document.getElementById('onbTip').classList.contains('show')) {
+                    if (e.key === 'Escape') onbEndTour();
+                    else if (e.key === 'ArrowRight') { if (onbIndex < TOUR_STEPS.length - 1) onbShowStep(onbIndex + 1); else onbEndTour(); }
+                    else if (e.key === 'ArrowLeft') onbShowStep(onbIndex - 1);
+                }
+            });
+            window.addEventListener('resize', () => {
+                if (document.getElementById('onbTip').classList.contains('show')) {
+                    const res = onbResolve(TOUR_STEPS[onbIndex]); if (res) onbPlace(res.els);
+                }
+            });
+            // First visit → auto-show the welcome card
+            if (!onbHasSeen()) setTimeout(onbShowWelcome, 700);
+        }
+
         // Start the game
+        makeSectionsCollapsible();
+        makeCollapsibleSelect('scenarioSelect');
+        makeCollapsibleSelect('clickModeSelect');
+        setupOnboarding();
         applyView('auto');
         init();
         updateStats();
